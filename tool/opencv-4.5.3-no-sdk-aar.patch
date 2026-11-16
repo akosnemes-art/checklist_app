@@ -1,0 +1,14 @@
+--- a/modules/java/android_sdk/CMakeLists.txt
++++ b/modules/java/android_sdk/CMakeLists.txt
+@@ -148,7 +148,10 @@ add_custom_command(
+ )
+ file(REMOVE "${OPENCV_DEPHELPER}/${the_module}_android")  # force rebuild after CMake run
+ 
+-add_custom_target(${the_module}_android ALL DEPENDS "${OPENCV_DEPHELPER}/${the_module}_android" SOURCES "${__base_dir}/${ANDROID_MANIFEST_FILE}")
++# CHECKLIST consumes the generated JNI library and an existing Java wrapper
++# AAR. Do not force the obsolete SDK sample AAR into the native install target.
++add_custom_target(${the_module}_android DEPENDS "${OPENCV_DEPHELPER}/${the_module}_android"
++                  SOURCES "${__base_dir}/${ANDROID_MANIFEST_FILE}")
+ 
+ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/build.gradle.in" "${ANDROID_TMP_INSTALL_BASE_DIR}/opencv/build.gradle" @ONLY)
+ install(FILES "${ANDROID_TMP_INSTALL_BASE_DIR}/opencv/build.gradle" DESTINATION ${JAVA_INSTALL_ROOT}/.. COMPONENT java)
