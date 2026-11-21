@@ -13,7 +13,7 @@ void main() {
       (tester) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
-      'checklist.lastSeenVersion.v1': '0.4.3+26',
+      'checklist.lastSeenVersion.v1': '0.4.8+33',
     });
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     tester.view.physicalSize = const Size(1200, 800);
@@ -79,7 +79,7 @@ void main() {
   testWidgets('picture button remains Android-only', (tester) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
-      'checklist.lastSeenVersion.v1': '0.4.3+26',
+      'checklist.lastSeenVersion.v1': '0.4.8+33',
       'checklist.notes.v1':
           '[{"id":"note-1","name":"Linux note","createdAt":"2026-11-12T10:00:00.000Z","content":"","categoryId":null}]',
       'checklist.selectedNote.v1': 'note-1',

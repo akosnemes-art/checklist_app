@@ -16,3 +16,5 @@ android/local.properties
 CHECKLIST log*.txt
 Checklist App
 Le-Petit-Prince-sq-*.jpg
+# Widget Preview related
+.widget_preview/

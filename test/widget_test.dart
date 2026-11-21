@@ -61,8 +61,9 @@ class _ImageFilePicker extends FilePickerPlatform {
 }
 
 void main() {
-  testWidgets('checklist launches with a dated starter checklist',
-      (tester) async {
+  testWidgets('checklist launches with a dated starter checklist', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -70,9 +71,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(
-      tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
-    );
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
     await tester.pumpWidget(const ChecklistApp());
     await tester.pumpAndSettle();
@@ -102,6 +101,14 @@ void main() {
       ),
       findsNothing,
     );
+    final checkAlignment = tester.widget<Align>(
+      find.byKey(const ValueKey('selected-mode-check-alignment')),
+    );
+    expect(checkAlignment.alignment, Alignment.center);
+    final checkOffset = tester.widget<Transform>(
+      find.byKey(const ValueKey('selected-mode-check-offset')),
+    );
+    expect(checkOffset.transform.storage[13], -1.5);
     final checklistSidebar = tester.widget<AnimatedContainer>(
       find.byKey(const ValueKey('sidebar-surface')),
     );
@@ -184,13 +191,15 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('checklist reminder opens from sidebar and stays with selection',
-      (tester) async {
+  testWidgets('light mode uses warm grey surfaces and black progress', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
+      'checklist.darkMode.v1': false,
       'checklist.projects.v1':
-          '[{"id":"reminder-project","name":"Remember me","createdAt":"2026-11-13T10:00:00.000Z","importance":"normal","coverImagePath":null,"tasks":[]}]',
-      'checklist.selectedProject.v1': 'reminder-project',
+          '[{"id":"light","name":"Light greys","createdAt":"2026-11-20T10:00:00.000Z","importance":"normal","coverImagePath":null,"tasks":[{"id":"done","text":"Black text","isDone":true},{"id":"open","text":"Cold lines","isDone":false}]}]',
+      'checklist.selectedProject.v1': 'light',
     });
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -200,96 +209,152 @@ void main() {
     await tester.pumpWidget(const ChecklistApp());
     await tester.pumpAndSettle();
 
-    final reminderButton = find.byKey(
-      const ValueKey('checklist-reminder-button'),
+    final theme = Theme.of(tester.element(find.byType(Scaffold).first));
+    expect(theme.scaffoldBackgroundColor, const Color(0xFFF7F5F2));
+    expect(theme.colorScheme.surface, const Color(0xFFE7E6E3));
+    expect(theme.dividerColor, const Color(0xFF858C94));
+    expect(theme.colorScheme.onSurface, const Color(0xFF101010));
+    final progress = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator),
     );
-    expect(reminderButton, findsOneWidget);
+    expect(progress.color, const Color(0xFF101010));
+    expect(progress.backgroundColor, const Color(0xFFD8D8D6));
     expect(
-      find.descendant(
-        of: reminderButton,
-        matching: find.byIcon(Icons.calendar_month_outlined),
-      ),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.byKey(const ValueKey('sidebar-checklist-settings')));
-    await tester.pumpAndSettle();
-    final reminderMenuItem = find.widgetWithText(
-      PopupMenuItem<String>,
-      'reminder',
-    );
-    expect(reminderMenuItem, findsOneWidget);
-    await tester.tap(reminderMenuItem);
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('checklist-reminder-dialog')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('checklist-reminder-calendar')),
-      findsOneWidget,
-    );
-    expect(find.text('Remember me'), findsWidgets);
-    await tester.tap(find.byKey(const ValueKey('save-checklist-reminder')));
-    await tester.pumpAndSettle();
-
-    final preferences = await SharedPreferences.getInstance();
-    expect(
-      preferences.getString('checklist.projects.v1'),
-      contains('"reminderAt":"'),
-    );
-    expect(
-      find.descendant(
-        of: reminderButton,
-        matching: find.byIcon(Icons.event_available_outlined),
-      ),
-      findsOneWidget,
-    );
-
-    await tester.tap(reminderButton);
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('remove-checklist-reminder')),
-      findsOneWidget,
-    );
-    final reminderDialog = find.byKey(
-      const ValueKey('checklist-reminder-dialog'),
-    );
-    final cancelButton = find.descendant(
-      of: reminderDialog,
-      matching: find.widgetWithText(TextButton, 'cancel'),
-    );
-    final removeButton = find.byKey(
-      const ValueKey('remove-checklist-reminder'),
-    );
-    final saveButton = find.byKey(
-      const ValueKey('save-checklist-reminder'),
-    );
-    expect(
-        tester.getCenter(cancelButton).dy, tester.getCenter(removeButton).dy);
-    expect(tester.getCenter(removeButton).dy, tester.getCenter(saveButton).dy);
-    expect(find.text('remove reminder'), findsNothing);
-    await tester.tap(
-      removeButton,
-    );
-    await tester.pumpAndSettle();
-    expect(
-      preferences.getString('checklist.projects.v1'),
-      contains('"reminderAt":null'),
-    );
-    expect(
-      find.descendant(
-        of: reminderButton,
-        matching: find.byIcon(Icons.calendar_month_outlined),
-      ),
-      findsOneWidget,
+      (tester
+              .widget<AnimatedContainer>(
+                find.byKey(const ValueKey('sidebar-surface')),
+              )
+              .decoration! as BoxDecoration)
+          .color,
+      const Color(0xFFD5D4D1),
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('reminder bells are white when upcoming and grey when past',
-      (tester) async {
+  testWidgets(
+    'checklist reminder opens from sidebar and stays with selection',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'checklist.welcome.v1': true,
+        'checklist.projects.v1':
+            '[{"id":"reminder-project","name":"Remember me","createdAt":"2026-11-13T10:00:00.000Z","importance":"normal","coverImagePath":null,"tasks":[]}]',
+        'checklist.selectedProject.v1': 'reminder-project',
+      });
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(const ChecklistApp());
+      await tester.pumpAndSettle();
+
+      final reminderButton = find.byKey(
+        const ValueKey('checklist-reminder-button'),
+      );
+      expect(reminderButton, findsOneWidget);
+      expect(
+        find.descendant(
+          of: reminderButton,
+          matching: find.byIcon(Icons.calendar_month_outlined),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('sidebar-checklist-settings')),
+      );
+      await tester.pumpAndSettle();
+      final reminderMenuItem = find.widgetWithText(
+        PopupMenuItem<String>,
+        'reminder',
+      );
+      expect(reminderMenuItem, findsOneWidget);
+      await tester.tap(reminderMenuItem);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('checklist-reminder-dialog')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('checklist-reminder-calendar')),
+        findsOneWidget,
+      );
+      final reminderDialog = find.byKey(
+        const ValueKey('checklist-reminder-dialog'),
+      );
+      final reminderTitle = tester.widget<Text>(
+        find.descendant(of: reminderDialog, matching: find.text('reminder')),
+      );
+      expect(reminderTitle.style?.fontWeight, FontWeight.w700);
+      final dialogShape = Theme.of(tester.element(reminderDialog))
+          .dialogTheme
+          .shape! as RoundedRectangleBorder;
+      expect(dialogShape.side.color, const Color(0xFF5A9BFF));
+      expect(dialogShape.side.width, 2);
+      expect(find.text('Remember me'), findsWidgets);
+      await tester.tap(find.byKey(const ValueKey('save-checklist-reminder')));
+      await tester.pumpAndSettle();
+
+      final preferences = await SharedPreferences.getInstance();
+      expect(
+        preferences.getString('checklist.projects.v1'),
+        contains('"reminderAt":"'),
+      );
+      expect(
+        find.descendant(
+          of: reminderButton,
+          matching: find.byIcon(Icons.event_available_outlined),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(reminderButton);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('remove-checklist-reminder')),
+        findsOneWidget,
+      );
+      final openReminderDialog = find.byKey(
+        const ValueKey('checklist-reminder-dialog'),
+      );
+      final cancelButton = find.descendant(
+        of: openReminderDialog,
+        matching: find.widgetWithText(TextButton, 'cancel'),
+      );
+      final removeButton = find.byKey(
+        const ValueKey('remove-checklist-reminder'),
+      );
+      final saveButton = find.byKey(const ValueKey('save-checklist-reminder'));
+      expect(
+        tester.getCenter(cancelButton).dy,
+        tester.getCenter(removeButton).dy,
+      );
+      expect(
+        tester.getCenter(removeButton).dy,
+        tester.getCenter(saveButton).dy,
+      );
+      expect(find.text('remove reminder'), findsNothing);
+      await tester.tap(removeButton);
+      await tester.pumpAndSettle();
+      expect(
+        preferences.getString('checklist.projects.v1'),
+        contains('"reminderAt":null'),
+      );
+      expect(
+        find.descendant(
+          of: reminderButton,
+          matching: find.byIcon(Icons.calendar_month_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('reminder bells are white when upcoming and grey when past', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
       'checklist.projects.v1':
@@ -330,9 +395,7 @@ void main() {
       tester.getTopLeft(settings).dx -
           tester
               .getTopRight(
-                find.byKey(
-                  const ValueKey('checklist-reminder-bell-upcoming'),
-                ),
+                find.byKey(const ValueKey('checklist-reminder-bell-upcoming')),
               )
               .dx,
       2,
@@ -340,8 +403,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('cover choices use matching framed camera and crop ratios',
-      (tester) async {
+  testWidgets('cover choices use matching framed camera and crop ratios', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -367,10 +431,7 @@ void main() {
     expect(cameraFrame, findsOneWidget);
     expect(tester.widget<AspectRatio>(cameraFrame).aspectRatio, 16 / 9);
     final cameraDecoration = tester.widget<DecoratedBox>(
-      find.descendant(
-        of: cameraFrame,
-        matching: find.byType(DecoratedBox),
-      ),
+      find.descendant(of: cameraFrame, matching: find.byType(DecoratedBox)),
     );
     expect(
       (cameraDecoration.decoration as BoxDecoration).border,
@@ -417,7 +478,9 @@ void main() {
   });
 
   testWidgets('cover remove button hides after two seconds and tap reveals it',
-      (tester) async {
+      (
+    tester,
+  ) async {
     final coverPath = File('Checklist_app_logo.png').absolute.path;
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
@@ -455,8 +518,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Android task composer omits the done instruction',
-      (tester) async {
+  testWidgets('Android task composer omits the done instruction', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -476,8 +540,9 @@ void main() {
     expect(find.textContaining('tap done to add'), findsNothing);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('tasks link to notes and open a scrollable note popup',
-      (tester) async {
+  testWidgets('tasks link to notes and open a scrollable note popup', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
       'checklist.projects.v1':
@@ -512,26 +577,48 @@ void main() {
     final noteIcon = tester.widget<Icon>(
       find.byKey(const ValueKey('task-note-icon-task-1')),
     );
+    expect(noteIcon.icon, Icons.sticky_note_2_rounded);
     expect(noteIcon.color, const Color(0xFF5A9BFF));
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('task-note-button-task-1')))
+          .dy,
+      greaterThanOrEqualTo(tester.getBottomLeft(checkbox).dy),
+    );
     final preferences = await SharedPreferences.getInstance();
     expect(
       preferences.getString('checklist.projects.v1'),
       contains('"linkedNoteId":"note-1"'),
     );
 
-    await tester.tap(find.byKey(const ValueKey('task-note-opener-task-1')));
+    await tester.tap(find.byKey(const ValueKey('task-note-button-task-1')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      tester
+          .widget<Icon>(find.byKey(const ValueKey('task-note-icon-task-1')))
+          .color,
+      const Color(0xFF922FD0),
+    );
+    expect(find.byKey(const ValueKey('task-linked-note-dialog')), findsNothing);
+    await tester.pump(const Duration(milliseconds: 50));
     await tester.pumpAndSettle();
     expect(
-        find.byKey(const ValueKey('task-linked-note-dialog')), findsOneWidget);
+      find.byKey(const ValueKey('task-linked-note-dialog')),
+      findsOneWidget,
+    );
     expect(
-        find.byKey(const ValueKey('task-linked-note-scroll')), findsOneWidget);
+      find.byKey(const ValueKey('task-linked-note-scroll')),
+      findsOneWidget,
+    );
     expect(find.text('Useful note'), findsOneWidget);
     expect(find.textContaining('A long note body'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('wordmark switches layouts and appearance only uses the switch',
-      (tester) async {
+  testWidgets('wordmark switches layouts and settings changes themes', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -589,18 +676,163 @@ void main() {
       const Color(0xFF0B1D3B),
     );
 
-    await tester.tap(find.text('dark'));
-    await tester.pumpAndSettle();
-    expect(find.text('dark'), findsOneWidget);
+    expect(find.text('dark'), findsNothing);
+    expect(find.text('light'), findsNothing);
+    expect(find.byKey(const ValueKey('appearance-switch')), findsNothing);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('settings-expanding-line')))
+          .width,
+      248,
+    );
 
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byKey(const ValueKey('settings-toggle')));
     await tester.pumpAndSettle();
-    expect(find.text('light'), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings-main')), findsOneWidget);
+    expect(find.text('themes'), findsOneWidget);
+    expect(find.text('language'), findsOneWidget);
+    expect(find.text('import / export'), findsOneWidget);
+    expect(find.text('about'), findsOneWidget);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('settings-expanding-line')))
+          .width,
+      248,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('settings-themes')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('settings-main')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('settings-theme-choices')),
+      findsOneWidget,
+    );
+    expect(find.text('Boi'), findsOneWidget);
+    expect(find.text('Pencil'), findsOneWidget);
+    expect(find.text('Pastel'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('theme-pencil')));
+    await tester.pumpAndSettle();
+    var modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
+    expect(modeTheme.scaffoldBackgroundColor, const Color(0xFFF7F5F2));
+    await tester.tap(find.bySemanticsLabel('CHECKLIST'));
+    await tester.pumpAndSettle();
+    final pencilMediumChip = tester.widget<Container>(
+      find.byKey(const ValueKey('priority-chip-normal')),
+    );
+    expect(
+      (pencilMediumChip.decoration! as BoxDecoration).border!.top.color,
+      const Color(0xFF64696A),
+    );
+    await tester.tap(find.byKey(const ValueKey('priority-chip-normal')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Container>(find.byKey(const ValueKey('priority-menu-high')))
+          .color,
+      const Color(0xFF0E2F44),
+    );
+    expect(
+      tester
+          .widget<Container>(find.byKey(const ValueKey('priority-menu-normal')))
+          .color,
+      const Color(0xFF64696A),
+    );
+    expect(
+      tester
+          .widget<Container>(find.byKey(const ValueKey('priority-menu-low')))
+          .color,
+      const Color(0xFF999999),
+    );
+    await tester.tapAt(const Offset(1100, 700));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('NOTES'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('theme-pastel')));
+    await tester.pumpAndSettle();
+    modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
+    expect(modeTheme.scaffoldBackgroundColor, const Color(0xFFFBDCC4));
+    expect(modeTheme.colorScheme.surface, const Color(0xFFFFFFFF));
+    expect(modeTheme.colorScheme.secondary, const Color(0xFFF8F2C8));
+    expect(modeTheme.dividerColor, const Color(0xFFC7B0B8));
+    final pastelSidebar = tester.widget<AnimatedContainer>(
+      find.byKey(const ValueKey('sidebar-surface')),
+    );
+    expect(
+      (pastelSidebar.decoration! as BoxDecoration).color,
+      const Color(0xFFC7B0B8),
+    );
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('checklist.theme.v1'), 'pastel');
+
+    await tester.tap(find.bySemanticsLabel('CHECKLIST'));
+    await tester.pumpAndSettle();
+    final mediumChip = tester.widget<Container>(
+      find.byKey(const ValueKey('priority-chip-normal')),
+    );
+    expect(
+      (mediumChip.decoration! as BoxDecoration).border!.top.color,
+      const Color(0xFF00978D),
+    );
+    await tester.tap(find.byKey(const ValueKey('priority-chip-normal')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Container>(find.byKey(const ValueKey('priority-menu-high')))
+          .color,
+      const Color(0xFFE31F26),
+    );
+    expect(
+      tester
+          .widget<Container>(find.byKey(const ValueKey('priority-menu-normal')))
+          .color,
+      const Color(0xFF00978D),
+    );
+    expect(
+      tester
+          .widget<Container>(find.byKey(const ValueKey('priority-menu-low')))
+          .color,
+      const Color(0xFFB5B1D8),
+    );
+    await tester.tapAt(const Offset(1100, 700));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('settings-back')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-language')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('settings-language-page')),
+      findsOneWidget,
+    );
+    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Hungarian'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('language-hungarian')));
+    await tester.pumpAndSettle();
+    expect(find.text('Magyar'), findsOneWidget);
+    expect(preferences.getString('checklist.language.v1'), 'hungarian');
+    await tester.tap(find.byKey(const ValueKey('settings-back')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-backup')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('settings-backup-page')), findsOneWidget);
+    expect(find.text('adatok exportálása'), findsOneWidget);
+    expect(find.text('adatok importálása'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('settings-back')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-about')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('settings-about-page')), findsOneWidget);
+    expect(find.textContaining('CHECKLIST 0.4.8'), findsOneWidget);
+    expect(find.textContaining('Ákos Nemes'), findsOneWidget);
+    expect(find.text('akosnemes@proton.me'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('seven hidden taps toggle the persisted heart animation',
-      (tester) async {
+  testWidgets('seven hidden taps toggle the persisted heart animation', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -627,8 +859,252 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('sort button offers A-Z, date, and priority choices',
-      (tester) async {
+  testWidgets('three middle taps show version features and maker credits', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const ChecklistApp());
+    await tester.pumpAndSettle();
+    final trigger = find.byKey(const ValueKey('heart-animation-trigger'));
+    await tester.tap(trigger);
+    await tester.tap(trigger);
+    await tester.tap(trigger);
+    await tester.pump(const Duration(milliseconds: 455));
+
+    expect(find.byKey(const ValueKey('version-info-dialog')), findsOneWidget);
+    expect(find.text('CHECKLIST 0.4.8'), findsOneWidget);
+    expect(find.text('build 33'), findsOneWidget);
+    expect(find.textContaining('note formatting render'), findsOneWidget);
+    expect(find.text('Makers: Ákos Nemes · Codex AI'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('note formatting renders and selection tools stay borderless', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'checklist.welcome.v1': true,
+      'checklist.notes.v1':
+          '[{"id":"note-format","name":"Format me","createdAt":"2026-11-20T10:00:00.000Z","content":"word","categoryId":null}]',
+      'checklist.selectedNote.v1': 'note-format',
+    });
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const ChecklistApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('NOTES'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('note-format-toolbar')), findsOneWidget);
+    for (final name in ['bold', 'italic', 'underline']) {
+      final button = tester.widget<IconButton>(
+        find.byKey(ValueKey('note-format-$name')),
+      );
+      expect(button.style?.side?.resolve({}), BorderSide.none);
+      expect(
+        button.style?.foregroundColor?.resolve({}),
+        const Color(0xFF5A9BFF),
+      );
+    }
+
+    final editorFinder = find.byKey(const ValueKey('note-content-field'));
+    final editor = tester.widget<TextField>(editorFinder);
+    editor.controller!.selection = const TextSelection(
+      baseOffset: 0,
+      extentOffset: 4,
+    );
+    await tester.tap(find.byKey(const ValueKey('note-format-bold')));
+    await tester.pump();
+    expect(editor.controller!.text, '\uE000word\uE001');
+    final bold = tester.widget<IconButton>(
+      find.byKey(const ValueKey('note-format-bold')),
+    );
+    expect(bold.style?.foregroundColor?.resolve({}), const Color(0xFFF3ED23));
+
+    editor.controller!.selection = const TextSelection(
+      baseOffset: 1,
+      extentOffset: 5,
+    );
+    await tester.tap(find.byKey(const ValueKey('note-format-italic')));
+    await tester.pump();
+    editor.controller!.selection = const TextSelection(
+      baseOffset: 2,
+      extentOffset: 6,
+    );
+    await tester.tap(find.byKey(const ValueKey('note-format-underline')));
+    await tester.pump();
+    final rendered = editor.controller!.buildTextSpan(
+      context: tester.element(editorFinder),
+      style: const TextStyle(),
+      withComposing: false,
+    );
+    final wordSpan = rendered.children!.whereType<TextSpan>().firstWhere(
+          (span) => span.text == 'word',
+        );
+    expect(wordSpan.style?.fontWeight, FontWeight.w700);
+    expect(wordSpan.style?.fontStyle, FontStyle.italic);
+    expect(wordSpan.style?.decoration, TextDecoration.underline);
+
+    final editableState = tester.state<EditableTextState>(
+      find.descendant(of: editorFinder, matching: find.byType(EditableText)),
+    );
+    editableState.widget.focusNode.requestFocus();
+    editor.controller!.selection = const TextSelection(
+      baseOffset: 3,
+      extentOffset: 7,
+    );
+    await tester.pump();
+    final selectionToolbar = editor.contextMenuBuilder!(
+      tester.element(editorFinder),
+      editableState,
+    ) as TextSelectionToolbar;
+    expect(
+      selectionToolbar.key,
+      const ValueKey('note-selection-toolbar'),
+    );
+    final toolbarSurface = selectionToolbar.toolbarBuilder(
+      tester.element(editorFinder),
+      const SizedBox(),
+    ) as Material;
+    expect(
+        toolbarSurface.key, const ValueKey('note-selection-toolbar-surface'));
+    expect(
+      (toolbarSurface.shape! as RoundedRectangleBorder).side,
+      BorderSide.none,
+    );
+    expect(
+      selectionToolbar.children.map((button) => button.key),
+      containsAll(const [
+        ValueKey('note-selection-format-bold'),
+        ValueKey('note-selection-format-italic'),
+        ValueKey('note-selection-format-underline'),
+      ]),
+    );
+
+    editor.controller!.value = const TextEditingValue(
+      selection: TextSelection.collapsed(offset: 0),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('note-format-bold')));
+    await tester.pump();
+    expect(editor.controller!.text, '\uE000\uE001');
+    expect(editor.controller!.selection.extentOffset, 1);
+    editor.controller!.value = const TextEditingValue(
+      text: '\uE000x\uE001',
+      selection: TextSelection.collapsed(offset: 2),
+    );
+    await tester.pump();
+    final typedSpan = editor.controller!.buildTextSpan(
+      context: tester.element(editorFinder),
+      style: const TextStyle(),
+      withComposing: false,
+    );
+    expect(
+      typedSpan.children!
+          .whereType<TextSpan>()
+          .firstWhere((span) => span.text == 'x')
+          .style
+          ?.fontWeight,
+      FontWeight.w700,
+    );
+    await tester.tap(find.byKey(const ValueKey('note-format-bold')));
+    await tester.pump();
+    expect(editor.controller!.selection.extentOffset, 3);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('note-format-bold')),
+          )
+          .style
+          ?.foregroundColor
+          ?.resolve({}),
+      const Color(0xFF5A9BFF),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getString('checklist.notes.v1'),
+      contains('\uE000x\uE001'),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a 140 ms hold on task text reprioritises checklist items', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'checklist.welcome.v1': true,
+      'checklist.projects.v1':
+          '[{"id":"reorder","name":"Order","createdAt":"2026-11-20T10:00:00.000Z","importance":"normal","coverImagePath":null,"tasks":[{"id":"first","text":"First","isDone":false},{"id":"second","text":"Second","isDone":false},{"id":"third","text":"Third","isDone":false}]}]',
+      'checklist.selectedProject.v1': 'reorder',
+    });
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const ChecklistApp());
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.drag_indicator_rounded), findsNothing);
+    expect(
+      find.byKey(const ValueKey('task-reorder-area-third')),
+      findsOneWidget,
+    );
+
+    final thirdCheckbox = find.byKey(const ValueKey('task-checkbox-third'));
+    await tester.tap(thirdCheckbox);
+    await tester.pumpAndSettle();
+    var preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getString('checklist.projects.v1'),
+      contains('"text":"Third","isDone":true'),
+    );
+    await tester.tap(thirdCheckbox);
+    await tester.pumpAndSettle();
+
+    final checkboxGesture = await tester.startGesture(
+      tester.getCenter(thirdCheckbox),
+    );
+    await tester.pump(const Duration(milliseconds: 141));
+    await checkboxGesture.moveTo(tester.getCenter(find.text('First')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await checkboxGesture.up();
+    await tester.pumpAndSettle();
+    preferences = await SharedPreferences.getInstance();
+    var saved = preferences.getString('checklist.projects.v1')!;
+    expect(saved.indexOf('Third'), greaterThan(saved.indexOf('First')));
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Third')),
+    );
+    await tester.pump(const Duration(milliseconds: 139));
+    await tester.pump(const Duration(milliseconds: 2));
+    await gesture.moveTo(tester.getCenter(find.text('First')));
+    await tester.pump(const Duration(milliseconds: 500));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    preferences = await SharedPreferences.getInstance();
+    saved = preferences.getString('checklist.projects.v1')!;
+    expect(saved.indexOf('Third'), lessThan(saved.indexOf('First')));
+    expect(
+      tester.getTopLeft(find.text('Third')).dy,
+      lessThan(tester.getTopLeft(find.text('First')).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sort button offers A-Z, date, and priority choices', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -636,9 +1112,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(
-      tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
-    );
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
     await tester.pumpWidget(const ChecklistApp());
     await tester.pumpAndSettle();
@@ -653,8 +1127,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('new checklist priorities share one coloured row',
-      (tester) async {
+  testWidgets('new checklist has a neutral name field and medium priority', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -666,36 +1141,47 @@ void main() {
     await tester.tap(find.text('new checklist'));
     await tester.pumpAndSettle();
 
-    final low = find.widgetWithText(ChoiceChip, 'low');
-    final medium = find.widgetWithText(ChoiceChip, 'medium');
-    final high = find.widgetWithText(ChoiceChip, 'high');
-    expect(find.text('name it'), findsOneWidget);
-    expect(find.text('priority'), findsOneWidget);
-    expect(tester.getCenter(low).dy, tester.getCenter(medium).dy);
-    expect(tester.getCenter(medium).dy, tester.getCenter(high).dy);
-    final priorityGap =
-        tester.getTopLeft(medium).dx - tester.getTopRight(low).dx;
-    final actionGap =
-        tester.getTopLeft(find.widgetWithText(FilledButton, 'create')).dx -
-            tester.getTopRight(find.widgetWithText(TextButton, 'cancel')).dx;
-    expect(priorityGap, actionGap);
+    expect(find.text('name it'), findsNothing);
+    expect(find.text('priority'), findsNothing);
+    expect(find.byType(ChoiceChip), findsNothing);
+    final dialogField = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+    final nameField = tester.widget<TextField>(dialogField);
+    expect(nameField.decoration?.hintText, 'checklist name');
+    expect(nameField.decoration?.hintStyle?.color, const Color(0xFF9AA0AA));
 
-    final lowChip = tester.widget<ChoiceChip>(low);
-    final mediumChip = tester.widget<ChoiceChip>(medium);
-    expect(lowChip.selected, isFalse);
-    expect(lowChip.backgroundColor, const Color(0xFF55505B));
-    expect(mediumChip.selected, isTrue);
-    expect(mediumChip.selectedColor, const Color(0xFF922FD0));
-
-    await tester.tap(high);
-    await tester.pumpAndSettle();
+    await tester.enterText(dialogField, 'Neutral checklist');
+    final create = find.byKey(const ValueKey('create-checklist'));
+    final normalButton = tester.widget<FilledButton>(
+      find.descendant(of: create, matching: find.byType(FilledButton)),
+    );
+    final normalColour = normalButton.style?.backgroundColor?.resolve({});
+    await tester.tap(create);
+    await tester.pump();
+    final brightButton = tester.widget<FilledButton>(
+      find.descendant(of: create, matching: find.byType(FilledButton)),
+    );
     expect(
-        tester.widget<ChoiceChip>(high).selectedColor, const Color(0xFFF3ED23));
+      brightButton.style?.backgroundColor?.resolve({}),
+      isNot(normalColour),
+    );
+    await tester.pump(const Duration(milliseconds: 59));
+    expect(find.text('Neutral checklist'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Neutral checklist'), findsWidgets);
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getString('checklist.projects.v1'),
+      contains('"importance":"normal"'),
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('mobile drawer stays open across modes and opens by edge swipe',
-      (tester) async {
+  testWidgets('mobile drawer stays open across modes and opens by edge swipe', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -703,9 +1189,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
-    addTearDown(
-      tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
-    );
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
     await tester.pumpWidget(const ChecklistApp());
     await tester.pumpAndSettle();
@@ -722,8 +1206,10 @@ void main() {
     final filterFrame = find.byKey(const ValueKey('sidebar-filter-frame'));
     final brandCheck = find.byIcon(Icons.check_rounded);
     final brandText = find.text('CHECKLIST');
-    final newChecklistButton =
-        find.widgetWithText(FilledButton, 'new checklist');
+    final newChecklistButton = find.widgetWithText(
+      FilledButton,
+      'new checklist',
+    );
     expect(wordmark, findsOneWidget);
     expect(brandCheck, findsOneWidget);
     expect(tester.getTopLeft(brandText).dy, greaterThanOrEqualTo(55));
@@ -775,144 +1261,141 @@ void main() {
   });
 
   testWidgets(
-      'notes use blue themes, category creation fields, and note sorting',
-      (tester) async {
-    SharedPreferences.setMockInitialValues({
-      'checklist.welcome.v1': true,
-      'checklist.noteCategories.v1':
-          '[{"id":"ideas","name":"Ideas","colorValue":4278571494}]',
-    });
-    tester.view.physicalSize = const Size(1200, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+    'notes use blue themes, category creation fields, and note sorting',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'checklist.welcome.v1': true,
+        'checklist.noteCategories.v1':
+            '[{"id":"ideas","name":"Ideas","colorValue":4278571494}]',
+      });
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ChecklistApp());
-    await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsLabel('NOTES'));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(const ChecklistApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('NOTES'));
+      await tester.pumpAndSettle();
 
-    expect(find.byTooltip('sort notes'), findsOneWidget);
-    await tester.tap(find.byTooltip('sort notes'));
-    await tester.pumpAndSettle();
-    expect(find.text('date · newest'), findsOneWidget);
-    expect(find.text('date · oldest'), findsOneWidget);
-    expect(find.text('a–z'), findsOneWidget);
-    expect(find.text('category · a–z'), findsOneWidget);
-    await tester.tap(
-      find.widgetWithText(
-        CheckedPopupMenuItem<NoteSort>,
-        'category · a–z',
-      ),
-    );
-    await tester.pumpAndSettle();
+      expect(find.byTooltip('sort notes'), findsOneWidget);
+      await tester.tap(find.byTooltip('sort notes'));
+      await tester.pumpAndSettle();
+      expect(find.text('date · newest'), findsOneWidget);
+      expect(find.text('date · oldest'), findsOneWidget);
+      expect(find.text('a–z'), findsOneWidget);
+      expect(find.text('category · a–z'), findsOneWidget);
+      await tester.tap(
+        find.widgetWithText(CheckedPopupMenuItem<NoteSort>, 'category · a–z'),
+      );
+      await tester.pumpAndSettle();
 
-    var modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
-    expect(modeTheme.colorScheme.primary, const Color(0xFF5A9BFF));
-    final darkSwitch = tester.widget<Switch>(find.byType(Switch));
-    expect(
-      darkSwitch.thumbColor?.resolve({WidgetState.selected}),
-      const Color(0xFF5A9BFF),
-    );
+      var modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
+      expect(modeTheme.colorScheme.primary, const Color(0xFF5A9BFF));
+      expect(find.byKey(const ValueKey('appearance-switch')), findsNothing);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'new note'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('note-details-dialog')), findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('note-category-selector')), findsOneWidget);
-    final dialogTheme = tester.widget<Theme>(
-      find
-          .ancestor(
-            of: find.byKey(const ValueKey('note-details-dialog')),
-            matching: find.byType(Theme),
-          )
-          .first,
-    );
-    expect(dialogTheme.data.colorScheme.primary, const Color(0xFF5A9BFF));
-    expect(
-      (dialogTheme.data.inputDecorationTheme.enabledBorder!
-              as OutlineInputBorder)
-          .borderSide
-          .color,
-      const Color(0xFFF8F7FF),
-    );
-
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const ValueKey('note-details-dialog')),
-        matching: find.byType(TextField),
-      ),
-      'Blue note',
-    );
-    await tester.tap(find.byKey(const ValueKey('note-category-selector')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Ideas').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'save'));
-    await tester.pumpAndSettle();
-    expect(find.text('Blue note'), findsWidgets);
-    expect(find.byKey(const ValueKey('white-menu-frame')), findsNothing);
-    for (final key in ['sidebar-note-settings', 'note-header-settings']) {
-      final settings = find.byKey(ValueKey(key));
-      expect(settings, findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'new note'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('note-details-dialog')), findsOneWidget);
       expect(
-        find.descendant(
-          of: settings,
-          matching: find.byIcon(Icons.more_vert_rounded),
-        ),
+        find.byKey(const ValueKey('note-category-selector')),
         findsOneWidget,
       );
-    }
-    expect(find.byIcon(Icons.more_horiz_rounded), findsNothing);
+      final dialogTheme = tester.widget<Theme>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('note-details-dialog')),
+              matching: find.byType(Theme),
+            )
+            .first,
+      );
+      expect(dialogTheme.data.colorScheme.primary, const Color(0xFF5A9BFF));
+      expect(
+        (dialogTheme.data.inputDecorationTheme.enabledBorder!
+                as OutlineInputBorder)
+            .borderSide
+            .color,
+        const Color(0xFFF8F7FF),
+      );
 
-    final createButton = tester.widget<FilledButton>(
-      find.byKey(const ValueKey('sidebar-create-button')),
-    );
-    expect(
-      createButton.style?.side?.resolve({})?.color,
-      const Color(0xFFF8F7FF),
-    );
-    final filterFrame = tester.widget<Container>(
-      find.byKey(const ValueKey('sidebar-filter-frame')),
-    );
-    expect(
-      ((filterFrame.decoration! as BoxDecoration).border! as Border).top.color,
-      const Color(0xFFF8F7FF),
-    );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('note-details-dialog')),
+          matching: find.byType(TextField),
+        ),
+        'Blue note',
+      );
+      await tester.tap(find.byKey(const ValueKey('note-category-selector')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Ideas').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'save'));
+      await tester.pumpAndSettle();
+      expect(find.text('Blue note'), findsWidgets);
+      expect(find.byKey(const ValueKey('white-menu-frame')), findsNothing);
+      for (final key in ['sidebar-note-settings', 'note-header-settings']) {
+        final settings = find.byKey(ValueKey(key));
+        expect(settings, findsOneWidget);
+        expect(
+          find.descendant(
+            of: settings,
+            matching: find.byIcon(Icons.more_vert_rounded),
+          ),
+          findsOneWidget,
+        );
+      }
+      expect(find.byIcon(Icons.more_horiz_rounded), findsNothing);
 
-    await tester.tap(find.byType(Switch));
-    await tester.pumpAndSettle();
-    modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
-    expect(modeTheme.brightness, Brightness.light);
-    expect(modeTheme.colorScheme.primary, const Color(0xFF1553A3));
-    expect(find.text('light'), findsOneWidget);
-    final lightSwitch = tester.widget<Switch>(find.byType(Switch));
-    expect(
-      lightSwitch.thumbColor?.resolve({}),
-      const Color(0xFF9AA0AA),
-    );
-    final notesLightSidebar = tester.widget<AnimatedContainer>(
-      find.byKey(const ValueKey('sidebar-surface')),
-    );
-    expect(
-      (notesLightSidebar.decoration! as BoxDecoration).color,
-      const Color(0xFF315B88),
-    );
+      final createButton = tester.widget<FilledButton>(
+        find.byKey(const ValueKey('sidebar-create-button')),
+      );
+      expect(
+        createButton.style?.side?.resolve({})?.color,
+        const Color(0xFFF8F7FF),
+      );
+      final filterFrame = tester.widget<Container>(
+        find.byKey(const ValueKey('sidebar-filter-frame')),
+      );
+      expect(
+        ((filterFrame.decoration! as BoxDecoration).border! as Border)
+            .top
+            .color,
+        const Color(0xFFF8F7FF),
+      );
 
-    await tester.tap(find.bySemanticsLabel('CHECKLIST'));
-    await tester.pumpAndSettle();
-    final checklistLightSidebar = tester.widget<AnimatedContainer>(
-      find.byKey(const ValueKey('sidebar-surface')),
-    );
-    expect(
-      (checklistLightSidebar.decoration! as BoxDecoration).color,
-      const Color(0xFF6B3A7D),
-    );
-    expect(tester.takeException(), isNull);
-  });
+      await tester.tap(find.byKey(const ValueKey('settings-toggle')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('settings-themes')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('theme-pencil')));
+      await tester.pumpAndSettle();
+      modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
+      expect(modeTheme.brightness, Brightness.light);
+      expect(modeTheme.colorScheme.primary, const Color(0xFF666B70));
+      final notesLightSidebar = tester.widget<AnimatedContainer>(
+        find.byKey(const ValueKey('sidebar-surface')),
+      );
+      expect(
+        (notesLightSidebar.decoration! as BoxDecoration).color,
+        const Color(0xFFD5D4D1),
+      );
 
-  testWidgets('category settings edit and animate category removal',
-      (tester) async {
+      await tester.tap(find.bySemanticsLabel('CHECKLIST'));
+      await tester.pumpAndSettle();
+      final checklistLightSidebar = tester.widget<AnimatedContainer>(
+        find.byKey(const ValueKey('sidebar-surface')),
+      );
+      expect(
+        (checklistLightSidebar.decoration! as BoxDecoration).color,
+        const Color(0xFFD5D4D1),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('category settings edit and animate category removal', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
       'checklist.noteCategories.v1':
@@ -931,9 +1414,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('NOTES'));
     await tester.pumpAndSettle();
 
-    final sidebarSettings = find.byKey(
-      const ValueKey('sidebar-note-settings'),
-    );
+    final sidebarSettings = find.byKey(const ValueKey('sidebar-note-settings'));
     expect(sidebarSettings, findsOneWidget);
     expect(
       find.ancestor(
@@ -978,9 +1459,7 @@ void main() {
     await tester.tap(find.byTooltip('change category'));
     await tester.pumpAndSettle();
     expect(find.text('remove'), findsOneWidget);
-    final categoryActionRow = find.byKey(
-      const ValueKey('category-action-row'),
-    );
+    final categoryActionRow = find.byKey(const ValueKey('category-action-row'));
     final newCategoryButton = find.descendant(
       of: categoryActionRow,
       matching: find.widgetWithText(FilledButton, 'new'),
@@ -989,9 +1468,7 @@ void main() {
       of: categoryActionRow,
       matching: find.widgetWithText(FilledButton, 'remove'),
     );
-    final cancelButton = find.byKey(
-      const ValueKey('category-cancel-button'),
-    );
+    final cancelButton = find.byKey(const ValueKey('category-cancel-button'));
     expect(
       tester.getCenter(newCategoryButton).dy,
       tester.getCenter(removeCategoryButton).dy,
@@ -1001,14 +1478,8 @@ void main() {
       tester.getCenter(cancelButton).dy,
     );
     final cancel = tester.widget<TextButton>(cancelButton);
-    expect(
-      cancel.style?.backgroundColor?.resolve({}),
-      Colors.transparent,
-    );
-    expect(
-      cancel.style?.foregroundColor?.resolve({}),
-      const Color(0xFF9AA0AA),
-    );
+    expect(cancel.style?.backgroundColor?.resolve({}), Colors.transparent);
+    expect(cancel.style?.foregroundColor?.resolve({}), const Color(0xFF9AA0AA));
     expect(
       cancel.style?.side?.resolve({}),
       const BorderSide(color: Color(0xFF5A9BFF), width: 2),

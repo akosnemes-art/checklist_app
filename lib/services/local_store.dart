@@ -10,9 +10,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/checklist_project.dart';
 import '../models/note.dart';
 
+class ChecklistBackup {
+  const ChecklistBackup({
+    required this.projects,
+    required this.notes,
+    required this.noteCategories,
+    required this.selectedProjectId,
+    required this.selectedNoteId,
+  });
+
+  final List<ChecklistProject> projects;
+  final List<NoteEntry> notes;
+  final List<NoteCategory> noteCategories;
+  final String? selectedProjectId;
+  final String? selectedNoteId;
+}
+
 class LocalStore {
   static const _projectsKey = 'checklist.projects.v1';
   static const _darkModeKey = 'checklist.darkMode.v1';
+  static const _themeKey = 'checklist.theme.v1';
+  static const _languageKey = 'checklist.language.v1';
   static const _sortKey = 'checklist.sort.v1';
   static const _noteSortKey = 'checklist.noteSort.v1';
   static const _selectedProjectKey = 'checklist.selectedProject.v1';
@@ -30,8 +48,10 @@ class LocalStore {
 
     final decoded = jsonDecode(encoded) as List<dynamic>;
     return decoded
-        .map((project) =>
-            ChecklistProject.fromJson(project as Map<String, dynamic>))
+        .map(
+          (project) =>
+              ChecklistProject.fromJson(project as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -71,8 +91,9 @@ class LocalStore {
 
     final decoded = jsonDecode(encoded) as List<dynamic>;
     return decoded
-        .map((category) =>
-            NoteCategory.fromJson(category as Map<String, dynamic>))
+        .map(
+          (category) => NoteCategory.fromJson(category as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -94,6 +115,116 @@ class LocalStore {
     final preferences = await SharedPreferences.getInstance();
     final saved = await preferences.setBool(_darkModeKey, isDark);
     if (!saved) throw StateError('Could not save the appearance setting.');
+  }
+
+  Future<String?> loadTheme() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getString(_themeKey);
+  }
+
+  Future<void> saveTheme(String theme) async {
+    final preferences = await SharedPreferences.getInstance();
+    final saved = await preferences.setString(_themeKey, theme);
+    if (!saved) throw StateError('Could not save the theme setting.');
+  }
+
+  Future<String?> loadLanguage() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getString(_languageKey);
+  }
+
+  Future<void> saveLanguage(String language) async {
+    final preferences = await SharedPreferences.getInstance();
+    final saved = await preferences.setString(_languageKey, language);
+    if (!saved) throw StateError('Could not save the language setting.');
+  }
+
+  Future<Uint8List> createBackupBytes() async {
+    final results = await Future.wait<Object?>([
+      loadProjects(),
+      loadNotes(),
+      loadNoteCategories(),
+      loadSelectedProjectId(),
+      loadSelectedNoteId(),
+    ]);
+    final projects = results[0]! as List<ChecklistProject>;
+    final notes = results[1]! as List<NoteEntry>;
+    final categories = results[2]! as List<NoteCategory>;
+    final payload = <String, Object?>{
+      'format': 'checklist-backup',
+      'schemaVersion': 1,
+      'appVersion': '0.4.8',
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
+      'projects': projects.map((project) => project.toJson()).toList(),
+      'notes': notes.map((note) => note.toJson()).toList(),
+      'noteCategories':
+          categories.map((category) => category.toJson()).toList(),
+      'selectedProjectId': results[3] as String?,
+      'selectedNoteId': results[4] as String?,
+    };
+    return Uint8List.fromList(
+      utf8.encode(const JsonEncoder.withIndent('  ').convert(payload)),
+    );
+  }
+
+  ChecklistBackup decodeBackup(Uint8List bytes) {
+    if (bytes.isEmpty) throw const FormatException('The backup file is empty.');
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map<String, dynamic> ||
+        decoded['format'] != 'checklist-backup' ||
+        decoded['schemaVersion'] != 1) {
+      throw const FormatException('This is not a supported CHECKLIST backup.');
+    }
+
+    List<Map<String, dynamic>> mapsFor(String key) {
+      final value = decoded[key];
+      if (value is! List<dynamic>) {
+        throw FormatException('The backup is missing $key.');
+      }
+      return value.map((item) {
+        if (item is! Map<String, dynamic>) {
+          throw FormatException('The backup contains invalid $key data.');
+        }
+        return item;
+      }).toList();
+    }
+
+    final projects = mapsFor('projects').map((json) {
+      // Cover files live in app-private storage and are deliberately not
+      // restored as broken paths on another installation.
+      return ChecklistProject.fromJson({...json, 'coverImagePath': null});
+    }).toList();
+    if (projects.isEmpty) {
+      throw const FormatException('The backup does not contain a checklist.');
+    }
+    final notes = mapsFor('notes').map(NoteEntry.fromJson).toList();
+    final categories =
+        mapsFor('noteCategories').map(NoteCategory.fromJson).toList();
+    final selectedProjectId = decoded['selectedProjectId'] as String?;
+    final selectedNoteId = decoded['selectedNoteId'] as String?;
+    return ChecklistBackup(
+      projects: projects,
+      notes: notes,
+      noteCategories: categories,
+      selectedProjectId: projects.any((item) => item.id == selectedProjectId)
+          ? selectedProjectId
+          : projects.first.id,
+      selectedNoteId: notes.any((item) => item.id == selectedNoteId)
+          ? selectedNoteId
+          : (notes.isEmpty ? null : notes.first.id),
+    );
+  }
+
+  Future<void> restoreBackup(ChecklistBackup backup) async {
+    await Future.wait([
+      saveProjects(backup.projects),
+      saveNotes(backup.notes),
+      saveNoteCategories(backup.noteCategories),
+      saveSelectedProjectId(
+        backup.selectedProjectId ?? backup.projects.first.id,
+      ),
+      saveSelectedNoteId(backup.selectedNoteId),
+    ]);
   }
 
   Future<bool> loadHeartAnimationEnabled() async {

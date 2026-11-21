@@ -1,7 +1,7 @@
 name: checklist_app
 description: A minimal cross-platform project checklist for Linux and Android.
 publish_to: 'none'
-version: 0.4.3+26
+version: 0.4.8+33
 
 environment:
   sdk: '>=3.6.0 <4.0.0'

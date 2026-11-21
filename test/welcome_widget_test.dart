@@ -4,76 +4,77 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('welcome window expands changes and persists the current version',
-      (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    tester.view.physicalSize = const Size(1200, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'welcome window expands changes and persists the current version',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ChecklistApp());
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(const ChecklistApp());
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('welcome-dialog')), findsOneWidget);
-    expect(find.textContaining('CHECKLIST version 0.4.3'), findsOneWidget);
-    expect(find.textContaining('build 26'), findsOneWidget);
-    expect(
-      find.textContaining('Designed by Ákos Nemes using Codex AI.'),
-      findsOneWidget,
-    );
-    expect(find.text('read more'), findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('implemented-changes-title')), findsNothing);
-    final welcomeDialog = find.byKey(const ValueKey('welcome-dialog'));
-    final expandingContent = find.descendant(
-      of: welcomeDialog,
-      matching: find.byType(AnimatedSize),
-    );
-    final initialContentHeight = tester.getSize(expandingContent).height;
-    final readMore = tester.widget<TextButton>(
-      find.byKey(const ValueKey('welcome-read-more')),
-    );
-    expect(
-      readMore.style?.foregroundColor?.resolve(<WidgetState>{}),
-      const Color(0xFF922FD0),
-    );
+      expect(find.byKey(const ValueKey('welcome-dialog')), findsOneWidget);
+      expect(find.textContaining('CHECKLIST version 0.4.8'), findsOneWidget);
+      expect(find.textContaining('build 33'), findsOneWidget);
+      expect(
+        find.textContaining('Designed by Ákos Nemes using Codex AI.'),
+        findsOneWidget,
+      );
+      expect(find.text('read more'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('implemented-changes-title')),
+        findsNothing,
+      );
+      final welcomeDialog = find.byKey(const ValueKey('welcome-dialog'));
+      final expandingContent = find.descendant(
+        of: welcomeDialog,
+        matching: find.byType(AnimatedSize),
+      );
+      final initialContentHeight = tester.getSize(expandingContent).height;
+      final readMore = tester.widget<TextButton>(
+        find.byKey(const ValueKey('welcome-read-more')),
+      );
+      expect(
+        readMore.style?.foregroundColor?.resolve(<WidgetState>{}),
+        const Color(0xFF922FD0),
+      );
 
-    await tester.tap(find.byKey(const ValueKey('welcome-read-more')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('implemented-changes-title')),
-        findsOneWidget);
-    expect(
-      find.textContaining('system alarm'),
-      findsOneWidget,
-    );
-    expect(find.text('read less'), findsOneWidget);
-    expect(
-      tester.getSize(expandingContent).height,
-      greaterThan(initialContentHeight),
-    );
+      await tester.tap(find.byKey(const ValueKey('welcome-read-more')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('implemented-changes-title')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('note formatting render'), findsOneWidget);
+      expect(find.text('read less'), findsOneWidget);
+      expect(
+        tester.getSize(expandingContent).height,
+        greaterThan(initialContentHeight),
+      );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'continue'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('welcome-dialog')), findsNothing);
+      await tester.tap(find.widgetWithText(FilledButton, 'continue'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('welcome-dialog')), findsNothing);
 
-    final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getBool('checklist.welcome.v1'), isTrue);
-    expect(
-      preferences.getString('checklist.lastSeenVersion.v1'),
-      '0.4.3+26',
-    );
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getBool('checklist.welcome.v1'), isTrue);
+      expect(preferences.getString('checklist.lastSeenVersion.v1'), '0.4.8+33');
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pumpAndSettle();
-    await tester.pumpWidget(const ChecklistApp());
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('welcome-dialog')), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const ChecklistApp());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('welcome-dialog')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('welcome window returns after the internal build changes',
-      (tester) async {
+  testWidgets('welcome window returns after the internal build changes', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
       'checklist.lastSeenVersion.v1': '0.4.2+25',
@@ -88,15 +89,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('welcome-dialog')), findsOneWidget);
     final preferences = await SharedPreferences.getInstance();
-    expect(
-      preferences.getString('checklist.lastSeenVersion.v1'),
-      '0.4.3+26',
-    );
+    expect(preferences.getString('checklist.lastSeenVersion.v1'), '0.4.8+33');
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('existing legacy installs migrate without a repeat welcome',
-      (tester) async {
+  testWidgets('existing legacy installs migrate without a repeat welcome', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
@@ -108,10 +107,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('welcome-dialog')), findsNothing);
     final preferences = await SharedPreferences.getInstance();
-    expect(
-      preferences.getString('checklist.lastSeenVersion.v1'),
-      '0.4.3+26',
-    );
+    expect(preferences.getString('checklist.lastSeenVersion.v1'), '0.4.8+33');
     expect(tester.takeException(), isNull);
   });
 }

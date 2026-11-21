@@ -1,7 +1,7 @@
-# Checklist 0.4.3
+# Checklist 0.4.8
 
 Checklist is a focused, local-first checklist app built with Flutter for Ubuntu
-and Android. It uses a dark appearance by default, keeps projects one tap away,
+and Android. It uses the dark Boi theme by default, keeps projects one tap away,
 and saves all checklist data on the device.
 
 The approved product behaviour and visual invariants are recorded in
@@ -9,14 +9,29 @@ The approved product behaviour and visual invariants are recorded in
 
 ## What it includes
 
-- Persistent dark and light appearances.
+- Persistent Boi, Pencil, and Pastel themes, selected from an animated Settings
+  panel alongside Language and About pages.
+- Persistent English and Hungarian interface languages, including localized
+  menus, dialogs, hints, tooltips, and dates.
+- Versioned JSON import/export for moving checklists, tasks, reminders, notes,
+  categories, and note links to a fresh installation.
+- A warm-grey, monochrome light appearance with cool-grey lines, black text,
+  and black checklist progress.
 - A responsive sidebar with saved checklists and completion counts.
 - Project sorting by newest date, oldest date, A–Z, or priority.
-- Blue low, purple medium, and yellow high priorities.
+- Theme-specific priority colours, including dedicated Pencil greys/navy and
+  Pastel red/teal/lavender controls.
 - Creation dates in both the project list and selected-checklist header.
 - A multiline desktop composer where **Enter** adds and **Shift+Enter** inserts
   a new line; on Android, the keyboard's **Done** action adds the task.
 - Task completion, editing, and deletion, with project progress at a glance.
+- Smooth checklist-progress animation and fade transitions when checklist or
+  note rows are created or deleted.
+- Task reprioritisation after a 140 ms hold on the text area only, with the
+  checkmark and three-dot settings control kept independent and no drag handle.
+- Linked-note sticky-note icons below task checkboxes that flash from blue to
+  purple before opening the attached note.
+- Dedicated red, teal, and lavender priority controls in the Pastel theme.
 - An optional 16:9 cover image for every checklist, captured through a
   blue-framed camera preview or selected and positioned in a purple-framed crop
   window.
@@ -26,6 +41,8 @@ The approved product behaviour and visual invariants are recorded in
   viewing directly from the task row.
 - A dedicated notes workspace that fades in without replacing the sidebar.
 - Locally autosaved notes with rename, delete, and category controls.
+- Rendered bold, italic, and underline controls in the Notes editor, including
+  an edit-and-format-only borderless selection toolbar.
 - Offline Android photo-to-text for English and Hungarian notes using
   PaddleOCR, from either an existing picture or the device camera. OpenCV and
   the recognition models are bundled locally, including 16 KB-page-compatible
@@ -35,6 +52,8 @@ The approved product behaviour and visual invariants are recorded in
   white for readability.
 - Automatic local saving of projects, tasks, preferences, and copied cover
   images, notes, and categories. No account or network connection is required.
+- Blue-framed popup windows, fast save/create feedback, and a hidden three-tap
+  version and feature window in the Settings row.
 
 ## Run it on Ubuntu
 
