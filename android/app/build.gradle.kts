@@ -55,6 +55,7 @@ android {
 }
 
 dependencies {
+    implementation("com.google.zxing:core:3.5.4")
     implementation(files("libs/ppocr-sdk-release.aar"))
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.21.1")
     // Java API is kept local while the matching JNI binaries are rebuilt with

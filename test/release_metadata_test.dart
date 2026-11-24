@@ -1,33 +1,65 @@
 import 'dart:io';
 
+import 'package:checklist_app/app_version.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('welcome release metadata stays aligned with pubspec', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final mainSource = File('lib/main.dart').readAsStringSync();
-
     final release = RegExp(
       r'^version:\s*([^+\s]+)\+(\d+)\s*$',
       multiLine: true,
     ).firstMatch(pubspec);
     expect(release, isNotNull);
-    expect(mainSource, contains("const _appVersion = '${release!.group(1)}';"));
-    expect(
-      mainSource,
-      contains("const _appBuildNumber = '${release.group(2)}';"),
-    );
+    expect(checklistVersion, release!.group(1));
+    expect(checklistBuildNumber, release.group(2));
   });
 
-  test('popup windows retain the five millisecond fade contract', () {
-    final mainSource = File('lib/main.dart').readAsStringSync();
+  test('Android is the only packaged platform', () {
+    final metadata = File('.metadata').readAsStringSync();
+    expect(metadata, contains('platform: android'));
+    expect(metadata, isNot(contains('platform: linux')));
+    expect(Directory('linux').existsSync(), isFalse);
+    final app = File('lib/main.dart').readAsStringSync();
+    expect(app, isNot(contains('checklist/window')));
+    final previews =
+        File('lib/services/website_previews.dart').readAsStringSync();
+    expect(previews, contains('checklist/website_previews'));
+    expect(previews, isNot(contains('Process.start')));
+  });
 
+  test('Android launcher icon and edge-to-edge system UI stay configured', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+    final manifest =
+        File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+    final lightStyles =
+        File('android/app/src/main/res/values/styles.xml').readAsStringSync();
+    final darkStyles = File('android/app/src/main/res/values-night/styles.xml')
+        .readAsStringSync();
+    final iconBytes = File('Checklist_app_icon_safe.png').readAsBytesSync();
+
+    expect(iconBytes.take(8), <int>[137, 80, 78, 71, 13, 10, 26, 10]);
+    expect(
+      gradle,
+      contains('rootProject.file("../Checklist_app_icon_safe.png")'),
+    );
+    expect(manifest, contains('android:icon="@mipmap/checklist_logo"'));
+    expect(mainSource, contains('SystemUiMode.edgeToEdge'));
     expect(
       mainSource,
-      contains('const _popupFadeDuration = Duration(milliseconds: 5);'),
+      contains('systemNavigationBarColor: Colors.transparent'),
     );
-    expect(mainSource, contains('transitionDuration: _popupFadeDuration,'));
-    expect(mainSource, contains('FadeTransition(opacity: animation'));
+    expect(mainSource, contains('systemNavigationBarContrastEnforced: false'));
+    expect(mainSource, contains("ValueKey('edge-to-edge-system-ui')"));
+    for (final styles in [lightStyles, darkStyles]) {
+      expect(
+        styles,
+        contains(
+          '<item name="android:navigationBarColor">@android:color/transparent</item>',
+        ),
+      );
+    }
   });
 
   test('task text uses the 140 millisecond hold reorder contract', () {
@@ -73,7 +105,8 @@ void main() {
     expect(mainSource, contains('Color(0xFF999999)'));
     expect(mainSource, contains('Color(0xFF64696A)'));
     expect(mainSource, contains('Color(0xFF0E2F44)'));
-    expect(mainSource, contains('class _FormattedNoteController'));
+    expect(File('lib/note_formatting.dart').readAsStringSync(),
+        contains('class _FormattedNoteController'));
     expect(
       mainSource,
       contains('contextMenuBuilder: _buildNoteSelectionToolbar'),
@@ -89,6 +122,15 @@ void main() {
       mainSource,
       contains('shape: const RoundedRectangleBorder(side: BorderSide.none)'),
     );
+    expect(mainSource, contains("ValueKey('mobile-sidebar-safe-area')"));
+    expect(mainSource, contains("ValueKey('main-content-safe-area')"));
+    expect(mainSource, contains("ValueKey('note-format-tap-region')"));
+    expect(
+      mainSource,
+      contains('onTapOutside: (_) => _noteFocusNode.unfocus()'),
+    );
+    expect(mainSource, contains('Color(0xFFD9EAF7)'));
+    expect(mainSource, contains('usePaleBackground: true'));
   });
 
   test('progress and sidebar entries retain their animation contracts', () {

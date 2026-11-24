@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarm_channel_name">Checklist alarms</string>
+    <string name="alarm_channel_description">Sounds saved checklist reminders</string>
+    <string name="checklist_reminder">checklist reminder</string>
+    <string name="stop_alarm">stop</string>
+</resources>

@@ -1,8 +1,15 @@
-# Checklist 0.4.8
+# Checklist 0.5.1
 
-Checklist is a focused, local-first checklist app built with Flutter for Ubuntu
-and Android. It uses the dark Boi theme by default, keeps projects one tap away,
-and saves all checklist data on the device.
+CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
+
+## Download
+
+[Download the latest Android APK](https://github.com/akosnemes-art/checklist_app/releases/latest) · [Add to Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fapp%2F%257B%2522id%2522%253A%2522com.gather.checklist%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fgithub.com%252Fakosnemes-art%252Fchecklist_app%2522%252C%2522author%2522%253A%2522akosnemes-art%2522%252C%2522name%2522%253A%2522CHECKLIST%2522%257D)
+
+In Obtainium, you can also open **Add App** and paste the [repository URL](https://github.com/akosnemes-art/checklist_app).
+Obtainium tracks stable GitHub releases and downloads the universal APK.
+If you already installed v0.5.1 build 38, install build 39 once from the
+[release page](https://github.com/akosnemes-art/checklist_app/releases/tag/v0.5.1) so Android can apply the same-version update.
 
 The approved product behaviour and visual invariants are recorded in
 [`AGENTS.md`](AGENTS.md). Read that specification before modifying the app.
@@ -11,8 +18,10 @@ The approved product behaviour and visual invariants are recorded in
 
 - Persistent Boi, Pencil, and Pastel themes, selected from an animated Settings
   panel alongside Language and About pages.
-- Persistent English and Hungarian interface languages, including localized
-  menus, dialogs, hints, tooltips, and dates.
+- Persistent English, Hungarian, French, Czech, German, and Simplified Chinese
+  interface languages,
+  including localized menus, dialogs, hints, tooltips, dates, and Android
+  reminder notifications.
 - Versioned JSON import/export for moving checklists, tasks, reminders, notes,
   categories, and note links to a fresh installation.
 - A warm-grey, monochrome light appearance with cool-grey lines, black text,
@@ -22,86 +31,55 @@ The approved product behaviour and visual invariants are recorded in
 - Theme-specific priority colours, including dedicated Pencil greys/navy and
   Pastel red/teal/lavender controls.
 - Creation dates in both the project list and selected-checklist header.
-- A multiline desktop composer where **Enter** adds and **Shift+Enter** inserts
-  a new line; on Android, the keyboard's **Done** action adds the task.
+- The soft keyboard’s **Done** action adds the task.
 - Task completion, editing, and deletion, with project progress at a glance.
 - Smooth checklist-progress animation and fade transitions when checklist or
-  note rows are created or deleted.
+  note rows are created or deleted. Selected checklist and note content fades
+  in from top to bottom.
 - Task reprioritisation after a 140 ms hold on the text area only, with the
   checkmark and three-dot settings control kept independent and no drag handle.
-- Linked-note sticky-note icons below task checkboxes that flash from blue to
-  purple before opening the attached note.
+- Linked-note icons below task checkboxes are yellow in Boi and blue in Pencil
+  and Pastel. They flash purple before opening the attached note.
+  All task checkboxes share the same alignment.
 - Dedicated red, teal, and lavender priority controls in the Pastel theme.
 - An optional 16:9 cover image for every checklist, captured through a
   blue-framed camera preview or selected and positioned in a purple-framed crop
   window.
 - A persistent calendar and time reminder attached to each checklist that
   sounds the Android system alarm at the saved time.
-- Optional links from checklist tasks to existing notes, with scrollable note
-  viewing directly from the task row.
+- Optional links from checklist tasks to existing notes, with formatted
+  previews in the chooser and clickable links in the scrollable note window.
 - A dedicated notes workspace that fades in without replacing the sidebar.
 - Locally autosaved notes with rename, delete, and category controls.
-- Rendered bold, italic, and underline controls in the Notes editor, including
-  an edit-and-format-only borderless selection toolbar.
+- Independent bold, italic, and underline controls beside the note category,
+  plus an edit-and-format-only borderless selection toolbar. Tapping elsewhere
+  exits note edit mode while formatting buttons keep the editor active.
+- Tap an underlined link outside note edit mode to open it in the default
+  browser or the app registered for the link. Links are yellow in Boi,
+  light blue in Pencil, and deep blue in Pastel.
+- Android edge-to-edge rendering extends each active theme behind the gesture
+  indicator without a white strip, while safe-area handling keeps the checklist
+  composer and drawer settings above gesture and three-button navigation.
+- The Android launcher uses the updated safe CHECKLIST logo from
+  `Checklist_app_icon_safe.png` for legacy and adaptive icons.
+- Create-note windows follow the writing surface and frame of the current
+  theme. Dialog frames draw before their contents fade in.
 - Offline Android photo-to-text for English and Hungarian notes using
-  PaddleOCR, from either an existing picture or the device camera. OpenCV and
-  the recognition models are bundled locally, including 16 KB-page-compatible
-  Android native libraries.
+  PaddleOCR, from either an existing picture or the device camera. The camera
+  previews for Notes and checklist covers can switch lenses and show detected
+  text and QR links. The Notes camera can open links directly from the live
+  preview. Links from a captured note photo become tappable in the note.
+  OpenCV and the recognition models are bundled locally, including
+  16 KB-page-compatible Android native libraries.
 - Custom note categories with names and an 18-colour palette; category colours
   carry through to note titles and category labels while note body text remains
   white for readability.
 - Automatic local saving of projects, tasks, preferences, and copied cover
-  images, notes, and categories. No account or network connection is required.
-- Blue-framed popup windows, fast save/create feedback, and a hidden three-tap
-  version and feature window in the Settings row.
-
-## Run it on Ubuntu
-
-### 1. Install Flutter
-
-Install the latest stable Flutter SDK using the
-[official Linux instructions](https://docs.flutter.dev/install/manual), then
-make sure `flutter` is available in your terminal.
-
-Install the Ubuntu desktop build tools:
-
-```sh
-sudo apt-get update
-sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev
-```
-
-Check the installation:
-
-```sh
-flutter doctor -v
-flutter devices
-```
-
-`flutter devices` should show a `linux` desktop target.
-
-### 2. Generate the Linux runner
-
-From this project directory, run this once:
-
-```sh
-flutter config --enable-linux-desktop
-flutter create --platforms=linux .
-sed -i 's/"checklist_app"/"Checklist"/g' linux/runner/my_application.cc
-```
-
-This generates Flutter's platform-owned `linux/` runner without replacing the
-application code in `lib/`. The final command gives the native Ubuntu window
-the user-facing title **Checklist**.
-
-### 3. Install packages and launch
-
-```sh
-flutter pub get
-flutter run -d linux
-```
-
-Flutter opens Checklist as a native Ubuntu desktop window. Changes are saved
-automatically in the current user's application-data directory.
+  images, notes, and categories. The globe beside the version in Notes opens a
+  gallery of saved web links with screenshots when available. The app captures
+  screenshots online using Android WebView. Notes and OCR remain available offline.
+- Fast save/create feedback, the public version below the Settings row, and a
+  hidden three-tap version and feature window in that row.
 
 ## Run it on Android
 
@@ -123,10 +101,6 @@ flutter pub get
 flutter run -d <android-device-id>
 ```
 
-The Android version requires Android 8.0 or newer. It uses the same local
-projects and checklist features, with a drawer-based project menu, offline
-photo-to-text in Notes, and a soft-keyboard **Done** action for adding tasks.
-
 ## Build an Android APK
 
 For a locally installable release APK:
@@ -145,28 +119,12 @@ build/app/outputs/flutter-apk/app-release.apk
 For Google Play, configure a private release signing key first, then build the
 preferred Android App Bundle format with `flutter build appbundle`.
 
-## Build a Linux release
+## Publish an update
 
-```sh
-flutter test
-flutter analyze
-flutter build linux --release
-```
-
-The runnable application bundle is created at:
-
-```text
-build/linux/<architecture>/release/bundle/
-```
-
-On a typical 64-bit Intel/AMD Ubuntu installation, run it directly with:
-
-```sh
-./build/linux/x64/release/bundle/checklist_app
-```
-
-When sharing the application, copy the **entire** `bundle/` directory—the
-executable needs the adjacent `lib/` and `data/` directories.
+Publish a stable GitHub release with a tag such as `v0.5.1` and attach one
+universal `checklist-<version>-android.apk`. Increment the Android build
+number and sign each update with the certificate used for the previous APK.
+The current GitHub APK uses the project's Android debug certificate.
 
 ## Project structure
 
@@ -182,12 +140,3 @@ test/
   note_test.dart                    Note serialization and persistence checks
   notepad_widget_test.dart          Notepad interaction and colour-flow checks
 ```
-
-## Troubleshooting
-
-- If Linux does not appear in `flutter devices`, rerun `flutter doctor -v` and
-  resolve items under **Linux toolchain**.
-- If CMake reports missing GTK headers, reinstall `libgtk-3-dev`.
-- If an older generated runner causes build errors, upgrade Flutter and rerun
-  `flutter create --platforms=linux .`; application files under `lib/` remain
-  intact.

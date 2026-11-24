@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current public version: **0.4.8**. The Flutter build number may increase for
+- Current public version: **0.5.1**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -23,10 +23,12 @@ regression test for every approved visual or interaction change.
   public version or internal build number changes. It states the public
   version, build number, and design credit. Its purple `read more` text expands
   the dialog with the implemented changes.
-- Primary platforms are Android and Ubuntu/Linux, built with Flutter.
+- Android is the supported platform. The app is built with Flutter.
 - The app is local-first. Checklists, tasks, notes, categories, preferences,
   selections, and cover-image references are stored locally. Do not introduce
   accounts, cloud storage, analytics, or network requirements unless requested.
+  Website screenshots visit the linked page when online and cache the result
+  locally. Notes and photo text recognition work offline.
 
 ## Non-negotiable visual invariants
 
@@ -43,9 +45,9 @@ These details have already been approved and must not change incidentally:
   the Pencil theme both words use the approved greys. Switching workspaces fades
   all affected UI except the drawer/sidebar opening animation itself.
 - Boi Checklist mode uses purple; Boi Notes mode uses blue. Pencil mode uses
-  only the approved neutral greys except for explicitly retained blue popup
-  frames and blue/yellow Notes formatting controls. Pastel uses its approved
-  five-colour palette.
+  only the approved neutral greys except for explicitly retained blue dialog
+  frames, blue note links, and blue/yellow Notes formatting controls. Pastel uses its approved
+  palette with blue Notes hyperlinks and warm-grey selected note rows.
 - The checklist completion progress is brand yellow (`#F3ED23`) in dark mode.
   In light mode its progress is black on a light-grey track.
 - Checklist priorities are: low blue (`#229FE3`), normal purple
@@ -61,9 +63,14 @@ These details have already been approved and must not change incidentally:
   ellipsis. Do not restore horizontal dots or frames around these buttons.
 - The Notes filter button and `new note` button have exactly the same height.
 - There are no static decorative hearts in the sidebar.
-- Popup dialogs and popup menus have a two-pixel default-note-blue frame.
+- Popup dialogs have a two-pixel default-note-blue frame. The linked-note and
+  create-note popups use light line grey in Pencil and pale yellow in Pastel.
+  Dropdown menu frames
+  are two pixels wide and use default note blue in Boi, light line grey in
+  Pencil, and pale yellow in Pastel.
 - Save and create buttons brighten for 60 milliseconds before completing the
-  action. Popup dialog transitions fade over 5 milliseconds.
+  action. Dialog frames draw first and the contents then fade in. The complete
+  transition takes 280 milliseconds and respects reduced-motion settings.
 
 ### Canonical palette
 
@@ -80,6 +87,7 @@ These details have already been approved and must not change incidentally:
 | Dark Notes sidebar | `#0B1D3B` |
 | Deep-blue button | `#1553A3` |
 | Default note blue | `#5A9BFF` |
+| Rename-note pale pastel blue | `#D9EAF7` |
 | Placeholder / light-mode switch grey | `#9AA0AA` |
 | Light app background | `#F7F5F2` |
 | Light surface | `#E7E6E3` |
@@ -136,7 +144,9 @@ rely on the palette positions.
   `browse`. The camera preview has a blue frame and uses the same 16:9 aspect
   ratio as the saved checklist cover. Browsed images open a local crop window;
   its purple frame marks the 16:9 area that will be saved, and the image can be
-  moved and zoomed beneath it.
+  moved and zoomed beneath it. The live Android camera preview can switch
+  between rear and front cameras when both are available and displays detected
+  written links and QR links offline.
 - The cover-image remove X is shown for two seconds, then fades out. Tapping
   the cover reveals it again for another two seconds before the next fade.
 - Task-entry settings use an unframed vertical ellipsis. The menu labels
@@ -148,10 +158,14 @@ rely on the palette positions.
   Moving the text area reprioritises the task and saves the new order locally.
   There is no six-dot drag handle.
 - A linked task shows the Material `sticky_note_2` icon directly below its
-  left-aligned checkbox. The icon is blue normally; tapping it changes it to
-  purple before opening the linked note in a scrollable popup window. The task
-  text wraps within the remaining row width and also retains its established
-  note-opening tap.
+  left-aligned checkbox. Linked and unlinked task checkboxes use the same fixed
+  leading-column width and horizontal alignment. The icon is yellow in Boi and
+  blue in Pencil and Pastel. Tapping it changes it to purple before opening
+  the linked note in a scrollable popup that renders the note's formatting.
+  Links in the popup are clickable. The `+ note` chooser shows formatted
+  previews of the existing notes.
+  The task text wraps within the remaining row width and also
+  retains its established note-opening tap.
 - In Pastel, priority controls use red `#E31F26` for high, teal `#00978D` for
   medium, and lavender `#B5B1D8` for low. In Pencil, priority controls use navy
   `#0E2F44` for high, dark grey `#64696A` for medium, and grey `#999999` for
@@ -162,8 +176,10 @@ rely on the palette positions.
   animate smoothly rather than jumping to the new value.
 - New checklist and note rows fade into the sidebar. Confirmed deletion fades
   the row out before removing and persisting it.
-- On desktop, Enter adds a task and Shift+Enter inserts a newline. On Android,
-  the soft-keyboard Done action adds the task. The Android placeholder is only
+- Selecting a different checklist fades in its title, cover image, and tasks
+  from top to bottom. Selecting a different note fades in its title, category,
+  and writing area from top to bottom.
+- The Android soft-keyboard Done action adds the task. The placeholder is only
   `add a task…`, without a parenthetical Done instruction.
 - The empty checklist message is `your list starts here`.
 
@@ -178,7 +194,8 @@ rely on the palette positions.
 - Only note entries are shown in the sidebar while Notes mode is active.
 - Note sorting supports newest, oldest, A–Z, and category A–Z.
 - A note list entry uses its category colour (or default note blue), shows its
-  creation date, and receives a category-coloured selected treatment.
+  creation date, and receives a category-coloured selected treatment. In Pastel
+  the selected note row background uses very light warm grey `#F7F5F2`.
 - The sidebar note-row menu uses an unframed vertical ellipsis and offers
   rename, delete, and category settings.
 - The main Notes workspace deliberately has no `notes` heading, no `make a
@@ -188,13 +205,25 @@ rely on the palette positions.
 - The note page is expanded and shows, in order: note name, creation date,
   category, then the large writing field.
 - Note content autosaves locally after a short debounce.
+- Links in note text are underlined and open in the system browser or registered
+  app when tapped outside edit mode. Boi uses brand yellow `#F3ED23`, Pencil
+  uses default note blue `#5A9BFF`, and Pastel uses deep blue `#1553A3`.
+  Links glow briefly when tapped, and Pastel links brighten to `#5A9BFF`.
+  While editing, taps position the cursor.
 - The note editor has unframed bold, italic, and underline controls. Inactive
   controls are default-note-blue; active controls are brand yellow. Formatting
   is rendered directly in the editable text, applies to highlighted text, and
-  remains active for newly typed characters until switched off.
+  remains active for newly typed characters until switched off. The three styles
+  toggle independently and can be combined. Their controls align on the right
+  of the category name row below the header controls.
 - Highlighted note text uses a borderless selection toolbar containing only
   cut, copy, paste, and the formatting letters `B`, `i`, and `U`.
-- Create-note and rename-note dialogs use the blue theme, blue popup frames, and a
+- Tapping outside the note editor exits edit mode. The formatting toolbar is
+  part of the editor tap region, so its buttons preserve focus and formatting
+  state.
+- The create-note dialog uses the dark-blue Notes theme in Boi and the note
+  editor's writing surface in Pencil and Pastel. The rename-note dialog uses a
+  pale pastel-blue `#D9EAF7` background with a blue frame. Both retain the
   category selector.
 - The note-header category button opens category assignment. The adjacent
   unframed vertical-ellipsis menu offers rename, delete, and category settings.
@@ -202,6 +231,13 @@ rely on the palette positions.
   and three-dot buttons. Its menu offers `add picture` and `take a photo`.
   PaddleOCR turns the selected image into editable note text in English or
   Hungarian entirely offline and inserts it at the current editor selection.
+  The live preview can switch between rear and front cameras when available.
+  It displays recognised written addresses and QR links offline. Recognised
+  addresses and QR links in a captured photo become tappable links in the note.
+  Detected links can also be opened from the live Notes camera preview.
+- The globe beside the version in the Notes sidebar opens saved web links
+  across all notes with clickable screenshots. The app attempts to capture
+  previews of newly typed and photographed website links while online.
 
 ### Category management
 
@@ -223,19 +259,24 @@ rely on the palette positions.
 ## Settings, themes, and hidden heart interaction
 
 - The former dark/light switch is removed. The bottom of the sidebar has a
-  single `settings` row beneath a fixed full-width line. The line stays the
+  single `settings` row beneath a fixed full-width line. The public version is
+  displayed below the row at half the Settings text size. The line stays the
   same length whether Settings is open or closed.
 - Opening Settings fades and expands the option content. Closing it collapses
   the content and returns to the main Settings page.
+- The Settings arrow points down when open and up when closed. Pressing a
+  Settings row briefly brightens its text.
 - The main Settings page contains `themes`, `language`, `import / export`, and
   `about`.
 - The Themes page replaces the main option text with a fade and offers `Boi`,
   `Pencil`, and `Pastel`. Boi is the established dark appearance, Pencil is the
   established light appearance, and Pastel uses the five canonical pastel
   colours. The selected theme is saved locally.
-- The Language page offers persistent English and Hungarian selection. All
-  visible interface labels, hints, menus, dialogs, tooltips, and dates respond
-  to the selected language; user-created content is never translated.
+- The Language page offers persistent English, Hungarian, French, Czech,
+  German, and Simplified Chinese selection. The translate icon is on the main Language row. Language choices
+  are text-only. Visible interface labels, hints, menus, dialogs, tooltips,
+  dates, and Android reminder messages respond to the selected language.
+  User-created content is never translated.
 - Import/export writes a versioned JSON backup containing checklists, tasks,
   reminders, notes, note categories, links, and current selections. Import
   validates the file and replaces the starter/local content after explicit
@@ -263,7 +304,14 @@ rely on the palette positions.
   app while it is running.
 - Android 10+ reserves a left-edge gesture-exclusion area in `MainActivity.kt`
   so the app drawer swipe can win over the operating-system back gesture.
-- The app label is `CHECKLIST` and the approved custom launcher icon is used.
+- The main content and mobile drawer respect the Android bottom safe area so
+  the task composer and Settings panel stay above gesture or three-button
+  system navigation.
+- Android uses transparent edge-to-edge system navigation. The active app or
+  drawer background extends behind a gesture indicator without a white strip;
+  safe-area padding still keeps interactive controls clear of system UI.
+- The app label is `CHECKLIST`. Gradle packages the approved
+  `Checklist_app_icon_safe.png` as both the legacy and adaptive launcher icon.
 
 ## Persistence and compatibility
 
@@ -292,14 +340,24 @@ deletion must remain restricted to the app-owned support directory.
 
 - `lib/main.dart`: themes, application shell, checklist and Notes UI,
   interactions, dialogs, heart animation, and shared visual constants.
-- `lib/app_localizations.dart`: English-to-Hungarian interface translations
-  and the localized text wrapper.
+- `lib/app_localizations.dart` and `lib/app_translations.dart`: interface
+  translations and the localized text wrapper.
+- `lib/app_version.dart`: public version and internal build number.
 - `lib/models/checklist_project.dart`: checklist/project and task models.
 - `lib/models/note.dart`: note and category models.
+- `lib/note_formatting.dart`: note formatting, selection, and rendered styles.
+- `lib/photo_camera_dialog.dart`: shared camera preview and live link display.
+- `lib/popup_animation.dart`: shared dialog frame and content transitions.
+- `lib/website_gallery.dart` and `lib/services/website_previews.dart`: saved
+  web links, screenshot capture, and the local preview cache.
 - `lib/services/local_store.dart`: preferences and cover-image persistence.
+- `lib/services/note_links.dart`: note link detection and repair of common
+  spacing errors in photographed web addresses.
 - `android/app/src/main/AndroidManifest.xml`: Android identity and portrait lock.
 - `android/app/src/main/kotlin/com/gather/checklist/MainActivity.kt`: sensor
   bridge, Android gesture exclusion, and offline PaddleOCR bridge.
+- `android/app/src/main/kotlin/com/gather/checklist/CameraLinkScanner.kt`:
+  camera-frame preparation and offline QR decoding.
 - `android/app/src/main/jniLibs/`: locally rebuilt OpenCV 4.5.3 JNI and C++
   runtime libraries for PaddleOCR, including 16 KB Android page support.
 - `tool/opencv_16k.config.py`: reproducible OpenCV Android ABI/linker build
@@ -328,16 +386,20 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Public version: `0.4.8`.
-- Last completed APK: version 0.4.8 internal build `33`.
-- Current source baseline: 46 passing tests, clean static analysis, and a
+- Public version: `0.5.1`.
+- Last completed APK: version 0.5.1 internal build `39`.
+- Current source baseline: 70 passing tests, clean static analysis, and a
   successful Android release build. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,
-  task-to-note links, and locally rebuilt OpenCV 4.5.3 libraries. All packaged
-  64-bit ELF load segments and native ZIP entries pass the 16 KB-alignment
-  regression check. OCR input is sampled and capped to a 1600-pixel longest
-  side before detection to remain within the Android heap limit.
+  task-to-note links, tappable Notes hyperlinks, live text and QR link
+  detection, and locally rebuilt OpenCV 4.5.3 libraries. All packaged
+  64-bit ELF load segments and native ZIP entries
+  pass the 16 KB-alignment regression check. OCR input is sampled and capped
+  to a 1600-pixel longest side before detection to remain within the Android
+  heap limit.
 - Distribution APK naming convention: `dist/checklist-<version>-android.apk`.
+- Publish one universal APK on each stable GitHub Release. Obtainium tracks
+  the public repository URL. Keep the signing certificate consistent across updates.
 
 If implementation and this specification ever disagree, do not assume the
 code is correct. Inspect tests and recent user instructions, report the

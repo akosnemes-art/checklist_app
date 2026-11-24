@@ -2,7 +2,6 @@ package com.gather.checklist
 
 import android.Manifest
 import android.app.Activity
-import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
@@ -18,9 +17,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.content.pm.PackageManager
-import android.provider.MediaStore
 import android.util.Log
-import androidx.core.content.FileProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.paddle.ocr.EngineConfig
@@ -33,11 +30,13 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -45,7 +44,6 @@ import java.io.File
 class MainActivity : FlutterActivity(), SensorEventListener {
     companion object {
         private const val PICK_IMAGE_REQUEST = 4101
-        private const val TAKE_PHOTO_REQUEST = 4102
         private const val MAX_IMAGE_BYTES = 40 * 1024 * 1024
         private const val MAX_OCR_IMAGE_DIMENSION = 1600
         private const val MAX_OCR_DECODE_DIMENSION = MAX_OCR_IMAGE_DIMENSION * 2
@@ -57,9 +55,11 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     private var motionSink: EventChannel.EventSink? = null
     private var activityResumed = false
     private val ocrScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val recognitionLock = Mutex()
     private var paddleOCR: PaddleOCR? = null
     private var pendingOcrResult: MethodChannel.Result? = null
-    private var pendingCameraFile: File? = null
+    private var scanningFrame = false
+    private var websitePreviews: WebsitePreviewCapture? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,6 +98,17 @@ class MainActivity : FlutterActivity(), SensorEventListener {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "checklist/reminders")
             .setMethodCallHandler(::handleReminderCall)
+
+        val previews = WebsitePreviewCapture(this)
+        websitePreviews = previews
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "checklist/website_previews")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "capture") {
+                    previews.capture(call.arguments as? String, result)
+                } else {
+                    result.notImplemented()
+                }
+            }
     }
 
     private fun handleReminderCall(call: MethodCall, result: MethodChannel.Result) {
@@ -135,21 +146,29 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     }
 
     private fun handleOcrCall(call: MethodCall, result: MethodChannel.Result) {
-        if (call.method != "pickAndRecognise") {
-            result.notImplemented()
-            return
+        when (call.method) {
+            "pickAndRecognise" -> {
+                if (call.argument<String>("source") != "picture") {
+                    result.error("invalid_source", "Choose a picture or take a photo.", null)
+                } else if (beginOcr(result)) {
+                    openPicturePicker()
+                }
+            }
+            "recognisePhoto" -> {
+                if (beginOcr(result)) recognisePhoto(call.argument<String>("path"))
+            }
+            "scanCameraFrame" -> scanCameraFrame(call, result)
+            else -> result.notImplemented()
         }
+    }
+
+    private fun beginOcr(result: MethodChannel.Result): Boolean {
         if (pendingOcrResult != null) {
             result.error("ocr_busy", "Another image is already being processed.", null)
-            return
+            return false
         }
-
         pendingOcrResult = result
-        when (call.argument<String>("source")) {
-            "picture" -> openPicturePicker()
-            "camera" -> openCamera()
-            else -> finishOcrError("invalid_source", "Choose a picture or take a photo.")
-        }
+        return true
     }
 
     private fun openPicturePicker() {
@@ -164,96 +183,117 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         }
     }
 
-    private fun openCamera() {
+    private fun recognisePhoto(path: String?) {
         try {
-            val imageDirectory = File(cacheDir, "ocr_images").apply { mkdirs() }
-            val imageFile = File.createTempFile("note_", ".jpg", imageDirectory)
-            val imageUri = FileProvider.getUriForFile(
-                this,
-                "$packageName.fileprovider",
-                imageFile,
-            )
-            pendingCameraFile = imageFile
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-                putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
-                clipData = ClipData.newRawUri("CHECKLIST note photo", imageUri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            }
-            startActivityForResult(intent, TAKE_PHOTO_REQUEST)
+            val imageFile = path?.let { File(it).canonicalFile }
+            require(imageFile != null && imageFile.parentFile == cacheDir.canonicalFile && imageFile.isFile)
+            recogniseImage(imageFile = imageFile)
         } catch (error: Exception) {
-            deletePendingCameraFile()
-            finishOcrError("camera_unavailable", "No camera is available.", error)
+            finishOcrError("invalid_image", "The camera photo could not be opened.", error)
         }
     }
 
     @Deprecated("Uses the compatible activity-result path required by FlutterActivity")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != PICK_IMAGE_REQUEST && requestCode != TAKE_PHOTO_REQUEST) return
-        if (pendingOcrResult == null) {
-            deletePendingCameraFile()
-            return
-        }
+        if (requestCode != PICK_IMAGE_REQUEST || pendingOcrResult == null) return
         if (resultCode != Activity.RESULT_OK) {
-            deletePendingCameraFile()
             finishOcrSuccess(null)
             return
         }
 
-        if (requestCode == PICK_IMAGE_REQUEST) {
-            val imageUri = data?.data
-            if (imageUri == null) {
-                finishOcrError("invalid_image", "The selected picture could not be opened.")
-            } else {
-                recogniseImage(imageUri = imageUri)
-            }
+        val imageUri = data?.data
+        if (imageUri == null) {
+            finishOcrError("invalid_image", "The selected picture could not be opened.")
         } else {
-            val imageFile = pendingCameraFile
-            if (imageFile == null || !imageFile.isFile) {
-                finishOcrError("invalid_image", "The camera photo could not be opened.")
-            } else {
-                recogniseImage(imageFile = imageFile)
-            }
+            recogniseImage(imageUri = imageUri)
         }
     }
 
     private fun recogniseImage(imageUri: Uri? = null, imageFile: File? = null) {
         ocrScope.launch {
-            var bitmap: Bitmap? = null
             try {
-                val preparedBitmap = withContext(Dispatchers.IO) {
-                    loadOcrBitmap(imageUri = imageUri, imageFile = imageFile)
+                val content = withContext(Dispatchers.IO) {
+                    val bitmap = loadOcrBitmap(imageUri = imageUri, imageFile = imageFile)
+                    try {
+                        if (imageFile == null) recogniseText(bitmap) else readCameraLinks(bitmap)
+                    } finally {
+                        bitmap.recycle()
+                    }
                 }
-                bitmap = preparedBitmap
-                if (!OpenCVUtils.init(applicationContext)) {
-                    throw IllegalStateException("The offline image reader could not start.")
-                }
-                val engine = paddleOCR ?: PaddleOCR.create(
-                    context = applicationContext,
-                    config = PaddleOCRConfig(
-                        detLimitSideLen = MAX_OCR_IMAGE_DIMENSION,
-                        detLimitType = "max",
-                        detMaxSideLimit = MAX_OCR_IMAGE_DIMENSION,
-                        recScoreThresh = 0.3f,
-                    ),
-                    engineConfig = EngineConfig(numThreads = 4),
-                ).also { paddleOCR = it }
-                val recognition = engine.recognize(preparedBitmap)
-                val text = recognition.results
-                    .map { it.text.trim() }
-                    .filter { it.isNotEmpty() }
-                    .joinToString("\n")
-                finishOcrSuccess(text)
+                finishOcrSuccess(content)
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Throwable) {
                 Log.e(TAG, "Offline OCR failed", error)
                 val message = error.message?.takeIf { it.isNotBlank() }
                     ?: "Could not turn that image into text."
                 finishOcrError("ocr_failed", message, error)
-            } finally {
-                bitmap?.recycle()
-                deletePendingCameraFile()
             }
         }
+    }
+
+    private fun scanCameraFrame(call: MethodCall, result: MethodChannel.Result) {
+        if (scanningFrame || pendingOcrResult != null) {
+            result.success(emptyMap<String, String>())
+            return
+        }
+        scanningFrame = true
+        ocrScope.launch {
+            try {
+                val links = withContext(Dispatchers.Default) {
+                    val bitmap = CameraFrame(call).previewBitmap()
+                    try {
+                        readCameraLinks(bitmap)
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+                result.success(links)
+            } catch (error: CancellationException) {
+                result.error("activity_closed", "The image import was interrupted.", null)
+                throw error
+            } catch (error: Exception) {
+                Log.w(TAG, "Camera preview scanning failed", error)
+                result.error("scan_failed", error.message, null)
+            } finally {
+                scanningFrame = false
+            }
+        }
+    }
+
+    private suspend fun readCameraLinks(bitmap: Bitmap): Map<String, String> {
+        val qr = CameraLinkScanner.readQr(bitmap)
+        val text = try {
+            recogniseText(bitmap)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            if (qr == null) throw error
+            Log.w(TAG, "Text recognition failed for a frame containing a QR code", error)
+            ""
+        }
+        return if (qr == null) mapOf("text" to text) else mapOf("text" to text, "qr" to qr)
+    }
+
+    private suspend fun recogniseText(preparedBitmap: Bitmap): String = recognitionLock.withLock {
+        if (paddleOCR == null && !OpenCVUtils.init(applicationContext)) {
+            throw IllegalStateException("The offline image reader could not start.")
+        }
+        val engine = paddleOCR ?: PaddleOCR.create(
+            context = applicationContext,
+            config = PaddleOCRConfig(
+                detLimitSideLen = MAX_OCR_IMAGE_DIMENSION,
+                detLimitType = "max",
+                detMaxSideLimit = MAX_OCR_IMAGE_DIMENSION,
+                recScoreThresh = 0.3f,
+            ),
+            engineConfig = EngineConfig(numThreads = 4),
+        ).also { paddleOCR = it }
+        engine.recognize(preparedBitmap).results
+            .map { it.text.trim() }
+            .filter { it.isNotEmpty() }
+            .joinToString("\n")
     }
 
     private fun loadOcrBitmap(imageUri: Uri?, imageFile: File?): Bitmap {
@@ -345,21 +385,14 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         else -> null
     }
 
-    private fun finishOcrSuccess(text: String?) {
-        pendingOcrResult?.success(text)
+    private fun finishOcrSuccess(content: Any?) {
+        pendingOcrResult?.success(content)
         pendingOcrResult = null
     }
 
     private fun finishOcrError(code: String, message: String, error: Throwable? = null) {
         pendingOcrResult?.error(code, message, error?.toString())
         pendingOcrResult = null
-    }
-
-    private fun deletePendingCameraFile() {
-        pendingCameraFile?.let { file ->
-            if (file.isFile) file.delete()
-        }
-        pendingCameraFile = null
     }
 
     override fun onResume() {
@@ -392,14 +425,16 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
     override fun onDestroy() {
+        websitePreviews?.close()
         pendingOcrResult?.error("activity_closed", "The image import was interrupted.", null)
         pendingOcrResult = null
-        deletePendingCameraFile()
-        paddleOCR?.let { engine ->
-            runBlocking(Dispatchers.IO) { engine.release() }
-        }
-        paddleOCR = null
         ocrScope.cancel()
+        CoroutineScope(Dispatchers.IO).launch {
+            recognitionLock.withLock {
+                paddleOCR?.release()
+                paddleOCR = null
+            }
+        }
         super.onDestroy()
     }
 }

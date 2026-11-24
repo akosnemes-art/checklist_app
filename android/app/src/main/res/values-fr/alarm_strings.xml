@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarm_channel_name">Rappels de listes</string>
+    <string name="alarm_channel_description">Sonne à l’heure des rappels enregistrés</string>
+    <string name="checklist_reminder">rappel de liste</string>
+    <string name="stop_alarm">arrêter</string>
+</resources>

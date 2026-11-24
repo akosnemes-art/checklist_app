@@ -1,9 +1,11 @@
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:checklist_app/app_version.dart';
 import 'package:checklist_app/main.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -120,9 +122,9 @@ void main() {
     expect(find.text('new checklist'), findsOneWidget);
     expect(find.textContaining(DateTime.now().year.toString()), findsWidgets);
     expect(find.text('medium'), findsOneWidget);
-    expect(find.byTooltip('minimize'), findsOneWidget);
-    expect(find.byTooltip('maximize or restore'), findsOneWidget);
-    expect(find.byTooltip('close'), findsOneWidget);
+    expect(find.byTooltip('minimize'), findsNothing);
+    expect(find.byTooltip('maximize or restore'), findsNothing);
+    expect(find.byTooltip('close'), findsNothing);
     expect(find.text('your list starts here'), findsOneWidget);
     expect(find.textContaining('Write a task below'), findsNothing);
     expect(find.textContaining('add a task…'), findsOneWidget);
@@ -182,7 +184,7 @@ void main() {
     expect(find.byIcon(Icons.more_horiz_rounded), findsNothing);
     expect(find.byKey(const ValueKey('white-menu-frame')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('task-settings')));
+    await tester.tap(find.byKey(const ValueKey('task-settings')).first);
     await tester.pumpAndSettle();
     expect(find.text('edit'), findsOneWidget);
     expect(find.text('delete'), findsOneWidget);
@@ -414,7 +416,7 @@ void main() {
 
     final originalPicker = FilePickerPlatform.instance;
     final imagePicker = _ImageFilePicker(
-      File('Checklist_app_logo.png').absolute.path,
+      File('Checklist_app_icon_safe.png').absolute.path,
     );
     FilePickerPlatform.instance = imagePicker;
     addTearDown(() => FilePickerPlatform.instance = originalPicker);
@@ -481,7 +483,7 @@ void main() {
       (
     tester,
   ) async {
-    final coverPath = File('Checklist_app_logo.png').absolute.path;
+    final coverPath = File('Checklist_app_icon_safe.png').absolute.path;
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
       'checklist.projects.v1':
@@ -540,16 +542,97 @@ void main() {
     expect(find.textContaining('tap done to add'), findsNothing);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
+  testWidgets('Android bottom controls stay above system navigation', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(bottom: 48);
+    tester.view.viewPadding = const FakeViewPadding(bottom: 48);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await tester.pumpWidget(const ChecklistApp());
+    await tester.pumpAndSettle();
+
+    const navigationTop = 752.0;
+    final composer = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.hintText == 'add a task…',
+    );
+    expect(tester.getBottomLeft(composer).dy, lessThan(navigationTop));
+
+    await tester.tap(find.byTooltip('open menu'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getBottomLeft(find.byKey(const ValueKey('settings-panel'))).dy,
+      lessThanOrEqualTo(navigationTop),
+    );
+    expect(
+      find.byKey(const ValueKey('mobile-sidebar-safe-area')),
+      findsOneWidget,
+    );
+    final systemUi = tester
+        .widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+          find.byKey(const ValueKey('edge-to-edge-system-ui')),
+        )
+        .value;
+    expect(systemUi.systemNavigationBarColor, Colors.transparent);
+    expect(systemUi.systemNavigationBarContrastEnforced, isFalse);
+    expect(systemUi.systemNavigationBarIconBrightness, Brightness.light);
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('Pastel drawer paints the bottom inset in both workspaces', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'checklist.welcome.v1': true,
+      'checklist.theme.v1': 'pastel',
+    });
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(bottom: 24);
+    tester.view.viewPadding = const FakeViewPadding(bottom: 24);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await tester.pumpWidget(const ChecklistApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('open menu'));
+    await tester.pumpAndSettle();
+
+    final surface = find.byKey(const ValueKey('sidebar-surface'));
+    final settings = find.byKey(const ValueKey('settings-panel'));
+    void expectDrawer(Color color) {
+      final decoration = tester.widget<AnimatedContainer>(surface).decoration!
+          as BoxDecoration;
+      expect(decoration.color, color);
+      expect(tester.getBottomLeft(surface).dy, 800);
+      expect(tester.getBottomLeft(settings).dy, lessThanOrEqualTo(776));
+    }
+
+    expectDrawer(const Color(0xFFBED4C7));
+    await tester.tap(find.bySemanticsLabel('NOTES'));
+    await tester.pumpAndSettle();
+    expectDrawer(const Color(0xFFC7B0B8));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
   testWidgets('tasks link to notes and open a scrollable note popup', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
       'checklist.projects.v1':
-          '[{"id":"project-1","name":"Linked work","createdAt":"2026-11-13T10:00:00.000Z","importance":"normal","coverImagePath":null,"tasks":[{"id":"task-1","text":"Read the linked details and keep wrapping this task text","isDone":false}]}]',
+          '[{"id":"project-1","name":"Linked work","createdAt":"2026-11-13T10:00:00.000Z","importance":"normal","coverImagePath":null,"tasks":[{"id":"task-1","text":"Read the linked details and keep wrapping this task text","isDone":false},{"id":"task-2","text":"Ordinary task","isDone":false}]}]',
       'checklist.selectedProject.v1': 'project-1',
       'checklist.notes.v1':
-          '[{"id":"note-1","name":"Useful note","createdAt":"2026-11-13T11:00:00.000Z","content":"A long note body that is available inside the task popup.","categoryId":null}]',
+          '[{"id":"note-1","name":"Useful note","createdAt":"2026-11-13T11:00:00.000Z","content":"A long note body that is \\uE000available\\uE001 inside the task popup.","categoryId":null}]',
       'checklist.selectedNote.v1': 'note-1',
     });
     tester.view.physicalSize = const Size(1200, 800);
@@ -564,21 +647,33 @@ void main() {
     final coverFrame = find.byKey(const ValueKey('cover-source-menu'));
     expect(tester.getTopLeft(checkbox).dx, tester.getTopLeft(coverFrame).dx);
 
-    await tester.tap(find.byKey(const ValueKey('task-settings')));
+    await tester.tap(find.byKey(const ValueKey('task-settings')).first);
     await tester.pumpAndSettle();
     expect(find.text('+ note'), findsOneWidget);
     await tester.tap(find.text('+ note'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('task-note-picker-list')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('task-note-choice-note-1')));
+    final pickerRow = find.byKey(const ValueKey('task-note-choice-note-1'));
+    final subtitle = (tester.widget<ListTile>(pickerRow).subtitle as Text)
+        .textSpan! as TextSpan;
+    expect(subtitle.toPlainText(),
+        'A long note body that is available inside the task popup.');
+    expect(
+        (subtitle.children![1] as TextSpan).style!.fontWeight, FontWeight.w700);
+    await tester.tap(pickerRow);
     await tester.pumpAndSettle();
 
     final noteIcon = tester.widget<Icon>(
       find.byKey(const ValueKey('task-note-icon-task-1')),
     );
     expect(noteIcon.icon, Icons.sticky_note_2_rounded);
-    expect(noteIcon.color, const Color(0xFF5A9BFF));
+    expect(noteIcon.color, const Color(0xFFF3ED23));
+    final ordinaryCheckbox = find.byKey(const ValueKey('task-checkbox-task-2'));
+    expect(
+      tester.getCenter(checkbox).dx,
+      tester.getCenter(ordinaryCheckbox).dx,
+    );
     expect(
       tester
           .getTopLeft(find.byKey(const ValueKey('task-note-button-task-1')))
@@ -615,6 +710,107 @@ void main() {
     expect(find.textContaining('A long note body'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  for (final (theme, buttonColour, frameColour, linkColour) in [
+    (
+      'boi',
+      const Color(0xFFF3ED23),
+      const Color(0xFF5A9BFF),
+      const Color(0xFFF3ED23)
+    ),
+    (
+      'pencil',
+      const Color(0xFF5A9BFF),
+      const Color(0xFF858C94),
+      const Color(0xFF5A9BFF)
+    ),
+    (
+      'pastel',
+      const Color(0xFF5A9BFF),
+      const Color(0xFFF8F2C8),
+      const Color(0xFF1553A3)
+    ),
+  ]) {
+    testWidgets('linked note formatting and colours in $theme', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'checklist.welcome.v1': true,
+        'checklist.theme.v1': theme,
+        'checklist.projects.v1':
+            '[{"id":"project","name":"Read","createdAt":"2026-11-13","tasks":[{"id":"task","text":"Review","linkedNoteId":"note"}]}]',
+        'checklist.notes.v1':
+            '[{"id":"note","name":"Linked note","createdAt":"2026-11-13","content":"Plain \\uE000\\uE002\\uE004combined\\uE001\\uE003\\uE005 and **legacy bold**, *legacy italic*, __legacy underline__ and https://example.org."}]',
+      });
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      final messenger = tester.binding.defaultBinaryMessenger;
+      final opened = <MethodCall>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        opened.add(call);
+        return true;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+      await tester.pumpWidget(const ChecklistApp());
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Icon>(find.byKey(const ValueKey('task-note-icon-task')))
+            .color,
+        buttonColour,
+      );
+      await tester.tap(find.byKey(const ValueKey('task-note-button-task')));
+      await tester.pumpAndSettle();
+      final dialog = find.byKey(const ValueKey('task-linked-note-dialog'));
+      final shape =
+          tester.widget<AlertDialog>(dialog).shape! as RoundedRectangleBorder;
+      expect(shape.side, BorderSide(color: frameColour, width: 2));
+      expect(shape.borderRadius, BorderRadius.zero);
+
+      final noteBody = find.descendant(
+        of: dialog,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              (widget.textSpan?.toPlainText().startsWith('Plain combined') ??
+                  false),
+        ),
+      );
+      final note = tester.widget<Text>(noteBody).textSpan! as TextSpan;
+      expect(
+        note.toPlainText(),
+        'Plain combined and legacy bold, legacy italic, legacy underline and https://example.org.',
+      );
+      final runs = {
+        for (final span in note.children!.cast<TextSpan>())
+          span.text!: span.style!,
+      };
+      expect(runs['combined']!.fontWeight, FontWeight.w700);
+      expect(runs['combined']!.fontStyle, FontStyle.italic);
+      expect(runs['combined']!.decoration, TextDecoration.underline);
+      expect(runs['legacy bold']!.fontWeight, FontWeight.w700);
+      expect(runs['legacy italic']!.fontStyle, FontStyle.italic);
+      expect(runs['legacy underline']!.decoration, TextDecoration.underline);
+      expect(runs['https://example.org']!.decoration, TextDecoration.underline);
+      expect(runs['https://example.org']!.color, linkColour);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: noteBody, matching: find.byType(RichText)),
+      );
+      final urlStart = note.toPlainText().indexOf('https:');
+      final box = paragraph
+          .getBoxesForSelection(TextSelection(
+            baseOffset: urlStart,
+            extentOffset: urlStart + 5,
+          ))
+          .first;
+      await tester.tapAt(paragraph.localToGlobal(box.toRect().center));
+      await tester.pump();
+      expect(opened.single.arguments['url'], 'https://example.org');
+      expect(opened.single.arguments['useWebView'], isFalse);
+    });
+  }
 
   testWidgets('wordmark switches layouts and settings changes themes', (
     tester,
@@ -679,6 +875,21 @@ void main() {
     expect(find.text('dark'), findsNothing);
     expect(find.text('light'), findsNothing);
     expect(find.byKey(const ValueKey('appearance-switch')), findsNothing);
+    final settingsLabel = find.text('settings');
+    final settingsVersion = find.byKey(const ValueKey('settings-version'));
+    expect(tester.widget<Text>(settingsVersion).data, checklistVersion);
+    expect(
+      tester.widget<Text>(settingsVersion).style!.fontSize,
+      tester.widget<Text>(settingsLabel).style!.fontSize! / 2,
+    );
+    expect(
+      tester.getTopLeft(settingsVersion).dy,
+      greaterThan(tester.getBottomLeft(settingsLabel).dy),
+    );
+    expect(
+      tester.getTopLeft(settingsVersion).dx,
+      tester.getTopLeft(settingsLabel).dx,
+    );
     expect(
       tester
           .getSize(find.byKey(const ValueKey('settings-expanding-line')))
@@ -688,6 +899,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('settings-toggle')));
     await tester.pumpAndSettle();
+    expect(settingsVersion, findsOneWidget);
     expect(find.byKey(const ValueKey('settings-main')), findsOneWidget);
     expect(find.text('themes'), findsOneWidget);
     expect(find.text('language'), findsOneWidget);
@@ -824,7 +1036,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-about')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('settings-about-page')), findsOneWidget);
-    expect(find.textContaining('CHECKLIST 0.4.8'), findsOneWidget);
+    expect(find.textContaining('CHECKLIST 0.5.1'), findsOneWidget);
     expect(find.textContaining('Ákos Nemes'), findsOneWidget);
     expect(find.text('akosnemes@proton.me'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -877,9 +1089,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 455));
 
     expect(find.byKey(const ValueKey('version-info-dialog')), findsOneWidget);
-    expect(find.text('CHECKLIST 0.4.8'), findsOneWidget);
-    expect(find.text('build 33'), findsOneWidget);
-    expect(find.textContaining('note formatting render'), findsOneWidget);
+    expect(find.text('CHECKLIST 0.5.1'), findsOneWidget);
+    expect(find.text('build $checklistBuildNumber'), findsOneWidget);
+    expect(
+        find.textContaining('German and Simplified Chinese'), findsOneWidget);
     expect(find.text('Makers: Ákos Nemes · Codex AI'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -917,6 +1130,9 @@ void main() {
 
     final editorFinder = find.byKey(const ValueKey('note-content-field'));
     final editor = tester.widget<TextField>(editorFinder);
+    await tester.tap(editorFinder);
+    await tester.pump();
+    expect(editor.focusNode?.hasFocus, isTrue);
     editor.controller!.selection = const TextSelection(
       baseOffset: 0,
       extentOffset: 4,
@@ -928,6 +1144,7 @@ void main() {
       find.byKey(const ValueKey('note-format-bold')),
     );
     expect(bold.style?.foregroundColor?.resolve({}), const Color(0xFFF3ED23));
+    expect(editor.focusNode?.hasFocus, isTrue);
 
     editor.controller!.selection = const TextSelection(
       baseOffset: 1,
@@ -966,16 +1183,15 @@ void main() {
       tester.element(editorFinder),
       editableState,
     ) as TextSelectionToolbar;
-    expect(
-      selectionToolbar.key,
-      const ValueKey('note-selection-toolbar'),
-    );
+    expect(selectionToolbar.key, const ValueKey('note-selection-toolbar'));
     final toolbarSurface = selectionToolbar.toolbarBuilder(
       tester.element(editorFinder),
       const SizedBox(),
     ) as Material;
     expect(
-        toolbarSurface.key, const ValueKey('note-selection-toolbar-surface'));
+      toolbarSurface.key,
+      const ValueKey('note-selection-toolbar-surface'),
+    );
     expect(
       (toolbarSurface.shape! as RoundedRectangleBorder).side,
       BorderSide.none,
@@ -1020,9 +1236,7 @@ void main() {
     expect(editor.controller!.selection.extentOffset, 3);
     expect(
       tester
-          .widget<IconButton>(
-            find.byKey(const ValueKey('note-format-bold')),
-          )
+          .widget<IconButton>(find.byKey(const ValueKey('note-format-bold')))
           .style
           ?.foregroundColor
           ?.resolve({}),
@@ -1034,6 +1248,13 @@ void main() {
       preferences.getString('checklist.notes.v1'),
       contains('\uE000x\uE001'),
     );
+    final noteTitle = find.descendant(
+      of: find.byKey(const ValueKey('note-editor')),
+      matching: find.text('Format me'),
+    );
+    await tester.tap(noteTitle);
+    await tester.pump();
+    expect(editor.focusNode?.hasFocus, isFalse);
     expect(tester.takeException(), isNull);
   });
 

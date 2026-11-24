@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -15,6 +16,7 @@ import android.media.RingtoneManager
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import java.util.Locale
 
 class AlarmSoundService : Service() {
     companion object {
@@ -30,21 +32,18 @@ class AlarmSoundService : Service() {
     private var player: MediaPlayer? = null
     private var audioFocusRequest: AudioFocusRequest? = null
 
-    override fun onCreate() {
-        super.onCreate()
-        createNotificationChannel()
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             stopAlarm()
             return START_NOT_STICKY
         }
 
+        val strings = alarmLanguageContext()
+        createNotificationChannel(strings)
         val title = intent?.getStringExtra(EXTRA_REMINDER_TITLE)
             ?.takeIf { it.isNotBlank() }
-            ?: "checklist reminder"
-        startForeground(NOTIFICATION_ID, buildNotification(title))
+            ?: strings.getString(R.string.checklist_reminder)
+        startForeground(NOTIFICATION_ID, buildNotification(title, strings))
         startAlarmSound()
         return START_NOT_STICKY
     }
@@ -56,21 +55,38 @@ class AlarmSoundService : Service() {
         super.onDestroy()
     }
 
-    private fun createNotificationChannel() {
+    private fun alarmLanguageContext(): Context {
+        // Legacy Flutter SharedPreferences stores this setting for offline alarms.
+        val preference = getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
+            .getString("flutter.checklist.language.v1", null)
+        val language = when (preference) {
+            "hungarian" -> "hu"
+            "french" -> "fr"
+            "czech" -> "cs"
+            "german" -> "de"
+            "chinese" -> "zh-CN"
+            else -> "en"
+        }
+        return createConfigurationContext(Configuration(resources.configuration).apply {
+            setLocale(Locale.forLanguageTag(language))
+        })
+    }
+
+    private fun createNotificationChannel(strings: Context) {
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Checklist alarms",
+            strings.getString(R.string.alarm_channel_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "Sounds saved checklist reminders"
+            description = strings.getString(R.string.alarm_channel_description)
             setSound(null, null)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         manager.createNotificationChannel(channel)
     }
 
-    private fun buildNotification(title: String): Notification {
+    private fun buildNotification(title: String, strings: Context): Notification {
         val openIntent = PendingIntent.getActivity(
             this,
             0,
@@ -88,14 +104,14 @@ class AlarmSoundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(resources.getIdentifier("checklist_logo", "mipmap", packageName))
             .setContentTitle(title)
-            .setContentText("checklist reminder")
+            .setContentText(strings.getString(R.string.checklist_reminder))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
             .setContentIntent(openIntent)
-            .addAction(0, "stop", stopIntent)
+            .addAction(0, strings.getString(R.string.stop_alarm), stopIntent)
             .build()
     }
 

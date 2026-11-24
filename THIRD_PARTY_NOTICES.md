@@ -39,3 +39,12 @@ Copyright (C) 2015-2021, OpenCV Foundation, all rights reserved.
 Licensed under the Apache License, Version 2.0. You may obtain a copy at
 https://www.apache.org/licenses/LICENSE-2.0. The software is distributed on an
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
+
+## ZXing
+
+CHECKLIST uses ZXing Core 3.5.4 to decode QR codes offline on Android.
+
+- Project: https://github.com/zxing/zxing
+- Licence: Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+Copyright ZXing authors.

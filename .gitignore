@@ -10,7 +10,6 @@
 *.iml
 build/
 dist/
-linux/flutter/ephemeral/
 android/.gradle/
 android/local.properties
 CHECKLIST log*.txt

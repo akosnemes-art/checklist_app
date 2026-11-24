@@ -1,7 +1,7 @@
 name: checklist_app
-description: A minimal cross-platform project checklist for Linux and Android.
+description: A local-first checklist and notes app for Android.
 publish_to: 'none'
-version: 0.4.8+33
+version: 0.5.1+39
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -9,6 +9,7 @@ environment:
 
 dependencies:
   camera: ^0.11.1
+  crypto: ^3.0.8
   file_picker: ^13.3.2
   flutter:
     sdk: flutter
@@ -18,8 +19,10 @@ dependencies:
   path_provider: ^2.1.5
   sensors_plus: ^7.1.1
   shared_preferences: ^2.3.5
+  url_launcher: ^6.3.2
 
 dev_dependencies:
+  camera_platform_interface: ^2.15.0
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
@@ -27,4 +30,4 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - Checklist_app_logo.png
+    - Checklist_app_icon_safe.png

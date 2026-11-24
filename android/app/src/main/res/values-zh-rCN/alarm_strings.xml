@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarm_channel_name">清单闹钟</string>
+    <string name="alarm_channel_description">在清单提醒时间响铃</string>
+    <string name="checklist_reminder">清单提醒</string>
+    <string name="stop_alarm">停止</string>
+</resources>

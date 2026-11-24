@@ -7,6 +7,7 @@ import 'package:image/image.dart' as image;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../app_version.dart';
 import '../models/checklist_project.dart';
 import '../models/note.dart';
 
@@ -153,7 +154,7 @@ class LocalStore {
     final payload = <String, Object?>{
       'format': 'checklist-backup',
       'schemaVersion': 1,
-      'appVersion': '0.4.8',
+      'appVersion': checklistVersion,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'projects': projects.map((project) => project.toJson()).toList(),
       'notes': notes.map((note) => note.toJson()).toList(),

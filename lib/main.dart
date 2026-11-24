@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/gestures.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
@@ -13,13 +12,22 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as image_library;
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'app_localizations.dart';
+import 'app_version.dart';
 import 'models/checklist_project.dart';
 import 'models/note.dart';
 import 'services/local_store.dart';
+import 'services/note_links.dart';
 import 'services/ocr_service.dart';
 import 'services/reminder_service.dart';
+import 'services/website_previews.dart';
+
+part 'note_formatting.dart';
+part 'photo_camera_dialog.dart';
+part 'popup_animation.dart';
+part 'website_gallery.dart';
 
 const _backgroundDark = Color(0xFF0D0912);
 const _surfaceDark = Color(0xFF17101F);
@@ -45,26 +53,23 @@ const _pastelWhite = Color(0xFFFFFFFF);
 const _pastelYellow = Color(0xFFF8F2C8);
 const _pastelGreen = Color(0xFFBED4C7);
 const _pastelMauve = Color(0xFFC7B0B8);
+const _pastelSelectedNote = _lightBackground;
 const _pastelPriorityHigh = Color(0xFFE31F26);
 const _pastelPriorityMedium = Color(0xFF00978D);
 const _pastelPriorityLow = Color(0xFFB5B1D8);
 const _pencilPriorityHigh = Color(0xFF0E2F44);
 const _pencilPriorityMedium = Color(0xFF64696A);
 const _pencilPriorityLow = Color(0xFF999999);
-const _appVersion = '0.4.8';
-const _appBuildNumber = '33';
-const _appRelease = '$_appVersion+$_appBuildNumber';
-const _popupFadeDuration = Duration(milliseconds: 5);
+const _renameNotePastelBlue = Color(0xFFD9EAF7);
 const _taskReorderHoldDuration = Duration(milliseconds: 140);
 const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
 const _implementedChanges = <String>[
-  'Aligned the sidebar mode checkmark with its wordmark.',
-  'Moved linked-note icons below their task checkboxes.',
-  'Added dedicated Pencil priority colours.',
-  'Made note formatting render bold, italic, and underlined text.',
-  'Added a borderless selection toolbar with editing and formatting actions.',
+  'Popup frames draw in before their contents fade in.',
+  'Linked notes show formatting and open hyperlinks.',
+  'Saved note links can be browsed with website screenshots.',
+  'German and Simplified Chinese are available.',
 ];
 const _noteColours = <Color>[
   Color(0xFFE85D75),
@@ -90,6 +95,15 @@ const _noteColours = <Color>[
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isAndroid) {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
   runApp(const ChecklistApp());
@@ -105,11 +119,16 @@ Future<T?> showDialog<T>({
     barrierDismissible: barrierDismissible,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
     barrierColor: Colors.black54,
-    transitionDuration: _popupFadeDuration,
+    transitionDuration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : _popupDuration,
     pageBuilder: (dialogContext, animation, secondaryAnimation) =>
         builder(dialogContext),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
-        FadeTransition(opacity: animation, child: child),
+        FadeTransition(
+      opacity: animation.drive(CurveTween(curve: const Interval(0, 0.12))),
+      child: child,
+    ),
   );
 }
 
@@ -154,8 +173,8 @@ class _ChecklistAppState extends State<ChecklistApp> {
         _appTheme = theme.isNotEmpty
             ? theme.first
             : legacyDarkMode
-            ? AppTheme.boi
-            : AppTheme.pencil;
+                ? AppTheme.boi
+                : AppTheme.pencil;
         if (language.isNotEmpty) _appLanguage = language.first;
       });
     } catch (error) {
@@ -352,7 +371,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
       popupMenuTheme: const PopupMenuThemeData(
         color: _lightSurface,
         shape: RoundedRectangleBorder(
-          side: BorderSide(color: _defaultNoteBlue, width: 2),
+          side: BorderSide(color: _lightLine, width: 2),
         ),
       ),
       chipTheme: const ChipThemeData(
@@ -438,7 +457,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
       popupMenuTheme: const PopupMenuThemeData(
         color: _pastelWhite,
         shape: RoundedRectangleBorder(
-          side: BorderSide(color: _defaultNoteBlue, width: 2),
+          side: BorderSide(color: _pastelYellow, width: 2),
         ),
       ),
       chipTheme: const ChipThemeData(
@@ -475,7 +494,8 @@ class _ChecklistAppState extends State<ChecklistApp> {
       scaffoldMessengerKey: _messengerKey,
       theme: selectedTheme,
       locale: _appLanguage.locale,
-      supportedLocales: const [Locale('en'), Locale('hu')],
+      supportedLocales:
+          AppLanguage.values.map((language) => language.locale).toList(),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -495,169 +515,6 @@ class _ChecklistAppState extends State<ChecklistApp> {
 enum ProjectSort { newest, oldest, alphabetical, priority }
 
 enum NoteSort { newest, oldest, alphabetical, category }
-
-enum _NoteFormat { bold, italic, underline }
-
-String _noteFormatOpenMarker(_NoteFormat format) => switch (format) {
-  _NoteFormat.bold => '\uE000',
-  _NoteFormat.italic => '\uE002',
-  _NoteFormat.underline => '\uE004',
-};
-
-String _noteFormatCloseMarker(_NoteFormat format) => switch (format) {
-  _NoteFormat.bold => '\uE001',
-  _NoteFormat.italic => '\uE003',
-  _NoteFormat.underline => '\uE005',
-};
-
-String _legacyNoteFormatMarker(_NoteFormat format) => switch (format) {
-  _NoteFormat.bold => '**',
-  _NoteFormat.italic => '*',
-  _NoteFormat.underline => '__',
-};
-
-Set<_NoteFormat> _noteFormatsAt(String text, int offset) {
-  final formats = <_NoteFormat>{};
-  final limit = offset.clamp(0, text.length);
-  var index = 0;
-  while (index < limit) {
-    var matched = false;
-    for (final format in _NoteFormat.values) {
-      final open = _noteFormatOpenMarker(format);
-      final close = _noteFormatCloseMarker(format);
-      if (text.startsWith(open, index)) {
-        formats.add(format);
-        index += open.length;
-        matched = true;
-        break;
-      }
-      if (text.startsWith(close, index)) {
-        formats.remove(format);
-        index += close.length;
-        matched = true;
-        break;
-      }
-    }
-    if (matched) continue;
-    if (text.startsWith('**', index)) {
-      formats.contains(_NoteFormat.bold)
-          ? formats.remove(_NoteFormat.bold)
-          : formats.add(_NoteFormat.bold);
-      index += 2;
-    } else if (text.startsWith('__', index)) {
-      formats.contains(_NoteFormat.underline)
-          ? formats.remove(_NoteFormat.underline)
-          : formats.add(_NoteFormat.underline);
-      index += 2;
-    } else if (text.startsWith('*', index)) {
-      formats.contains(_NoteFormat.italic)
-          ? formats.remove(_NoteFormat.italic)
-          : formats.add(_NoteFormat.italic);
-      index += 1;
-    } else {
-      index += 1;
-    }
-  }
-  return formats;
-}
-
-class _FormattedNoteController extends TextEditingController {
-  TextStyle _formattedStyle(TextStyle base, Set<_NoteFormat> formats) {
-    return base.copyWith(
-      fontWeight: formats.contains(_NoteFormat.bold)
-          ? FontWeight.w700
-          : base.fontWeight,
-      fontStyle: formats.contains(_NoteFormat.italic)
-          ? FontStyle.italic
-          : base.fontStyle,
-      decoration: formats.contains(_NoteFormat.underline)
-          ? TextDecoration.underline
-          : base.decoration,
-    );
-  }
-
-  @override
-  TextSpan buildTextSpan({
-    required BuildContext context,
-    TextStyle? style,
-    required bool withComposing,
-  }) {
-    final base = style ?? const TextStyle();
-    final hiddenMarkerStyle = base.copyWith(
-      color: Colors.transparent,
-      fontSize: 0.01,
-      height: 0.01,
-      letterSpacing: 0,
-    );
-    final formats = <_NoteFormat>{};
-    final children = <InlineSpan>[];
-    final buffer = StringBuffer();
-
-    void flush() {
-      if (buffer.isEmpty) return;
-      children.add(
-        TextSpan(
-          text: buffer.toString(),
-          style: _formattedStyle(base, formats),
-        ),
-      );
-      buffer.clear();
-    }
-
-    void addHiddenMarker(String marker) {
-      flush();
-      children.add(TextSpan(text: marker, style: hiddenMarkerStyle));
-    }
-
-    var index = 0;
-    while (index < text.length) {
-      var matched = false;
-      for (final format in _NoteFormat.values) {
-        final open = _noteFormatOpenMarker(format);
-        final close = _noteFormatCloseMarker(format);
-        if (text.startsWith(open, index)) {
-          addHiddenMarker(open);
-          formats.add(format);
-          index += open.length;
-          matched = true;
-          break;
-        }
-        if (text.startsWith(close, index)) {
-          addHiddenMarker(close);
-          formats.remove(format);
-          index += close.length;
-          matched = true;
-          break;
-        }
-      }
-      if (matched) continue;
-      if (text.startsWith('**', index)) {
-        addHiddenMarker('**');
-        formats.contains(_NoteFormat.bold)
-            ? formats.remove(_NoteFormat.bold)
-            : formats.add(_NoteFormat.bold);
-        index += 2;
-      } else if (text.startsWith('__', index)) {
-        addHiddenMarker('__');
-        formats.contains(_NoteFormat.underline)
-            ? formats.remove(_NoteFormat.underline)
-            : formats.add(_NoteFormat.underline);
-        index += 2;
-      } else if (text.startsWith('*', index)) {
-        addHiddenMarker('*');
-        formats.contains(_NoteFormat.italic)
-            ? formats.remove(_NoteFormat.italic)
-            : formats.add(_NoteFormat.italic);
-        index += 1;
-      } else {
-        buffer.write(text[index]);
-        index += 1;
-      }
-    }
-    flush();
-    return TextSpan(style: base, children: children);
-  }
-}
 
 enum _SettingsPage { main, themes, language, backup, about }
 
@@ -684,13 +541,41 @@ class ChecklistHome extends StatefulWidget {
   State<ChecklistHome> createState() => _ChecklistHomeState();
 }
 
-class _ChecklistHomeState extends State<ChecklistHome> {
+class _ChecklistHomeState extends State<ChecklistHome>
+    with TickerProviderStateMixin {
+  late final _noteReveal = _newContentReveal();
+  late final _projectReveal = _newContentReveal();
+
+  AnimationController _newContentReveal() => AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 500),
+        value: 1,
+      );
+
+  void _revealContent(AnimationController controller) {
+    if (!MediaQuery.disableAnimationsOf(context)) controller.forward(from: 0);
+  }
+
+  Widget _contentFade(
+      Animation<double> animation, double start, double end, Widget child) {
+    return FadeTransition(
+      opacity: CurveTween(curve: Interval(start, end, curve: Curves.easeOut))
+          .animate(animation),
+      child: child,
+    );
+  }
+
   final _store = LocalStore();
   final _ocrService = OcrService();
   final _reminderService = ReminderService();
+  final _websitePreviews = WebsitePreviews();
+  final _pendingWebsiteLinks = <String, Set<Uri>>{};
   final _taskController = TextEditingController();
   final _taskFocusNode = FocusNode();
+  final _noteFocusNode = FocusNode();
   late final _FormattedNoteController _noteController;
+  NoteLink? _pressedNoteLink;
+  bool _noteLinkBusy = false;
 
   List<ChecklistProject> _projects = [];
   List<NoteEntry> _notes = [];
@@ -705,6 +590,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   bool _heartAnimationEnabled = false;
   String? _loadError;
   Timer? _noteSaveTimer;
+  Timer? _websitePreviewTimer;
   Timer? _heartTapResetTimer;
   Timer? _infoTapTimer;
   int _heartTapCount = 0;
@@ -715,7 +601,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   bool _settingsOpen = false;
   _SettingsPage _settingsPage = _SettingsPage.main;
   final Set<String> _sidebarExitingIds = <String>{};
-  final Set<_NoteFormat> _activeNoteFormats = <_NoteFormat>{};
+  int _activeNoteFormats = 0;
 
   ChecklistProject? get _selected {
     for (final project in _projects) {
@@ -747,26 +633,23 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   }
 
   void _syncActiveNoteFormats() {
-    final selection = _noteController.selection;
-    final offset = selection.isValid
-        ? selection.extentOffset
-        : _noteController.text.length;
-    final formats = _noteFormatsAt(_noteController.text, offset);
-    if (setEquals(formats, _activeNoteFormats) || !mounted) return;
-    setState(() {
-      _activeNoteFormats
-        ..clear()
-        ..addAll(formats);
-    });
+    final active =
+        _noteController.formatting.activeStyles(_noteController.selection);
+    if (active == _activeNoteFormats || !mounted) return;
+    setState(() => _activeNoteFormats = active);
   }
 
   @override
   void dispose() {
+    _noteReveal.dispose();
+    _projectReveal.dispose();
     _noteSaveTimer?.cancel();
+    _websitePreviewTimer?.cancel();
     _heartTapResetTimer?.cancel();
     _infoTapTimer?.cancel();
     _taskController.dispose();
     _taskFocusNode.dispose();
+    _noteFocusNode.dispose();
     _noteController.removeListener(_syncActiveNoteFormats);
     _noteController.dispose();
     super.dispose();
@@ -809,9 +692,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
         await _store.saveProjects(projects);
       }
       if (!mounted) return;
-      final compatibleSortName = savedSortName == 'importance'
-          ? 'priority'
-          : savedSortName;
+      final compatibleSortName =
+          savedSortName == 'importance' ? 'priority' : savedSortName;
       final savedSort = ProjectSort.values.where(
         (sort) => sort.name == compatibleSortName,
       );
@@ -820,8 +702,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
       );
       final selectedId =
           projects.any((project) => project.id == savedSelectedId)
-          ? savedSelectedId
-          : projects.first.id;
+              ? savedSelectedId
+              : projects.first.id;
       final selectedNoteId = notes.any((note) => note.id == savedSelectedNoteId)
           ? savedSelectedNoteId
           : (notes.isEmpty ? null : notes.first.id);
@@ -901,13 +783,13 @@ class _ChecklistHomeState extends State<ChecklistHome> {
       // Legacy installs only stored the one-time boolean. Preserve that state
       // while moving them onto release-aware version/build tracking.
       if (welcomeShown && lastSeenRelease == null) {
-        await _store.saveLastSeenVersion(_appRelease);
+        await _store.saveLastSeenVersion(checklistRelease);
         return;
       }
-      if (welcomeShown && lastSeenRelease == _appRelease) return;
+      if (welcomeShown && lastSeenRelease == checklistRelease) return;
 
       await _store.saveWelcomeShown();
-      await _store.saveLastSeenVersion(_appRelease);
+      await _store.saveLastSeenVersion(checklistRelease);
       if (!mounted) return;
       await showDialog<void>(
         context: context,
@@ -959,7 +841,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     setState(() {
       _showNotes = true;
       _noteController.text = _selectedNote?.content ?? '';
-      _activeNoteFormats.clear();
+      _activeNoteFormats = 0;
     });
     widget.onNotesModeChanged(true);
   }
@@ -1040,11 +922,15 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   }
 
   void _selectNote(NoteEntry note) {
-    _noteSaveTimer?.cancel();
+    if (_selectedNoteId != note.id) {
+      _noteFocusNode.unfocus();
+      _noteController.highlightLink(null);
+      _revealContent(_noteReveal);
+    }
     setState(() {
       _selectedNoteId = note.id;
       _noteController.text = note.content;
-      _activeNoteFormats.clear();
+      _activeNoteFormats = 0;
     });
     _rememberSelectedNote(note.id);
   }
@@ -1052,92 +938,57 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   void _updateNoteContent(String content) {
     final note = _selectedNote;
     if (note == null) return;
+    final previousLinks = _websiteLinks(note.content).toSet();
     note.content = content;
+    final nextLinks = _websiteLinks(content).toSet();
+    final pending = _pendingWebsiteLinks.putIfAbsent(note.id, () => {});
+    pending
+      ..retainAll(nextLinks)
+      ..addAll(nextLinks.difference(previousLinks));
+    if (pending.isEmpty) _pendingWebsiteLinks.remove(note.id);
+    _websitePreviewTimer?.cancel();
+    if (_pendingWebsiteLinks.isNotEmpty) {
+      _websitePreviewTimer =
+          Timer(const Duration(seconds: 1), _captureWebsitePreviews);
+    }
     setState(() {});
     _noteSaveTimer?.cancel();
     _noteSaveTimer = Timer(const Duration(milliseconds: 250), _persistNotes);
   }
 
+  Iterable<Uri> _websiteLinks(String content) =>
+      findNoteLinks(content).map((link) => link.uri).where(isWebsiteLink);
+
+  void _captureWebsitePreviews() {
+    for (final note in _notes) {
+      final pending = _pendingWebsiteLinks[note.id];
+      if (pending == null) continue;
+      for (final uri
+          in _websiteLinks(note.content).toSet().intersection(pending)) {
+        unawaited(_websitePreviews.load(uri));
+      }
+    }
+    _pendingWebsiteLinks.clear();
+  }
+
+  Future<void> _openWebsiteGallery() => showDialog<void>(
+        context: context,
+        builder: (context) => _WebsiteGallery(
+          links: _notes
+              .expand((note) => _websiteLinks(note.content))
+              .toSet()
+              .toList(),
+          previews: _websitePreviews,
+          onOpenLink: _openNoteLink,
+        ),
+      );
+
   void _toggleNoteFormat(_NoteFormat format) {
     if (_selectedNote == null) return;
-    final value = _noteController.value;
-    final selection = value.selection;
-    final start = selection.isValid
-        ? math.min(selection.start, selection.end)
-        : value.text.length;
-    final end = selection.isValid
-        ? math.max(selection.start, selection.end)
-        : value.text.length;
-    final legacyMarker = _legacyNoteFormatMarker(format);
-    final openMarker = _noteFormatOpenMarker(format);
-    final closeMarker = _noteFormatCloseMarker(format);
-
-    late String updated;
-    late TextSelection updatedSelection;
-    if (start != end) {
-      final legacyWrapped =
-          start >= legacyMarker.length &&
-          end + legacyMarker.length <= value.text.length &&
-          value.text.substring(start - legacyMarker.length, start) ==
-              legacyMarker &&
-          value.text.substring(end, end + legacyMarker.length) == legacyMarker;
-      final richWrapped =
-          start >= openMarker.length &&
-          end + closeMarker.length <= value.text.length &&
-          value.text.substring(start - openMarker.length, start) ==
-              openMarker &&
-          value.text.substring(end, end + closeMarker.length) == closeMarker;
-      final before = richWrapped ? openMarker : legacyMarker;
-      final after = richWrapped ? closeMarker : legacyMarker;
-      if (legacyWrapped || richWrapped) {
-        updated = value.text
-            .replaceRange(end, end + after.length, '')
-            .replaceRange(start - before.length, start, '');
-        updatedSelection = TextSelection(
-          baseOffset: start - before.length,
-          extentOffset: end - before.length,
-        );
-      } else {
-        updated = value.text
-            .replaceRange(end, end, closeMarker)
-            .replaceRange(start, start, openMarker);
-        updatedSelection = TextSelection(
-          baseOffset: start + openMarker.length,
-          extentOffset: end + openMarker.length,
-        );
-      }
-    } else if (_activeNoteFormats.contains(format)) {
-      var closingOffset = value.text.indexOf(closeMarker, start);
-      var closingLength = closeMarker.length;
-      if (closingOffset < 0) {
-        closingOffset = value.text.indexOf(legacyMarker, start);
-        closingLength = legacyMarker.length;
-      }
-      updated = closingOffset < 0
-          ? value.text.replaceRange(start, start, closeMarker)
-          : value.text
-                .replaceRange(closingOffset, closingOffset + closingLength, '')
-                .replaceRange(start, start, closeMarker);
-      updatedSelection = TextSelection.collapsed(
-        offset: start + closeMarker.length,
-      );
-    } else {
-      updated = value.text.replaceRange(
-        start,
-        start,
-        '$openMarker$closeMarker',
-      );
-      updatedSelection = TextSelection.collapsed(
-        offset: start + openMarker.length,
-      );
-    }
-
-    _noteController.value = value.copyWith(
-      text: updated,
-      selection: updatedSelection,
-      composing: TextRange.empty,
-    );
-    _updateNoteContent(updated);
+    final updated =
+        _noteController.formatting.toggle(_noteController.selection, format);
+    _noteController.value = updated;
+    _updateNoteContent(updated.text);
   }
 
   Widget _noteSelectionFormatButton(
@@ -1219,7 +1070,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     required IconData icon,
     required String tooltip,
   }) {
-    final active = _activeNoteFormats.contains(format);
+    final active = (_activeNoteFormats & format.bit) != 0;
     return IconButton(
       key: ValueKey('note-format-${format.name}'),
       tooltip: localizeText(context, tooltip),
@@ -1233,13 +1084,79 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     );
   }
 
-  Future<void> _importNoteText(OcrImageSource source) async {
-    if (_ocrBusy || _selectedNote == null) return;
-    setState(() => _ocrBusy = true);
+  void _trackNoteLinkPress(PointerDownEvent event) {
+    _pressedNoteLink = null;
+    if (_noteFocusNode.hasFocus || event.buttons != kPrimaryButton) return;
+
+    final editable = _noteFocusNode.context
+        ?.findAncestorStateOfType<EditableTextState>()
+        ?.renderEditable;
+    if (editable == null) return;
+    final point = editable.globalToLocal(event.position);
+    final offset = editable.getPositionForPoint(event.position).offset;
+    for (final link in _noteController.links) {
+      if (offset < link.start || offset > link.end) continue;
+      final boxes = editable.getBoxesForSelection(
+        TextSelection(baseOffset: link.start, extentOffset: link.end),
+      );
+      if (boxes.any((box) => box.toRect().contains(point))) {
+        _pressedNoteLink = link;
+        return;
+      }
+    }
+  }
+
+  Future<void> _openPressedNoteLink() async {
+    final link = _pressedNoteLink;
+    _pressedNoteLink = null;
+    if (link == null || _noteLinkBusy) return;
+    final noteId = _selectedNoteId;
+    _noteFocusNode.unfocus();
+    _noteLinkBusy = true;
+    _noteController.highlightLink(link);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
+    _noteLinkBusy = false;
+    _noteController.highlightLink(null);
+    if (!_showNotes || _selectedNoteId != noteId) return;
+    await _openNoteLink(link.uri);
+  }
+
+  Future<void> _openNoteLink(Uri uri) async {
     try {
-      final recognised = await _ocrService.recognise(source);
-      if (!mounted || recognised == null) return;
-      final text = recognised.trim();
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        return;
+      }
+    } on PlatformException catch (error) {
+      debugPrint('Could not open note link: ${error.code}');
+    } on MissingPluginException {
+      // Link launching is unavailable on this platform.
+    }
+    if (mounted) _showMessage('Could not open that link.');
+  }
+
+  Future<void> _importNoteText(OcrImageSource source) async {
+    final noteId = _selectedNoteId;
+    if (_ocrBusy || noteId == null) return;
+    String? photoPath;
+    try {
+      if (source == OcrImageSource.camera) {
+        photoPath = await showDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => _PhotoCameraDialog(
+            ocrService: _ocrService,
+            onOpenLink: _openNoteLink,
+          ),
+        );
+        if (photoPath == null || !mounted || _selectedNoteId != noteId) return;
+      }
+      setState(() => _ocrBusy = true);
+      final recognised = photoPath == null
+          ? await _ocrService.recognisePicture()
+          : await _ocrService.recognisePhoto(photoPath);
+      if (!mounted || _selectedNoteId != noteId || recognised == null) return;
+      final text = restorePhotoWebLinks(recognised.trim());
       if (text.isEmpty) {
         _showMessage('No text was found in that image.');
         return;
@@ -1255,7 +1172,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     } catch (error) {
       if (mounted) _showMessage('Could not recognise that image: $error');
     } finally {
-      if (mounted) setState(() => _ocrBusy = false);
+      if (photoPath != null) await _deleteCameraPhoto(photoPath);
+      if (mounted && _ocrBusy) setState(() => _ocrBusy = false);
     }
   }
 
@@ -1266,12 +1184,10 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     final end = selection.end >= 0 ? selection.end : start;
     final prefix = current.substring(0, start);
     final suffix = current.substring(end);
-    final leadingBreak = prefix.isNotEmpty && !prefix.endsWith('\n')
-        ? '\n'
-        : '';
-    final trailingBreak = suffix.isNotEmpty && !suffix.startsWith('\n')
-        ? '\n'
-        : '';
+    final leadingBreak =
+        prefix.isNotEmpty && !prefix.endsWith('\n') ? '\n' : '';
+    final trailingBreak =
+        suffix.isNotEmpty && !suffix.startsWith('\n') ? '\n' : '';
     final insertion = '$leadingBreak$recognised';
     final updated = '$prefix$insertion$trailingBreak$suffix';
     _noteController.value = TextEditingValue(
@@ -1291,6 +1207,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
         initialText: note.name,
         categories: _noteCategories,
         initialCategoryId: note.categoryId,
+        usePaleBackground: true,
       ),
     );
     if (details == null || !mounted) return;
@@ -1304,9 +1221,11 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   Future<void> _deleteNote(NoteEntry note) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => _popupAlert(
+        context,
         title: const AppText('delete note?'),
-        content: AppText('“${note.name}” will be removed.'),
+        content: AppText('“{name}” will be removed.',
+            arguments: {'name': note.name}),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1496,17 +1415,15 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   }
 
   KeyEventResult _handleTaskKey(FocusNode node, KeyEvent event) {
-    final isEnter =
-        event.logicalKey == LogicalKeyboardKey.enter ||
+    final isEnter = event.logicalKey == LogicalKeyboardKey.enter ||
         event.logicalKey == LogicalKeyboardKey.numpadEnter;
     if (event is! KeyDownEvent || !isEnter) {
       return KeyEventResult.ignored;
     }
     if (HardwareKeyboard.instance.isShiftPressed) {
       final selection = _taskController.selection;
-      final start = selection.start < 0
-          ? _taskController.text.length
-          : selection.start;
+      final start =
+          selection.start < 0 ? _taskController.text.length : selection.start;
       final end = selection.end < 0 ? start : selection.end;
       final updatedText = _taskController.text.replaceRange(start, end, '\n');
       _taskController.value = TextEditingValue(
@@ -1579,9 +1496,17 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   }
 
   Future<void> _showTaskNote(NoteEntry note) => showDialog<void>(
-    context: context,
-    builder: (context) => _TaskLinkedNoteDialog(note: note),
-  );
+        context: context,
+        builder: (context) => _TaskLinkedNoteDialog(
+          note: note,
+          onOpenLink: _openNoteLink,
+          frameColour: switch (widget.appTheme) {
+            AppTheme.boi => _defaultNoteBlue,
+            AppTheme.pencil => _lightLine,
+            AppTheme.pastel => _pastelYellow,
+          },
+        ),
+      );
 
   Future<void> _renameProject(ChecklistProject project) async {
     final name = await showDialog<String>(
@@ -1615,9 +1540,11 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   Future<void> _deleteProject(ChecklistProject project) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => _popupAlert(
+        context,
         title: const AppText('Delete checklist?'),
-        content: AppText('“${project.name}” and its tasks will be removed.'),
+        content: AppText('“{name}” and its tasks will be removed.',
+            arguments: {'name': project.name}),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -1697,7 +1624,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
       sourcePath = await showDialog<String>(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const _CoverCameraDialog(),
+        builder: (context) =>
+            _PhotoCameraDialog(ocrService: _ocrService, forCover: true),
       );
       if (sourcePath == null || !mounted) return;
       final path = await _store.cropAndSaveCameraCover(
@@ -1712,14 +1640,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     } catch (error) {
       if (mounted) _showMessage('Could not take that photo: $error');
     } finally {
-      if (sourcePath != null) {
-        try {
-          final source = File(sourcePath);
-          if (await source.exists()) await source.delete();
-        } catch (_) {
-          // Camera temporary-file cleanup is best effort.
-        }
-      }
+      if (sourcePath != null) await _deleteCameraPhoto(sourcePath);
     }
   }
 
@@ -1760,6 +1681,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   }
 
   void _selectProject(ChecklistProject project) {
+    if (_selectedId != project.id) _revealContent(_projectReveal);
     _taskController.clear();
     setState(() {
       _selectedId = project.id;
@@ -1808,34 +1730,48 @@ class _ChecklistHomeState extends State<ChecklistHome> {
               sidebar,
               Positioned.fill(
                 child: IgnorePointer(
-                  child: _HeartBubbleLayer(
-                    enabled: _heartAnimationEnabled,
-                    drawerOpen: _mobileDrawerActive,
-                    restartSignal: _heartRestartSignal,
+                  child: SafeArea(
+                    top: false,
+                    left: false,
+                    right: false,
+                    child: _HeartBubbleLayer(
+                      enabled: _heartAnimationEnabled,
+                      drawerOpen: _mobileDrawerActive,
+                      restartSignal: _heartRestartSignal,
+                    ),
                   ),
                 ),
               ),
             ],
           )
         : sidebar;
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        drawer: wide ? null : Drawer(width: 292, child: mobileSidebar),
-        drawerEnableOpenDragGesture: !wide,
-        drawerEdgeDragWidth: 40,
-        onDrawerChanged: wide
-            ? null
-            : (isOpen) {
-                if (_mobileDrawerActive != isOpen) {
-                  setState(() => _mobileDrawerActive = isOpen);
-                }
-              },
-        body: Container(
-          foregroundDecoration: Platform.isLinux
-              ? BoxDecoration(border: Border.all(color: _brandPurple, width: 2))
-              : null,
-          child: SafeArea(
+    final systemIconBrightness =
+        widget.isDark ? Brightness.light : Brightness.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      key: const ValueKey('edge-to-edge-system-ui'),
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: systemIconBrightness,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: systemIconBrightness,
+        systemNavigationBarContrastEnforced: false,
+      ),
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
+          drawer: wide ? null : Drawer(width: 292, child: mobileSidebar),
+          drawerEnableOpenDragGesture: !wide,
+          drawerEdgeDragWidth: 40,
+          onDrawerChanged: wide
+              ? null
+              : (isOpen) {
+                  if (_mobileDrawerActive != isOpen) {
+                    setState(() => _mobileDrawerActive = isOpen);
+                  }
+                },
+          body: SafeArea(
+            key: const ValueKey('main-content-safe-area'),
             child: Row(
               children: [
                 if (wide) SizedBox(width: 282, child: sidebar),
@@ -1878,8 +1814,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
       final bytes = await _store.createBackupBytes();
       if (!mounted) return;
       final now = DateTime.now();
-      final date =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-'
+      final date = '${now.year}-${now.month.toString().padLeft(2, '0')}-'
           '${now.day.toString().padLeft(2, '0')}';
       final destination = await FilePicker.saveFile(
         fileName: 'checklist-backup-$date.json',
@@ -1912,11 +1847,15 @@ class _ChecklistHomeState extends State<ChecklistHome> {
       if (!mounted) return;
       final confirmed = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (context) => _popupAlert(
+          context,
           title: const AppText('import data'),
           content: AppText(
-            'Replace this installation with ${backup.projects.length} '
-            'checklist(s) and ${backup.notes.length} note(s)?',
+            'Replace this installation with {checklists} checklist(s) and {notes} note(s)?',
+            arguments: {
+              'checklists': backup.projects.length,
+              'notes': backup.notes.length
+            },
           ),
           actions: [
             TextButton(
@@ -1943,7 +1882,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
 
   Widget _settingsOption({
     required String label,
-    required IconData icon,
+    IconData? icon,
     required VoidCallback onTap,
     Key? key,
     bool selected = false,
@@ -1954,21 +1893,22 @@ class _ChecklistHomeState extends State<ChecklistHome> {
       color: selected
           ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.22)
           : Colors.transparent,
-      child: InkWell(
+      child: _SettingsPress(
         key: key,
         onTap: onTap,
-        child: SizedBox(
+        builder: (pressed) => SizedBox(
           height: 42,
           child: Row(
             children: [
               const SizedBox(width: 8),
-              Icon(icon, size: 18, color: foreground),
-              const SizedBox(width: 10),
+              if (icon != null) ...[
+                Icon(icon, size: 18, color: foreground),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: AppText(
                   label,
-                  style: TextStyle(
-                    color: foreground,
+                  style: _settingsTextStyle(foreground, pressed).copyWith(
                     fontSize: 13,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
@@ -1977,10 +1917,9 @@ class _ChecklistHomeState extends State<ChecklistHome> {
               if (trailing != null)
                 AppText(
                   trailing,
-                  style: TextStyle(
-                    color: foreground.withValues(alpha: 0.62),
-                    fontSize: 11,
-                  ),
+                  style: _settingsTextStyle(
+                          foreground.withValues(alpha: 0.62), pressed)
+                      .copyWith(fontSize: 11),
                 ),
               const SizedBox(width: 8),
             ],
@@ -1992,10 +1931,10 @@ class _ChecklistHomeState extends State<ChecklistHome> {
 
   Widget _settingsBack(String title) {
     final foreground = Theme.of(context).colorScheme.onSurface;
-    return InkWell(
+    return _SettingsPress(
       key: const ValueKey('settings-back'),
       onTap: () => setState(() => _settingsPage = _SettingsPage.main),
-      child: SizedBox(
+      builder: (pressed) => SizedBox(
         height: 36,
         child: Row(
           children: [
@@ -2007,8 +1946,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                 maxLines: 1,
                 overflow: TextOverflow.fade,
                 softWrap: false,
-                style: TextStyle(
-                  color: foreground,
+                style: _settingsTextStyle(foreground, pressed).copyWith(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -2035,7 +1973,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
             _settingsOption(
               key: const ValueKey('settings-language'),
               label: 'language',
-              icon: Icons.language_rounded,
+              icon: Icons.translate_rounded,
               onTap: () =>
                   setState(() => _settingsPage = _SettingsPage.language),
             ),
@@ -2086,26 +2024,14 @@ class _ChecklistHomeState extends State<ChecklistHome> {
           key: const ValueKey('settings-language-page'),
           children: [
             _settingsBack('language'),
-            _settingsOption(
-              key: const ValueKey('language-english'),
-              label: 'English',
-              icon: Icons.translate_rounded,
-              selected: widget.appLanguage == AppLanguage.english,
-              trailing: widget.appLanguage == AppLanguage.english
-                  ? 'current'
-                  : null,
-              onTap: () => widget.onLanguageChanged(AppLanguage.english),
-            ),
-            _settingsOption(
-              key: const ValueKey('language-hungarian'),
-              label: 'Hungarian',
-              icon: Icons.translate_rounded,
-              selected: widget.appLanguage == AppLanguage.hungarian,
-              trailing: widget.appLanguage == AppLanguage.hungarian
-                  ? 'current'
-                  : null,
-              onTap: () => widget.onLanguageChanged(AppLanguage.hungarian),
-            ),
+            for (final language in AppLanguage.values)
+              _settingsOption(
+                key: ValueKey('language-${language.name}'),
+                label: language.label,
+                selected: widget.appLanguage == language,
+                trailing: widget.appLanguage == language ? 'current' : null,
+                onTap: () => widget.onLanguageChanged(language),
+              ),
           ],
         );
       case _SettingsPage.backup:
@@ -2136,7 +2062,11 @@ class _ChecklistHomeState extends State<ChecklistHome> {
             children: [
               _settingsBack('about'),
               const AppText(
-                'CHECKLIST $_appVersion · build $_appBuildNumber',
+                'CHECKLIST {version} · build {build}',
+                arguments: {
+                  'version': checklistVersion,
+                  'build': checklistBuildNumber
+                },
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
@@ -2156,6 +2086,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   }
 
   Widget _buildSettingsPanel(Color foreground) {
+    const settingsFontSize = 13.0;
     return Column(
       key: const ValueKey('settings-panel'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2172,13 +2103,13 @@ class _ChecklistHomeState extends State<ChecklistHome> {
             children: [
               Expanded(
                 flex: 2,
-                child: InkWell(
+                child: _SettingsPress(
                   key: const ValueKey('settings-toggle'),
                   onTap: () => setState(() {
                     _settingsOpen = !_settingsOpen;
                     if (!_settingsOpen) _settingsPage = _SettingsPage.main;
                   }),
-                  child: Row(
+                  builder: (pressed) => Row(
                     children: [
                       Icon(
                         Icons.settings_outlined,
@@ -2192,7 +2123,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                           maxLines: 1,
                           overflow: TextOverflow.fade,
                           softWrap: false,
-                          style: TextStyle(color: foreground, fontSize: 13),
+                          style: _settingsTextStyle(foreground, pressed)
+                              .copyWith(fontSize: settingsFontSize),
                         ),
                       ),
                     ],
@@ -2220,11 +2152,35 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                 }),
                 style: IconButton.styleFrom(side: BorderSide.none),
                 icon: AnimatedRotation(
-                  turns: _settingsOpen ? 0.5 : 0,
+                  turns: _settingsOpen ? 0 : 0.5,
                   duration: const Duration(milliseconds: 300),
                   child: const Icon(Icons.keyboard_arrow_down_rounded),
                 ),
               ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 27, bottom: 4),
+          child: Row(
+            children: [
+              Text(
+                checklistVersion,
+                key: const ValueKey('settings-version'),
+                style: _settingsTextStyle(foreground, false)
+                    .copyWith(fontSize: settingsFontSize / 2),
+              ),
+              if (_showNotes)
+                IconButton(
+                  key: const ValueKey('note-website-gallery'),
+                  tooltip: localizeText(context, 'website links'),
+                  style: IconButton.styleFrom(
+                    foregroundColor: foreground,
+                    side: BorderSide.none,
+                  ),
+                  icon: const Icon(Icons.language_rounded, size: 18),
+                  onPressed: _openWebsiteGallery,
+                ),
             ],
           ),
         ),
@@ -2262,8 +2218,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     final sidebarColor = widget.isDark
         ? (_showNotes ? _notesSidebar : _checklistSidebar)
         : widget.isPastel
-        ? (_showNotes ? _pastelMauve : _pastelGreen)
-        : _lightSidebar;
+            ? (_showNotes ? _pastelMauve : _pastelGreen)
+            : _lightSidebar;
     final sidebarForeground = widget.isDark ? _borderWhite : _lightText;
     final wordmark = _BrandWordmark(
       notesActive: _showNotes,
@@ -2336,8 +2292,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
         backgroundColor: widget.isDark
             ? (_showNotes ? _deepBlueButton : _darkPurpleButton)
             : widget.isPastel
-            ? _pastelYellow
-            : _lightControl,
+                ? _pastelYellow
+                : _lightControl,
         foregroundColor: sidebarForeground,
         side: BorderSide(color: sidebarForeground, width: 2),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -2434,13 +2390,13 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                 final category = _categoryFor(note);
                                 final noteColor = widget.isDark
                                     ? (category == null
-                                          ? _defaultNoteBlue
-                                          : Color(category.colorValue))
+                                        ? _defaultNoteBlue
+                                        : Color(category.colorValue))
                                     : widget.isPastel
-                                    ? (category == null
-                                          ? _pastelMauve
-                                          : Color(category.colorValue))
-                                    : _lightControl;
+                                        ? (category == null
+                                            ? _pastelMauve
+                                            : Color(category.colorValue))
+                                        : _lightControl;
                                 final selected = note.id == _selectedNoteId;
                                 return _SidebarFadeItem(
                                   key: ValueKey('sidebar-note-${note.id}'),
@@ -2451,22 +2407,25 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                     padding: const EdgeInsets.only(bottom: 4),
                                     child: Material(
                                       color: selected
-                                          ? noteColor.withValues(alpha: 0.2)
+                                          ? (widget.isPastel
+                                              ? _pastelSelectedNote
+                                              : noteColor.withValues(
+                                                  alpha: 0.2))
                                           : Colors.transparent,
                                       child: ListTile(
                                         dense: true,
                                         shape: const RoundedRectangleBorder(),
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 1,
-                                            ),
+                                          horizontal: 10,
+                                          vertical: 1,
+                                        ),
                                         minLeadingWidth: 10,
                                         horizontalTitleGap: 10,
                                         leading: _NoteColourDot(
                                           color: noteColor,
                                         ),
-                                        title: AppText(
+                                        title: Text(
                                           note.name,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -2482,9 +2441,9 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                           _formatDate(context, note.createdAt),
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                                color: sidebarForeground
-                                                    .withValues(alpha: 0.58),
-                                              ),
+                                            color: sidebarForeground.withValues(
+                                                alpha: 0.58),
+                                          ),
                                         ),
                                         onTap: () => _selectNote(note),
                                         trailing: PopupMenuButton<String>(
@@ -2557,33 +2516,32 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                     child: Material(
                                       color: selected
                                           ? (widget.isDark
-                                                    ? _brandPurple
-                                                    : widget.isPastel
-                                                    ? _pastelMauve
-                                                    : _lightLine)
-                                                .withValues(alpha: 0.22)
+                                                  ? _brandPurple
+                                                  : widget.isPastel
+                                                      ? _pastelMauve
+                                                      : _lightLine)
+                                              .withValues(alpha: 0.22)
                                           : Colors.transparent,
                                       child: ListTile(
                                         dense: true,
                                         shape: const RoundedRectangleBorder(),
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 1,
-                                            ),
+                                          horizontal: 10,
+                                          vertical: 1,
+                                        ),
                                         minLeadingWidth: 10,
                                         horizontalTitleGap: 10,
                                         leading: _ImportanceBar(
                                           importance: project.importance,
                                           isPastel: widget.isPastel,
-                                          isPencil:
-                                              widget.appTheme ==
+                                          isPencil: widget.appTheme ==
                                               AppTheme.pencil,
                                         ),
                                         title: Row(
                                           children: [
                                             Expanded(
-                                              child: AppText(
+                                              child: Text(
                                                 project.name,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
@@ -2599,13 +2557,18 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                           ],
                                         ),
                                         subtitle: AppText(
-                                          '${_formatDate(context, project.createdAt)}  ·  '
-                                          '${project.completedTaskCount}/${project.tasks.length} done',
+                                          '{date}  ·  {done}/{tasks} done',
+                                          arguments: {
+                                            'date': _formatDate(
+                                                context, project.createdAt),
+                                            'done': project.completedTaskCount,
+                                            'tasks': project.tasks.length
+                                          },
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                                color: sidebarForeground
-                                                    .withValues(alpha: 0.58),
-                                              ),
+                                            color: sidebarForeground.withValues(
+                                                alpha: 0.58),
+                                          ),
                                         ),
                                         onTap: () => _selectProject(project),
                                         trailing: Row(
@@ -2616,8 +2579,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                                 message: localizeText(
                                                   context,
                                                   project.reminderAt!.isAfter(
-                                                        DateTime.now(),
-                                                      )
+                                                    DateTime.now(),
+                                                  )
                                                       ? 'upcoming reminder'
                                                       : 'past reminder',
                                                 ),
@@ -2627,11 +2590,10 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                                     'checklist-reminder-bell-${project.id}',
                                                   ),
                                                   size: 18,
-                                                  color:
-                                                      project.reminderAt!
+                                                  color: project.reminderAt!
                                                           .isAfter(
-                                                            DateTime.now(),
-                                                          )
+                                                    DateTime.now(),
+                                                  )
                                                       ? sidebarForeground
                                                       : _switchGrey,
                                                 ),
@@ -2702,7 +2664,16 @@ class _ChecklistHomeState extends State<ChecklistHome> {
               ),
             ),
             const SizedBox(height: 10),
-            _buildSettingsPanel(sidebarForeground),
+            if (mobile)
+              SafeArea(
+                key: const ValueKey('mobile-sidebar-safe-area'),
+                top: false,
+                left: false,
+                right: false,
+                child: _buildSettingsPanel(sidebarForeground),
+              )
+            else
+              _buildSettingsPanel(sidebarForeground),
           ],
         ),
       ),
@@ -2716,8 +2687,8 @@ class _ChecklistHomeState extends State<ChecklistHome> {
     final noteColour = widget.isDark
         ? (category == null ? _defaultNoteBlue : Color(category.colorValue))
         : widget.isPastel
-        ? (category == null ? _pastelMauve : Color(category.colorValue))
-        : _lightControl;
+            ? (category == null ? _pastelMauve : Color(category.colorValue))
+            : _lightControl;
 
     final editor = note == null
         ? Center(
@@ -2753,15 +2724,19 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                 Row(
                   children: [
                     Expanded(
-                      child: AppText(
-                        note.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          color: noteColour,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: _contentFade(
+                          _noteReveal,
+                          0,
+                          0.32,
+                          Text(
+                            note.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: noteColour,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )),
                     ),
                     const SizedBox(width: 12),
                     IconButton(
@@ -2849,10 +2824,6 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                         child: Icon(Icons.more_vert_rounded, size: 18),
                       ),
                     ),
-                    if (Platform.isLinux) ...[
-                      const SizedBox(width: 16),
-                      const _WindowControls(),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -2862,85 +2833,107 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                   ),
                 ),
-                if (category != null) ...[
-                  const SizedBox(height: 4),
-                  AppText(
-                    category.name,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: noteColour,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 12),
                 Row(
-                  key: const ValueKey('note-format-toolbar'),
                   children: [
-                    _noteFormatButton(
-                      format: _NoteFormat.bold,
-                      icon: Icons.format_bold_rounded,
-                      tooltip: 'bold',
+                    Expanded(
+                      child: category == null
+                          ? const SizedBox.shrink()
+                          : _contentFade(
+                              _noteReveal,
+                              0.12,
+                              0.46,
+                              Text(
+                                category.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelLarge
+                                    ?.copyWith(color: noteColour),
+                              ),
+                            ),
                     ),
-                    _noteFormatButton(
-                      format: _NoteFormat.italic,
-                      icon: Icons.format_italic_rounded,
-                      tooltip: 'italic',
-                    ),
-                    _noteFormatButton(
-                      format: _NoteFormat.underline,
-                      icon: Icons.format_underlined_rounded,
-                      tooltip: 'underline',
+                    TextFieldTapRegion(
+                      key: const ValueKey('note-format-tap-region'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        key: const ValueKey('note-format-toolbar'),
+                        children: [
+                          _noteFormatButton(
+                              format: _NoteFormat.bold,
+                              icon: Icons.format_bold_rounded,
+                              tooltip: 'bold'),
+                          _noteFormatButton(
+                              format: _NoteFormat.italic,
+                              icon: Icons.format_italic_rounded,
+                              tooltip: 'italic'),
+                          _noteFormatButton(
+                              format: _NoteFormat.underline,
+                              icon: Icons.format_underlined_rounded,
+                              tooltip: 'underline'),
+                        ],
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Expanded(
-                  child: TextField(
-                    key: const ValueKey('note-content-field'),
-                    controller: _noteController,
-                    expands: true,
-                    minLines: null,
-                    maxLines: null,
-                    textAlignVertical: TextAlignVertical.top,
-                    textCapitalization: TextCapitalization.sentences,
-                    keyboardType: TextInputType.multiline,
-                    cursorColor: widget.isDark ? _borderWhite : _lightText,
-                    style: TextStyle(
-                      color: widget.isDark ? _borderWhite : _lightText,
-                      height: 1.5,
-                    ),
-                    contextMenuBuilder: _buildNoteSelectionToolbar,
-                    onChanged: _updateNoteContent,
-                    decoration: InputDecoration(
-                      hintText: localizeText(context, 'start writing…'),
-                      hintStyle: const TextStyle(color: _switchGrey),
-                      filled: true,
-                      fillColor: widget.isDark
-                          ? _surfaceDark
-                          : widget.isPastel
-                          ? _pastelWhite
-                          : _lightSurface,
-                      alignLabelWithHint: true,
-                      contentPadding: const EdgeInsets.all(18),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.zero,
-                        borderSide: BorderSide(
-                          color: widget.isDark
-                              ? noteColour.withValues(alpha: 0.55)
-                              : widget.isPastel
-                              ? _pastelMauve
-                              : _lightLine,
-                          width: 2,
+                  child: _NoteBodyReveal(
+                    progress: CurveTween(curve: const Interval(0.22, 1))
+                        .animate(_noteReveal),
+                    child: Listener(
+                      onPointerDown: _trackNoteLinkPress,
+                      onPointerCancel: (_) => _pressedNoteLink = null,
+                      child: TextField(
+                        key: const ValueKey('note-content-field'),
+                        controller: _noteController,
+                        focusNode: _noteFocusNode,
+                        expands: true,
+                        minLines: null,
+                        maxLines: null,
+                        textAlignVertical: TextAlignVertical.top,
+                        textCapitalization: TextCapitalization.sentences,
+                        keyboardType: TextInputType.multiline,
+                        cursorColor: widget.isDark ? _borderWhite : _lightText,
+                        style: TextStyle(
+                          color: widget.isDark ? _borderWhite : _lightText,
+                          height: 1.5,
                         ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.zero,
-                        borderSide: BorderSide(
-                          color: widget.isDark
-                              ? noteColour
+                        contextMenuBuilder: _buildNoteSelectionToolbar,
+                        onTap: _openPressedNoteLink,
+                        onTapOutside: (_) => _noteFocusNode.unfocus(),
+                        onChanged: _updateNoteContent,
+                        decoration: InputDecoration(
+                          hintText: localizeText(context, 'start writing…'),
+                          hintStyle: const TextStyle(color: _switchGrey),
+                          filled: true,
+                          fillColor: widget.isDark
+                              ? _surfaceDark
                               : widget.isPastel
-                              ? _pastelMauve
-                              : _lightLine,
-                          width: 2,
+                                  ? _pastelWhite
+                                  : _lightSurface,
+                          alignLabelWithHint: true,
+                          contentPadding: const EdgeInsets.all(18),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.zero,
+                            borderSide: BorderSide(
+                              color: widget.isDark
+                                  ? noteColour.withValues(alpha: 0.55)
+                                  : widget.isPastel
+                                      ? _pastelMauve
+                                      : _lightLine,
+                              width: 2,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.zero,
+                            borderSide: BorderSide(
+                              color: widget.isDark
+                                  ? noteColour
+                                  : widget.isPastel
+                                      ? _pastelMauve
+                                      : _lightLine,
+                              width: 2,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -2950,26 +2943,16 @@ class _ChecklistHomeState extends State<ChecklistHome> {
             ),
           );
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      switchInCurve: Curves.easeIn,
-      switchOutCurve: Curves.easeOut,
-      child: KeyedSubtree(
-        key: ValueKey(note?.id ?? 'empty-note'),
-        child: editor,
-      ),
-    );
+    return KeyedSubtree(key: ValueKey(note?.id ?? 'empty-note'), child: editor);
   }
 
   Widget _buildMain(ChecklistProject project, {required bool wide}) {
     final theme = Theme.of(context);
     final done = project.completedTaskCount;
-    final usesSoftKeyboardAction =
-        theme.platform == TargetPlatform.android ||
+    final usesSoftKeyboardAction = theme.platform == TargetPlatform.android ||
         theme.platform == TargetPlatform.iOS;
-    final composerFrameColor = theme.brightness == Brightness.dark
-        ? _borderWhite
-        : theme.dividerColor;
+    final composerFrameColor =
+        theme.brightness == Brightness.dark ? _borderWhite : theme.dividerColor;
     return LayoutBuilder(
       builder: (context, constraints) {
         final horizontal = wide
@@ -2979,6 +2962,7 @@ class _ChecklistHomeState extends State<ChecklistHome> {
           children: [
             Expanded(
               child: CustomScrollView(
+                key: ValueKey(project.id),
                 slivers: [
                   SliverPadding(
                     padding: EdgeInsets.fromLTRB(horizontal, 22, horizontal, 0),
@@ -3001,25 +2985,22 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                 const SizedBox(width: 8),
                               ],
                               Expanded(
-                                child: _WindowDragRegion(
-                                  enabled: Platform.isLinux,
-                                  child: AppText(
-                                    project.name,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.headlineMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: -1.0,
-                                          height: 1.15,
-                                        ),
-                                  ),
-                                ),
+                                child: _contentFade(
+                                    _projectReveal,
+                                    0,
+                                    0.32,
+                                    Text(
+                                      project.name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.headlineMedium
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -1.0,
+                                        height: 1.15,
+                                      ),
+                                    )),
                               ),
-                              if (Platform.isLinux) ...[
-                                const SizedBox(width: 16),
-                                const _WindowControls(),
-                              ],
                             ],
                           ),
                           const SizedBox(height: 9),
@@ -3027,9 +3008,15 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                             children: [
                               Expanded(
                                 child: AppText(
-                                  '${_formatDate(context, project.createdAt)}  ·  '
-                                  '${project.tasks.length} ${project.tasks.length == 1 ? 'task' : 'tasks'}'
-                                  '  ·  $done completed',
+                                  project.tasks.length == 1
+                                      ? '{date}  ·  {tasks} task  ·  {done} completed'
+                                      : '{date}  ·  {tasks} tasks  ·  {done} completed',
+                                  arguments: {
+                                    'date':
+                                        _formatDate(context, project.createdAt),
+                                    'tasks': project.tasks.length,
+                                    'done': done
+                                  },
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withValues(alpha: 0.58),
@@ -3042,21 +3029,20 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                 initialValue: project.importance,
                                 onSelected: (value) =>
                                     _setImportance(project, value),
-                                itemBuilder: (context) => ProjectImportance
-                                    .values
-                                    .map(
-                                      (importance) => PopupMenuItem(
-                                        value: importance,
-                                        child: _ImportanceMenuLabel(
-                                          importance: importance,
-                                          isPastel: widget.isPastel,
-                                          isPencil:
-                                              widget.appTheme ==
-                                              AppTheme.pencil,
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
+                                itemBuilder: (context) =>
+                                    ProjectImportance.values
+                                        .map(
+                                          (importance) => PopupMenuItem(
+                                            value: importance,
+                                            child: _ImportanceMenuLabel(
+                                              importance: importance,
+                                              isPastel: widget.isPastel,
+                                              isPencil: widget.appTheme ==
+                                                  AppTheme.pencil,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
                                 child: _ImportanceChip(
                                   importance: project.importance,
                                   isPastel: widget.isPastel,
@@ -3079,14 +3065,14 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                                 foregroundColor: widget.isDark
                                     ? _brandPurple
                                     : widget.isPastel
-                                    ? _pastelMauve
-                                    : _lightText,
+                                        ? _pastelMauve
+                                        : _lightText,
                                 side: BorderSide(
                                   color: widget.isDark
                                       ? _brandPurple
                                       : widget.isPastel
-                                      ? _pastelMauve
-                                      : _lightLine,
+                                          ? _pastelMauve
+                                          : _lightLine,
                                   width: 2,
                                 ),
                                 padding: const EdgeInsets.symmetric(
@@ -3121,22 +3107,28 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                               color: widget.isDark
                                   ? _brandYellow
                                   : widget.isPastel
-                                  ? _pastelMauve
-                                  : _lightText,
+                                      ? _pastelMauve
+                                      : _lightText,
                               backgroundColor: widget.isDark
                                   ? theme.dividerColor
                                   : widget.isPastel
-                                  ? _pastelYellow
-                                  : const Color(0xFFD8D8D6),
+                                      ? _pastelYellow
+                                      : const Color(0xFFD8D8D6),
                             ),
                           ],
                           const SizedBox(height: 27),
-                          _CoverImage(
-                            path: project.coverImagePath,
-                            onBrowse: () => _browseForCover(project),
-                            onCamera: () => _takeCoverPhoto(project),
-                            onRemove: () => _removeCover(project),
-                          ),
+                          _contentFade(
+                              project.coverImagePath == null
+                                  ? const AlwaysStoppedAnimation(1.0)
+                                  : _projectReveal,
+                              0.12,
+                              0.52,
+                              _CoverImage(
+                                path: project.coverImagePath,
+                                onBrowse: () => _browseForCover(project),
+                                onCamera: () => _takeCoverPhoto(project),
+                                onRemove: () => _removeCover(project),
+                              )),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -3182,33 +3174,38 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                         itemBuilder: (context, index) {
                           final task = project.tasks[index];
                           final linkedNote = _linkedNoteFor(task);
+                          final start = 0.33 + 0.045 * index.clamp(0, 8);
                           return KeyedSubtree(
                             key: ValueKey('reorder-task-${task.id}'),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _TaskRow(
-                                    task: task,
-                                    linkedNote: linkedNote,
-                                    reorderIndex: index,
-                                    onToggle: () => _toggleTask(task),
-                                    onEdit: () => _editTask(task),
-                                    onLinkNote: () => _linkNoteToTask(task),
-                                    onOpenNote: linkedNote == null
-                                        ? null
-                                        : () => _showTaskNote(linkedNote),
-                                    onDelete: () => _deleteTask(task),
+                            child: _contentFade(
+                                _projectReveal,
+                                start,
+                                start + 0.30,
+                                Material(
+                                  color: Colors.transparent,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _TaskRow(
+                                        task: task,
+                                        linkedNote: linkedNote,
+                                        reorderIndex: index,
+                                        onToggle: () => _toggleTask(task),
+                                        onEdit: () => _editTask(task),
+                                        onLinkNote: () => _linkNoteToTask(task),
+                                        onOpenNote: linkedNote == null
+                                            ? null
+                                            : () => _showTaskNote(linkedNote),
+                                        onDelete: () => _deleteTask(task),
+                                      ),
+                                      if (index < project.tasks.length - 1)
+                                        Divider(
+                                          height: 1,
+                                          color: theme.dividerColor,
+                                        ),
+                                    ],
                                   ),
-                                  if (index < project.tasks.length - 1)
-                                    Divider(
-                                      height: 1,
-                                      color: theme.dividerColor,
-                                    ),
-                                ],
-                              ),
-                            ),
+                                )),
                           );
                         },
                       ),
@@ -3229,13 +3226,14 @@ class _ChecklistHomeState extends State<ChecklistHome> {
                   textInputAction: usesSoftKeyboardAction
                       ? TextInputAction.done
                       : TextInputAction.newline,
-                  onSubmitted: usesSoftKeyboardAction
-                      ? (_) => _addTask()
-                      : null,
+                  onSubmitted:
+                      usesSoftKeyboardAction ? (_) => _addTask() : null,
                   decoration: InputDecoration(
                     hintText: localizeText(
                       context,
-                      usesSoftKeyboardAction ? 'add a task…' : 'add a task…  (enter to add · shift+enter for a new line)',
+                      usesSoftKeyboardAction
+                          ? 'add a task…'
+                          : 'add a task…  (enter to add · shift+enter for a new line)',
                     ),
                     hintStyle: const TextStyle(color: _switchGrey),
                     filled: true,
@@ -3276,6 +3274,107 @@ class _ChecklistHomeState extends State<ChecklistHome> {
   }
 }
 
+class _NoteBodyReveal extends SingleChildRenderObjectWidget {
+  const _NoteBodyReveal({required this.progress, required super.child});
+
+  final Animation<double> progress;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderNoteBodyReveal(progress);
+
+  @override
+  void updateRenderObject(
+      BuildContext context, _RenderNoteBodyReveal renderObject) {
+    renderObject.progress = progress;
+  }
+}
+
+class _RenderNoteBodyReveal extends RenderProxyBox {
+  _RenderNoteBodyReveal(this._progress);
+
+  Animation<double> _progress;
+
+  set progress(Animation<double> value) {
+    if (value == _progress) return;
+    if (attached) _progress.removeListener(markNeedsPaint);
+    _progress = value;
+    if (attached) _progress.addListener(markNeedsPaint);
+    markNeedsPaint();
+  }
+
+  @override
+  bool get alwaysNeedsCompositing => true;
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _progress.addListener(markNeedsPaint);
+  }
+
+  @override
+  void detach() {
+    _progress.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (_progress.value >= 1 || size.isEmpty) {
+      layer = null;
+      super.paint(context, offset);
+      return;
+    }
+    final edge = _progress.value * 1.25 * size.height;
+    final mask = (layer as ShaderMaskLayer?) ?? ShaderMaskLayer();
+    layer = mask;
+    mask
+      ..shader = ui.Gradient.linear(
+        Offset(0, edge - size.height * 0.25),
+        Offset(0, edge),
+        const [Colors.white, Colors.transparent],
+      )
+      ..maskRect = offset & size
+      ..blendMode = BlendMode.dstIn;
+    context.pushLayer(mask, super.paint, offset);
+  }
+}
+
+TextStyle _settingsTextStyle(Color color, bool pressed) => TextStyle(
+      color: pressed ? Color.lerp(color, Colors.white, 0.32) : color,
+      shadows:
+          pressed ? const [Shadow(color: Colors.white70, blurRadius: 4)] : null,
+    );
+
+class _SettingsPress extends StatefulWidget {
+  const _SettingsPress({required this.onTap, required this.builder, super.key});
+
+  final VoidCallback onTap;
+  final Widget Function(bool pressed) builder;
+
+  @override
+  State<_SettingsPress> createState() => _SettingsPressState();
+}
+
+class _SettingsPressState extends State<_SettingsPress> {
+  bool _pressed = false;
+
+  Future<void> _activate() async {
+    if (_pressed) return;
+    setState(() => _pressed = true);
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    if (!mounted) return;
+    setState(() => _pressed = false);
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: _activate,
+        child: widget.builder(_pressed),
+      );
+}
+
 class _BrandWordmark extends StatelessWidget {
   const _BrandWordmark({
     required this.notesActive,
@@ -3288,12 +3387,12 @@ class _BrandWordmark extends StatelessWidget {
   final VoidCallback onNotesPressed;
 
   TextStyle _style(Color color) => TextStyle(
-    color: color,
-    fontSize: 15,
-    height: 1,
-    fontWeight: FontWeight.w900,
-    letterSpacing: -0.4,
-  );
+        color: color,
+        fontSize: 15,
+        height: 1,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.4,
+      );
 
   Widget _modeButton({
     required String label,
@@ -3397,7 +3496,8 @@ class _WelcomeDialogState extends State<_WelcomeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       key: const ValueKey('welcome-dialog'),
       title: const AppText('welcome to CHECKLIST'),
       content: AnimatedSize(
@@ -3408,9 +3508,11 @@ class _WelcomeDialogState extends State<_WelcomeDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const AppText(
-              'You are using CHECKLIST version $_appVersion '
-              '(build $_appBuildNumber).\n\n'
-              'Designed by Ákos Nemes using Codex AI.',
+              welcomeMessage,
+              arguments: {
+                'version': checklistVersion,
+                'build': checklistBuildNumber
+              },
             ),
             const SizedBox(height: 8),
             TextButton(
@@ -3465,9 +3567,10 @@ class _VersionInfoDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       key: const ValueKey('version-info-dialog'),
-      title: const AppText('CHECKLIST $_appVersion'),
+      title: const AppText('CHECKLIST $checklistVersion'),
       content: SizedBox(
         width: 380,
         child: SingleChildScrollView(
@@ -3475,11 +3578,14 @@ class _VersionInfoDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AppText('build $_appBuildNumber'),
+              const AppText('build {build}',
+                  arguments: {'build': checklistBuildNumber}),
               const SizedBox(height: 14),
               AppText(
                 'features',
-                style: Theme.of(context).textTheme.titleMedium
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
                     ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
@@ -3634,13 +3740,11 @@ class _GlitchCheckmarkState extends State<_GlitchCheckmark>
         final frequency = _strongGlitch ? 19.0 : 11.0;
         final horizontal =
             math.sin(progress * math.pi * frequency) * amplitude * decay;
-        final vertical =
-            math.cos(progress * math.pi * (frequency * 0.7)) *
+        final vertical = math.cos(progress * math.pi * (frequency * 0.7)) *
             amplitude *
             0.35 *
             decay;
-        final scale =
-            1 +
+        final scale = 1 +
             math.sin(progress * math.pi * 13) *
                 (_strongGlitch ? 0.11 : 0.035) *
                 decay;
@@ -3686,119 +3790,6 @@ class _GlitchCheckmarkState extends State<_GlitchCheckmark>
   }
 }
 
-class _LinuxWindowController {
-  static const _channel = MethodChannel('checklist/window');
-
-  static void beginMove() => _invoke('beginMove');
-
-  static void minimize() => _invoke('minimize');
-
-  static void toggleMaximize() => _invoke('toggleMaximize');
-
-  static void close() => _invoke('close');
-
-  static Future<void> _invoke(String method) async {
-    try {
-      await _channel.invokeMethod<void>(method);
-    } on MissingPluginException {
-      // The channel is intentionally unavailable on non-Linux platforms and
-      // in widget tests.
-    } on PlatformException catch (error) {
-      debugPrint('Window action "$method" failed: $error');
-    }
-  }
-}
-
-class _WindowDragRegion extends StatelessWidget {
-  const _WindowDragRegion({required this.enabled, required this.child});
-
-  final bool enabled;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!enabled) return child;
-    return MouseRegion(
-      cursor: SystemMouseCursors.move,
-      child: Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: (event) {
-          if (event.buttons == 1) _LinuxWindowController.beginMove();
-        },
-        child: child,
-      ),
-    );
-  }
-}
-
-class _WindowControls extends StatelessWidget {
-  const _WindowControls();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _WindowButton(
-          tooltip: localizeText(context, 'minimize'),
-          iconColor: _brandYellow,
-          icon: Icons.remove_rounded,
-          onPressed: _LinuxWindowController.minimize,
-        ),
-        const SizedBox(width: 7),
-        _WindowButton(
-          tooltip: localizeText(context, 'maximize or restore'),
-          iconColor: _brandPurple,
-          icon: Icons.crop_square_rounded,
-          onPressed: _LinuxWindowController.toggleMaximize,
-        ),
-        const SizedBox(width: 7),
-        _WindowButton(
-          tooltip: localizeText(context, 'close'),
-          iconColor: const Color(0xFF77727D),
-          icon: Icons.close_rounded,
-          onPressed: _LinuxWindowController.close,
-        ),
-      ],
-    );
-  }
-}
-
-class _WindowButton extends StatelessWidget {
-  const _WindowButton({
-    required this.tooltip,
-    required this.iconColor,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String tooltip;
-  final Color iconColor;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: localizeText(context, tooltip),
-      child: Semantics(
-        label: localizeText(context, tooltip),
-        button: true,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            child: SizedBox.square(
-              dimension: 32,
-              child: Icon(icon, color: iconColor, size: 20),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _NoteDialogResult {
   const _NoteDialogResult({required this.name, this.categoryId});
 
@@ -3812,12 +3803,14 @@ class _NoteDetailsDialog extends StatefulWidget {
     required this.initialText,
     required this.categories,
     this.initialCategoryId,
+    this.usePaleBackground = false,
   });
 
   final String title;
   final String initialText;
   final List<NoteCategory> categories;
   final String? initialCategoryId;
+  final bool usePaleBackground;
 
   @override
   State<_NoteDetailsDialog> createState() => _NoteDetailsDialogState();
@@ -3859,25 +3852,44 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final base = Theme.of(context);
+    final pastel = base.scaffoldBackgroundColor == _pastelPeach;
+    final lightCreate =
+        !widget.usePaleBackground && base.brightness == Brightness.light;
+    final dialogSurface = widget.usePaleBackground
+        ? _renameNotePastelBlue
+        : lightCreate
+            ? (pastel ? _pastelWhite : _lightSurface)
+            : _notesSidebar;
+    final dialogForeground = widget.usePaleBackground
+        ? _pencilPriorityHigh
+        : lightCreate
+            ? _lightText
+            : _borderWhite;
+    final fieldBorder =
+        widget.usePaleBackground ? _deepBlueButton : _borderWhite;
     final blueTheme = base.copyWith(
       colorScheme: base.colorScheme.copyWith(
         primary: _defaultNoteBlue,
         secondary: _deepBlueButton,
-        surface: _notesSidebar,
-        onSurface: _borderWhite,
+        surface: dialogSurface,
+        onSurface: dialogForeground,
       ),
-      dialogTheme: base.dialogTheme.copyWith(backgroundColor: _notesSidebar),
+      dialogTheme: base.dialogTheme.copyWith(backgroundColor: dialogSurface),
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        fillColor: _notesSidebar,
-        hintStyle: const TextStyle(color: _switchGrey),
-        labelStyle: const TextStyle(color: _borderWhite),
-        enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: _borderWhite, width: 2),
+        fillColor: dialogSurface,
+        hintStyle: TextStyle(
+          color: widget.usePaleBackground || lightCreate
+              ? _lightControl
+              : _switchGrey,
         ),
-        focusedBorder: const OutlineInputBorder(
+        labelStyle: TextStyle(color: dialogForeground),
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: _borderWhite, width: 2),
+          borderSide: BorderSide(color: fieldBorder, width: 2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: fieldBorder, width: 2),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -3890,17 +3902,27 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: _defaultNoteBlue,
+          foregroundColor: widget.usePaleBackground || lightCreate
+              ? _deepBlueButton
+              : _defaultNoteBlue,
           shape: const RoundedRectangleBorder(),
-          side: const BorderSide(color: _borderWhite, width: 2),
+          side: BorderSide(color: fieldBorder, width: 2),
         ),
       ),
     );
 
     return Theme(
       data: blueTheme,
-      child: AlertDialog(
+      child: _popupAlert(
+        context,
         key: const ValueKey('note-details-dialog'),
+        backgroundColor: dialogSurface,
+        shape: lightCreate
+            ? RoundedRectangleBorder(
+                side: BorderSide(
+                    color: pastel ? _pastelYellow : _lightLine, width: 2),
+              )
+            : null,
         title: AppText(widget.title),
         content: SizedBox(
           width: 340,
@@ -3939,7 +3961,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
                         children: [
                           _NoteColourDot(color: Color(category.colorValue)),
                           const SizedBox(width: 10),
-                          Flexible(child: AppText(category.name)),
+                          Flexible(child: Text(category.name)),
                         ],
                       ),
                     ),
@@ -4013,7 +4035,8 @@ class _TextEntryDialogState extends State<_TextEntryDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       title: AppText(widget.title),
       content: TextField(
         controller: _controller,
@@ -4100,7 +4123,8 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       key: const ValueKey('category-picker-dialog'),
       title: AppText(_removeMode ? 'remove category' : 'change category'),
       content: SizedBox(
@@ -4131,11 +4155,11 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
                 title: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 180),
                   style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                    decoration: category.id == _removingId
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                  ),
-                  child: AppText(category.name),
+                        decoration: category.id == _removingId
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                      ),
+                  child: Text(category.name),
                 ),
                 onTap: _removingId != null
                     ? null
@@ -4239,7 +4263,8 @@ class _CategorySettingsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       key: const ValueKey('category-settings-dialog'),
       title: const AppText('category settings'),
       content: SizedBox(
@@ -4260,7 +4285,7 @@ class _CategorySettingsDialog extends StatelessWidget {
                       leading: _NoteColourDot(
                         color: Color(category.colorValue),
                       ),
-                      title: AppText(category.name),
+                      title: Text(category.name),
                       trailing: const Icon(Icons.edit_rounded),
                       onTap: () => Navigator.pop(context, category.id),
                     ),
@@ -4311,8 +4336,7 @@ class _NewNoteCategoryDialogState extends State<_NewNoteCategoryDialog> {
     if (name.isEmpty) return;
     Navigator.of(context).pop(
       NoteCategory(
-        id:
-            widget.category?.id ??
+        id: widget.category?.id ??
             DateTime.now().microsecondsSinceEpoch.toString(),
         name: name,
         colorValue: _noteColours[_selectedColour].toARGB32(),
@@ -4322,7 +4346,8 @@ class _NewNoteCategoryDialogState extends State<_NewNoteCategoryDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       title: AppText(
         widget.category == null ? 'new category' : 'edit category',
       ),
@@ -4495,23 +4520,22 @@ class _HeartBubbleLayerState extends State<_HeartBubbleLayer>
     _accelerometerSubscription ??=
         accelerometerEventStream(samplingPeriod: SensorInterval.uiInterval)
             .listen((event) {
-              final delta =
-                  (event.x - _accelerationX).abs() +
-                  (event.y - _accelerationY).abs();
-              _accelerationX = (_accelerationX * 0.72) + (event.x * 0.28);
-              _accelerationY = (_accelerationY * 0.72) + (event.y * 0.28);
-              _motion = math.max(_motion, delta * 0.08);
-            }, onError: (_) {});
+      final delta =
+          (event.x - _accelerationX).abs() + (event.y - _accelerationY).abs();
+      _accelerationX = (_accelerationX * 0.72) + (event.x * 0.28);
+      _accelerationY = (_accelerationY * 0.72) + (event.y * 0.28);
+      _motion = math.max(_motion, delta * 0.08);
+    }, onError: (_) {});
     _gyroscopeSubscription ??=
-        gyroscopeEventStream(samplingPeriod: SensorInterval.uiInterval)
-            .listen((event) {
-              _gyroscopeX = event.x;
-              _gyroscopeY = event.y;
-              final rotation = math.sqrt(
-                (event.x * event.x) + (event.y * event.y) + (event.z * event.z),
-              );
-              _motion = math.max(_motion, rotation);
-            }, onError: (_) {});
+        gyroscopeEventStream(samplingPeriod: SensorInterval.uiInterval).listen(
+            (event) {
+      _gyroscopeX = event.x;
+      _gyroscopeY = event.y;
+      final rotation = math.sqrt(
+        (event.x * event.x) + (event.y * event.y) + (event.z * event.z),
+      );
+      _motion = math.max(_motion, rotation);
+    }, onError: (_) {});
   }
 
   void _stopSensors() {
@@ -4815,18 +4839,20 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
   @override
   void initState() {
     super.initState();
-    final initial =
-        widget.initialReminder?.toLocal() ??
+    final initial = widget.initialReminder?.toLocal() ??
         DateTime.now().add(const Duration(days: 1));
     _selectedDate = DateUtils.dateOnly(initial);
     _selectedTime = TimeOfDay.fromDateTime(initial);
   }
 
   Future<void> _chooseTime() async {
-    final selected = await showTimePicker(
+    final selected = await showDialog<TimeOfDay>(
       context: context,
-      initialTime: _selectedTime,
-      helpText: 'reminder time',
+      builder: (context) => _animatedTimePicker(
+        context,
+        initialTime: _selectedTime,
+        helpText: localizeText(context, 'reminder time'),
+      ),
     );
     if (selected != null && mounted) {
       setState(() => _selectedTime = selected);
@@ -4850,7 +4876,8 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       key: const ValueKey('checklist-reminder-dialog'),
       title: const AppText(
         'reminder',
@@ -4862,7 +4889,7 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AppText(
+            Text(
               widget.checklistName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -4958,7 +4985,8 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -4986,169 +5014,6 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
 }
 
 enum _CoverSource { camera, browse }
-
-class _CoverCameraDialog extends StatefulWidget {
-  const _CoverCameraDialog();
-
-  @override
-  State<_CoverCameraDialog> createState() => _CoverCameraDialogState();
-}
-
-class _CoverCameraDialogState extends State<_CoverCameraDialog> {
-  CameraController? _controller;
-  String? _error;
-  bool _capturing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initialiseCamera();
-  }
-
-  Future<void> _initialiseCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        throw StateError('No camera is available.');
-      }
-      final description = cameras.firstWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.back,
-        orElse: () => cameras.first,
-      );
-      final controller = CameraController(
-        description,
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
-      await controller.initialize();
-      if (!mounted) {
-        await controller.dispose();
-        return;
-      }
-      setState(() => _controller = controller);
-    } on CameraException catch (error) {
-      if (mounted) {
-        setState(() => _error = _cameraErrorMessage(error));
-      }
-    } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
-    }
-  }
-
-  String _cameraErrorMessage(CameraException error) {
-    if (error.code == 'CameraAccessDenied' ||
-        error.code == 'cameraPermission') {
-      return 'Camera permission is needed to take a cover photo.';
-    }
-    return error.description ?? 'The camera could not be opened.';
-  }
-
-  Future<void> _takePicture() async {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized || _capturing) {
-      return;
-    }
-    setState(() => _capturing = true);
-    try {
-      final photo = await controller.takePicture();
-      if (mounted) Navigator.pop(context, photo.path);
-    } on CameraException catch (error) {
-      if (mounted) {
-        setState(() {
-          _capturing = false;
-          _error = _cameraErrorMessage(error);
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  Widget _cameraFrame(Widget child) {
-    return AspectRatio(
-      key: const ValueKey('cover-camera-frame'),
-      aspectRatio: _coverAspectRatio,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: _defaultNoteBlue, width: 3),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(3),
-          child: ClipRect(child: child),
-        ),
-      ),
-    );
-  }
-
-  Widget _preview(CameraController controller) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final previewSize = controller.value.previewSize;
-        if (previewSize == null) return const SizedBox.shrink();
-        final portrait =
-            MediaQuery.orientationOf(context) == Orientation.portrait;
-        final width = portrait ? previewSize.height : previewSize.width;
-        final height = portrait ? previewSize.width : previewSize.height;
-        return FittedBox(
-          fit: BoxFit.cover,
-          clipBehavior: Clip.hardEdge,
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: CameraPreview(controller),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = _controller;
-    return AlertDialog(
-      key: const ValueKey('cover-camera-dialog'),
-      title: const AppText('camera'),
-      content: SizedBox(
-        width: 560,
-        child: _cameraFrame(
-          _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: AppText(_error!, textAlign: TextAlign.center),
-                  ),
-                )
-              : controller == null || !controller.value.isInitialized
-              ? const Center(child: CircularProgressIndicator())
-              : _preview(controller),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _capturing ? null : () => Navigator.pop(context),
-          child: const AppText('cancel'),
-        ),
-        FilledButton.icon(
-          key: const ValueKey('take-cover-photo'),
-          onPressed: controller == null || _error != null || _capturing
-              ? null
-              : _takePicture,
-          icon: _capturing
-              ? const SizedBox.square(
-                  dimension: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.camera_alt_outlined),
-          label: const AppText('take photo'),
-        ),
-      ],
-    );
-  }
-}
 
 class _CoverCropDialog extends StatefulWidget {
   const _CoverCropDialog({required this.sourcePath});
@@ -5212,9 +5077,8 @@ class _CoverCropDialogState extends State<_CoverCropDialog> {
     setState(() => _saving = true);
     try {
       await WidgetsBinding.instance.endOfFrame;
-      final boundary =
-          _boundaryKey.currentContext?.findRenderObject()
-              as RenderRepaintBoundary?;
+      final boundary = _boundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
       if (boundary == null) throw StateError('The crop is not ready.');
       final pixelRatio = math.min(3.0, 1600 / math.max(1, boundary.size.width));
       final image = await boundary.toImage(pixelRatio: pixelRatio);
@@ -5295,7 +5159,8 @@ class _CoverCropDialogState extends State<_CoverCropDialog> {
   @override
   Widget build(BuildContext context) {
     final sourceSize = _sourceSize;
-    return AlertDialog(
+    return _popupAlert(
+      context,
       key: const ValueKey('cover-crop-dialog'),
       title: const AppText('choose your cover'),
       content: SizedBox(
@@ -5515,7 +5380,8 @@ class _TaskNotePickerDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return _popupAlert(
+      context,
       key: const ValueKey('task-note-picker'),
       title: const AppText('link a note'),
       content: SizedBox(
@@ -5529,15 +5395,21 @@ class _TaskNotePickerDialog extends StatelessWidget {
                 separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final note = notes[index];
+                  final links = findNoteLinks(note.content);
+                  final formatted = _NoteFormatting(note.content, links);
                   return ListTile(
                     key: ValueKey('task-note-choice-${note.id}'),
-                    title: AppText(
+                    title: Text(
                       note.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    subtitle: AppText(
-                      note.content.isEmpty ? 'empty note' : note.content,
+                    subtitle: Text.rich(
+                      formatted.plainText.isEmpty
+                          ? TextSpan(text: localizeText(context, 'empty note'))
+                          : formatted.buildTextSpan(note.content, links,
+                              base: const TextStyle(),
+                              theme: Theme.of(context)),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -5559,22 +5431,59 @@ class _TaskNotePickerDialog extends StatelessWidget {
   }
 }
 
-class _TaskLinkedNoteDialog extends StatelessWidget {
-  const _TaskLinkedNoteDialog({required this.note});
+class _TaskLinkedNoteDialog extends StatefulWidget {
+  const _TaskLinkedNoteDialog({
+    required this.note,
+    required this.frameColour,
+    required this.onOpenLink,
+  });
 
   final NoteEntry note;
+  final Color frameColour;
+  final ValueChanged<Uri> onOpenLink;
+
+  @override
+  State<_TaskLinkedNoteDialog> createState() => _TaskLinkedNoteDialogState();
+}
+
+class _TaskLinkedNoteDialogState extends State<_TaskLinkedNoteDialog> {
+  late final _content = widget.note.content;
+  late final _links = findNoteLinks(_content);
+  late final _formatting = _NoteFormatting(_content, _links);
+  late final _linkTaps = {
+    for (final link in _links)
+      link.start: TapGestureRecognizer()
+        ..onTap = () => widget.onOpenLink(link.uri),
+  };
+
+  @override
+  void dispose() {
+    for (final tap in _linkTaps.values) {
+      tap.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    final theme = Theme.of(context);
+    final bodyStyle = (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
+      color: theme.brightness == Brightness.dark ? _borderWhite : _lightText,
+      height: 1.5,
+    );
+    return _popupAlert(
+      context,
       key: const ValueKey('task-linked-note-dialog'),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: widget.frameColour, width: 2),
+      ),
       title: Row(
         children: [
           const Icon(Icons.note_rounded, color: _defaultNoteBlue),
           const SizedBox(width: 8),
           Expanded(
-            child: AppText(
-              note.name,
+            child: Text(
+              widget.note.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -5587,12 +5496,20 @@ class _TaskLinkedNoteDialog extends StatelessWidget {
         child: Scrollbar(
           child: SingleChildScrollView(
             key: const ValueKey('task-linked-note-scroll'),
-            child: SelectableText(
-              note.content.isEmpty
-                  ? localizeText(context, 'this note is empty')
-                  : note.content,
-              style: Theme.of(context).textTheme.bodyLarge
-                  ?.copyWith(height: 1.5),
+            child: SelectionArea(
+              child: Text.rich(
+                _formatting.plainText.isEmpty
+                    ? TextSpan(
+                        text: localizeText(context, 'this note is empty'))
+                    : _formatting.buildTextSpan(
+                        _content,
+                        _links,
+                        base: bodyStyle,
+                        theme: theme,
+                        linkTaps: _linkTaps,
+                      ),
+                style: bodyStyle,
+              ),
             ),
           ),
         ),
@@ -5712,7 +5629,10 @@ class _LinkedNoteButtonState extends State<_LinkedNoteButton> {
 
   @override
   Widget build(BuildContext context) {
-    final targetColor = _opening ? _brandPurple : _defaultNoteBlue;
+    final restingColour = Theme.of(context).brightness == Brightness.dark
+        ? _brandYellow
+        : _defaultNoteBlue;
+    final targetColor = _opening ? _brandPurple : restingColour;
     return IconButton(
       key: ValueKey('task-note-button-${widget.taskId}'),
       tooltip: localizeText(context, 'open linked note'),
@@ -5721,7 +5641,7 @@ class _LinkedNoteButtonState extends State<_LinkedNoteButton> {
       style: IconButton.styleFrom(side: BorderSide.none),
       onPressed: _open,
       icon: TweenAnimationBuilder<Color?>(
-        tween: ColorTween(begin: _defaultNoteBlue, end: targetColor),
+        tween: ColorTween(begin: restingColour, end: targetColor),
         duration: const Duration(milliseconds: 90),
         builder: (context, color, child) => Icon(
           Icons.sticky_note_2_rounded,
@@ -5780,31 +5700,35 @@ class _TaskRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
+          SizedBox(
             key: ValueKey('task-leading-column-${task.id}'),
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox.square(
-                key: ValueKey('task-checkbox-${task.id}'),
-                dimension: 32,
-                child: Checkbox(
-                  value: task.isDone,
-                  onChanged: (_) => onToggle(),
-                  shape: const RoundedRectangleBorder(),
-                  materialTapTargetSize: MaterialTapTargetSize.padded,
-                  visualDensity: VisualDensity.standard,
-                ),
-              ),
-              if (linkedNote != null)
-                Padding(
-                  key: ValueKey('task-note-below-checkbox-${task.id}'),
-                  padding: const EdgeInsets.only(top: 2),
-                  child: _LinkedNoteButton(
-                    taskId: task.id,
-                    onPressed: onOpenNote!,
+            width: 32,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox.square(
+                  key: ValueKey('task-checkbox-${task.id}'),
+                  dimension: 32,
+                  child: Checkbox(
+                    value: task.isDone,
+                    onChanged: (_) => onToggle(),
+                    shape: const RoundedRectangleBorder(),
+                    materialTapTargetSize: MaterialTapTargetSize.padded,
+                    visualDensity: VisualDensity.standard,
                   ),
                 ),
-            ],
+                if (linkedNote != null)
+                  Padding(
+                    key: ValueKey('task-note-below-checkbox-${task.id}'),
+                    padding: const EdgeInsets.only(top: 2),
+                    child: _LinkedNoteButton(
+                      taskId: task.id,
+                      onPressed: onOpenNote!,
+                    ),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -5866,10 +5790,10 @@ class _ImportanceBar extends StatelessWidget {
     final color = isPastel
         ? _pastelImportanceColor(importance)
         : isPencil
-        ? _pencilImportanceColor(importance)
-        : Theme.of(context).brightness == Brightness.dark
-        ? _importanceColor(importance)
-        : Theme.of(context).colorScheme.primary;
+            ? _pencilImportanceColor(importance)
+            : Theme.of(context).brightness == Brightness.dark
+                ? _importanceColor(importance)
+                : Theme.of(context).colorScheme.primary;
     return Container(
       width: width,
       height: height,
@@ -5895,10 +5819,10 @@ class _ImportanceChip extends StatelessWidget {
     final color = isPastel
         ? _pastelImportanceColor(importance)
         : isPencil
-        ? _pencilImportanceColor(importance)
-        : theme.brightness == Brightness.dark
-        ? _importanceColor(importance)
-        : theme.colorScheme.primary;
+            ? _pencilImportanceColor(importance)
+            : theme.brightness == Brightness.dark
+                ? _importanceColor(importance)
+                : theme.colorScheme.primary;
     return Container(
       key: ValueKey('priority-chip-${importance.name}'),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -5944,10 +5868,10 @@ class _ImportanceMenuLabel extends StatelessWidget {
     final color = isPastel
         ? _pastelImportanceColor(importance)
         : isPencil
-        ? _pencilImportanceColor(importance)
-        : theme.brightness == Brightness.dark
-        ? _importanceColor(importance)
-        : theme.colorScheme.primary;
+            ? _pencilImportanceColor(importance)
+            : theme.brightness == Brightness.dark
+                ? _importanceColor(importance)
+                : theme.colorScheme.primary;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -6029,10 +5953,28 @@ String _formatDate(BuildContext context, DateTime date) {
     'dec.',
   ];
   final local = date.toLocal();
-  if (Localizations.localeOf(context).languageCode == 'hu') {
-    return '${local.year}. ${hungarianMonths[local.month - 1]} ${local.day}.';
-  }
-  return '${local.day} ${englishMonths[local.month - 1]} ${local.year}';
+  const frenchMonths = [
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juil.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.'
+  ];
+  return switch (Localizations.localeOf(context).languageCode) {
+    'hu' => '${local.year}. ${hungarianMonths[local.month - 1]} ${local.day}.',
+    'fr' => '${local.day} ${frenchMonths[local.month - 1]} ${local.year}',
+    'cs' => '${local.day}. ${local.month}. ${local.year}',
+    'de' => '${local.day}.${local.month}.${local.year}',
+    'zh' => '${local.year}年${local.month}月${local.day}日',
+    _ => '${local.day} ${englishMonths[local.month - 1]} ${local.year}',
+  };
 }
 
 String _formatReminder(BuildContext context, DateTime date) {

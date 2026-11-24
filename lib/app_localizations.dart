@@ -1,12 +1,40 @@
 import 'package:flutter/material.dart';
 
-enum AppLanguage { english, hungarian }
+part 'app_translations.dart';
+part 'app_translations_de_zh.dart';
 
-extension AppLanguageDetails on AppLanguage {
-  Locale get locale => Locale(this == AppLanguage.hungarian ? 'hu' : 'en');
+enum AppLanguage {
+  english('en', 'English'),
+  hungarian('hu', 'Hungarian'),
+  french('fr', 'French'),
+  czech('cs', 'Czech'),
+  german('de', 'German'),
+  chinese('zh', 'Simplified Chinese');
+
+  const AppLanguage(this.code, this.label);
+  final String code;
+  final String label;
+  Locale get locale => Locale(code);
 }
 
+const welcomeMessage = 'You are using CHECKLIST version {version} '
+    '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
+
 const _hungarian = <String, String>{
+  'German': 'Német',
+  'Simplified Chinese': 'Egyszerűsített kínai',
+  'website links': 'webhelyhivatkozások',
+  'no website links yet': 'még nincsenek webhelyhivatkozások',
+  'loading preview…': 'előnézet betöltése…',
+  'preview unavailable': 'az előnézet nem érhető el',
+  'Popup frames draw in before their contents fade in.':
+      'Az ablakok kerete a tartalom megjelenése előtt rajzolódik ki.',
+  'Linked notes show formatting and open hyperlinks.':
+      'A csatolt jegyzetekben látható a formázás, a hivatkozások megnyithatók.',
+  'Saved note links can be browsed with website screenshots.':
+      'A jegyzetek hivatkozásai webhely-előnézetekkel böngészhetők.',
+  'German and Simplified Chinese are available.':
+      'A német és az egyszerűsített kínai elérhető.',
   '+ note': '+ jegyzet',
   'Add a cover image': 'Borítókép hozzáadása',
   'Backup exported successfully.': 'A biztonsági mentés elkészült.',
@@ -85,6 +113,7 @@ const _hungarian = <String, String>{
   'italic': 'dőlt',
   'language': 'nyelv',
   'link a note': 'jegyzet csatolása',
+  'link detected': 'hivatkozás észlelve',
   'low': 'alacsony',
   'make a note': 'jegyzet készítése',
   'medium': 'közepes',
@@ -103,6 +132,7 @@ const _hungarian = <String, String>{
   'open settings': 'beállítások megnyitása',
   'past reminder': 'elmúlt emlékeztető',
   'priority · high first': 'prioritás · magas elöl',
+  'QR link detected': 'QR-hivatkozás észlelve',
   'read less': 'kevesebb',
   'read more': 'tovább',
   'reminder': 'emlékeztető',
@@ -116,6 +146,8 @@ const _hungarian = <String, String>{
   'sort checklists': 'listák rendezése',
   'sort notes': 'jegyzetek rendezése',
   'start writing…': 'kezdj írni…',
+  'switch to back camera': 'váltás a hátlapi kamerára',
+  'switch to front camera': 'váltás az előlapi kamerára',
   'take a photo': 'fénykép készítése',
   'take photo': 'fénykép készítése',
   'themes': 'témák',
@@ -137,7 +169,8 @@ const _hungarian = <String, String>{
       'A 140 ms-os feladatrendezés csak a szövegterületen működik.',
   'Made the sticky-note icon open linked notes after a blue-to-purple cue.':
       'A cetliikon kékből lilára vált, majd megnyitja a csatolt jegyzetet.',
-  'Added dedicated high, medium, and low priority colours to Pastel.': 'A Pastel téma külön magas, közepes és alacsony prioritásszíneket kapott.',
+  'Added dedicated high, medium, and low priority colours to Pastel.':
+      'A Pastel téma külön magas, közepes és alacsony prioritásszíneket kapott.',
   'Aligned the sidebar mode checkmark with its wordmark.':
       'Az oldalsáv módjelölő pipája a felirathoz igazodik.',
   'Moved linked-note icons below their task checkboxes.':
@@ -146,70 +179,154 @@ const _hungarian = <String, String>{
       'A Pencil téma külön prioritásszíneket kapott.',
   'Made note formatting render bold, italic, and underlined text.':
       'A jegyzetformázás félkövér, dőlt és aláhúzott szöveget jelenít meg.',
-  'Added a borderless selection toolbar with editing and formatting actions.': 'Keret nélküli kijelölési eszköztár került be szerkesztési és formázási műveletekkel.',
+  'Added a borderless selection toolbar with editing and formatting actions.':
+      'Keret nélküli kijelölési eszköztár került be szerkesztési és formázási műveletekkel.',
+  'Kept bottom controls above Android system navigation bars.':
+      'Az alsó vezérlők az Android rendszernavigációs sávja fölött maradnak.',
+  'Aligned linked-task checkboxes with every other task checkbox.':
+      'A csatolt jegyzetes feladatok jelölőnégyzetei a többihez igazodnak.',
+  'Made Notes leave edit mode when tapping outside the editor.':
+      'A Jegyzetek kilép a szerkesztési módból, ha a szerkesztőn kívülre koppintasz.',
+  'Changed the rename-note window to pale pastel blue.':
+      'A jegyzetátnevező ablak halvány pasztellkék lett.',
+  'Updated the Android launcher icon with the new safe CHECKLIST logo.':
+      'Az Android indítóikon az új, biztonságos CHECKLIST logót használja.',
+  'Extended app backgrounds behind gesture navigation while keeping controls safe.':
+      'Az alkalmazás háttere a gesztusnavigáció mögé is kinyúlik, a vezérlők pedig biztonságos helyen maradnak.',
+  'Removed the white strip beneath the sidebar at the gesture navigation area.':
+      'Eltűnt az oldalsáv alatti fehér csík a gesztusnavigáció területéről.',
+  'Notes open links in the default browser or an installed app.':
+      'A jegyzetek az alapértelmezett böngészőben vagy egy telepített alkalmazásban nyitják meg a hivatkozásokat.',
+  'Website addresses recognised in photos become tappable links.':
+      'A fotókon felismert webcímek megnyitható hivatkozásokká válnak.',
+  'Could not open that link.': 'Nem sikerült megnyitni a hivatkozást.',
   'open linked note': 'csatolt jegyzet megnyitása',
+  'French': 'Francia',
+  'Czech': 'Cseh',
+  'create a note from the sidebar': 'hozz létre jegyzetet az oldalsávból',
+  'reminder time': 'emlékeztető időpontja',
+  'No text was found in that image.': 'A képen nem található szöveg.',
+  'Text added to your note.': 'A szöveg bekerült a jegyzetbe.',
+  'Could not recognise that image.':
+      'A képen lévő szöveget nem sikerült felismerni.',
+  'Photo text is available on Android.': 'A képfelismerés Androidon érhető el.',
+  'Could not save language setting:':
+      'A nyelvi beállítást nem sikerült menteni:',
+  'Could not save the theme setting:': 'A témát nem sikerült menteni:',
+  'Could not add that image:': 'A képet nem sikerült hozzáadni:',
+  'Could not take that photo:': 'A fényképet nem sikerült elkészíteni:',
+  'Could not load your checklists:': 'A listákat nem sikerült betölteni:',
+  'Cover updated, but the old image could not be removed.':
+      'A borító frissült. A korábbi képet nem sikerült eltávolítani.',
+  'No camera is available.': 'Nem érhető el kamera.',
+  'No picture picker is available.': 'Nem érhető el képválasztó.',
+  'Another image is already being processed.':
+      'Egy másik kép feldolgozása folyamatban van.',
+  'Choose a picture or take a photo.':
+      'Válassz egy képet vagy készíts fényképet.',
+  'The selected image could not be opened.':
+      'A kiválasztott képet nem sikerült megnyitni.',
+  'The selected picture could not be opened.':
+      'A kiválasztott képet nem sikerült megnyitni.',
+  'The selected image is no longer available.':
+      'A kiválasztott kép már nem érhető el.',
+  'The selected image is empty.': 'A kiválasztott kép üres.',
+  'The image is empty.': 'A kép üres.',
+  'The camera photo could not be opened.':
+      'A fényképet nem sikerült megnyitni.',
+  'The camera photo is no longer available.': 'A fénykép már nem érhető el.',
+  'The image import was interrupted.': 'A kép importálása megszakadt.',
+  'Choose an image smaller than 40 MB.': 'Válassz 40 MB-nál kisebb képet.',
+  'The selected image format could not be read.':
+      'A kiválasztott kép formátuma nem olvasható.',
+  'The offline image reader could not start.':
+      'Az offline képfelismerést nem sikerült elindítani.',
+  'Could not turn that image into text.':
+      'A képet nem sikerült szöveggé alakítani.',
+  'Camera permission is needed to take a cover photo.':
+      'A borítóképhez engedélyezd a kamera használatát.',
+  'Camera permission is needed to take a photo.':
+      'A fénykép készítéséhez engedélyezd a kamera használatát.',
+  'The camera could not be opened.': 'A kamerát nem sikerült megnyitni.',
+  'The crop is not ready.': 'A kivágás még nincs készen.',
+  'The crop could not be saved.': 'A kivágást nem sikerült menteni.',
+  'The backup file is empty.': 'A biztonsági mentés fájlja üres.',
+  'This is not a supported CHECKLIST backup.':
+      'Ez a CHECKLIST biztonsági mentés nem támogatott.',
+  '{date}  ·  {done}/{tasks} done': '{date}  ·  {done}/{tasks} kész',
+  '{date}  ·  {tasks} task  ·  {done} completed':
+      '{date}  ·  {tasks} feladat  ·  {done} kész',
+  '{date}  ·  {tasks} tasks  ·  {done} completed':
+      '{date}  ·  {tasks} feladat  ·  {done} kész',
+  '“{name}” will be removed.': 'A(z) „{name}” jegyzet törölve lesz.',
+  '“{name}” and its tasks will be removed.':
+      'A(z) „{name}” lista és feladatai törölve lesznek.',
+  'Replace this installation with {checklists} checklist(s) and {notes} note(s)?':
+      'Lecseréled a telepítés adatait {checklists} listára és {notes} jegyzetre?',
+  welcomeMessage: 'A használt alkalmazás: CHECKLIST version {version} '
+      '(build {build}).\n\nTervezte: Ákos Nemes a Codex AI használatával.',
+  'Selected checklist and note content now fades in from top to bottom.':
+      'A kiválasztott listák és jegyzetek tartalma felülről lefelé jelenik meg.',
+  'Updated dropdown frames and Pastel note selection and links.':
+      'Frissültek a legördülő menük keretei, valamint a Pastel téma jegyzetkijelölései és hivatkozásai.',
+  'Note formatting can be combined and toggled from the right side of the category row.':
+      'A jegyzetformázás kombinálható és a kategóriasor jobb oldalán kapcsolható.',
+  'Settings text lights up when pressed, and French and Czech are available.':
+      'A beállítások feliratai megnyomáskor felvillannak, és elérhető a francia és a cseh nyelv.',
+  'Could not clean up the cover image:':
+      'A borítóképet nem sikerült eltávolítani:',
+  'Could not export your data:': 'Az adatokat nem sikerült exportálni:',
+  'Could not import that backup:':
+      'A biztonsági mentést nem sikerült importálni:',
+  'Could not recognise that image:': 'A képet nem sikerült felismerni:',
+  'Could not remember that note:': 'A jegyzetet nem sikerült megjegyezni:',
+  'Could not remember that selection:':
+      'A kijelölést nem sikerült megjegyezni:',
+  'Could not save changes:': 'A módosításokat nem sikerült menteni:',
+  'Could not save note categories:':
+      'A jegyzetkategóriákat nem sikerült menteni:',
+  'Could not save the heart animation:':
+      'A szívanimációt nem sikerült menteni:',
+  'Could not save the note sort order:':
+      'A jegyzetrendezést nem sikerült menteni:',
+  'Could not save the sort order:': 'A rendezést nem sikerült menteni:',
+  'Could not save your notes:': 'A jegyzeteket nem sikerült menteni:',
 };
 
-String localizeText(BuildContext context, String text) {
-  if (Localizations.localeOf(context).languageCode != 'hu') return text;
-  final exact = _hungarian[text];
-  if (exact != null) return exact;
+String? _translation(String language, String text) => switch (language) {
+      'hu' => _hungarian[text],
+      'fr' => _frenchAndCzech[text]?.$1,
+      'cs' => _frenchAndCzech[text]?.$2,
+      'de' => _germanAndChinese[text]?.$1,
+      'zh' => _germanAndChinese[text]?.$2,
+      _ => null,
+    };
 
-  if (text.endsWith(' done')) {
-    return '${text.substring(0, text.length - 5)} kész';
-  }
-  if (text.startsWith('build ')) return text;
-  if (text.startsWith('“') && text.endsWith('” will be removed.')) {
-    final name = text.substring(1, text.length - '” will be removed.'.length);
-    return 'A(z) „$name” jegyzet törölve lesz.';
-  }
-  if (text.startsWith('“') &&
-      text.endsWith('” and its tasks will be removed.')) {
-    final name = text.substring(
-      1,
-      text.length - '” and its tasks will be removed.'.length,
+final _argument = RegExp(r'\{([a-z]+)\}');
+
+String localizeText(BuildContext context, String text,
+    [Map<String, Object> arguments = const {}]) {
+  final language = Localizations.localeOf(context).languageCode;
+  final exact = _translation(language, text);
+  if (arguments.isNotEmpty) {
+    return (exact ?? text).replaceAllMapped(
+      _argument,
+      (part) => arguments[part[1]]?.toString() ?? part[0]!,
     );
-    return 'A(z) „$name” lista és feladatai törölve lesznek.';
   }
-  if (text.startsWith('You are using CHECKLIST version ')) {
-    return text
-        .replaceFirst('You are using', 'A használt alkalmazás:')
-        .replaceFirst('Designed by', 'Tervezte:')
-        .replaceFirst('using Codex AI', 'a Codex AI használatával');
-  }
-  final replacement = RegExp(
-    r'^Replace this installation with (\d+) checklist\(s\) and (\d+) note\(s\)\?$',
-  ).firstMatch(text);
-  if (replacement != null) {
-    return 'Lecseréled a telepítés adatait ${replacement.group(1)} listára '
-        'és ${replacement.group(2)} jegyzetre?';
-  }
-  const errorPrefixes = <String, String>{
-    'Could not clean up the cover image:':
-        'A borítóképet nem sikerült eltávolítani:',
-    'Could not export your data:': 'Az adatokat nem sikerült exportálni:',
-    'Could not import that backup:':
-        'A biztonsági mentést nem sikerült importálni:',
-    'Could not recognise that image:': 'A képet nem sikerült felismerni:',
-    'Could not remember that note:': 'A jegyzetet nem sikerült megjegyezni:',
-    'Could not remember that selection:':
-        'A kijelölést nem sikerült megjegyezni:',
-    'Could not save changes:': 'A módosításokat nem sikerült menteni:',
-    'Could not save note categories:':
-        'A jegyzetkategóriákat nem sikerült menteni:',
-    'Could not save the heart animation:':
-        'A szívanimációt nem sikerült menteni:',
-    'Could not save the note sort order:':
-        'A jegyzetrendezést nem sikerült menteni:',
-    'Could not save the sort order:': 'A rendezést nem sikerült menteni:',
-    'Could not save your notes:': 'A jegyzeteket nem sikerült menteni:',
+  if (exact != null) return exact;
+  if (language == 'en') return text;
+
+  // Translate the app's error summary and retain an unrecognised diagnostic.
+  final separator = text.indexOf(': ');
+  if (separator < 0) return text;
+  final summary = _translation(language, text.substring(0, separator + 1));
+  final detail = text.substring(separator + 2);
+  if (summary != null) return '$summary ${localizeText(context, detail)}';
+  return switch (text.substring(0, separator)) {
+    'Bad state' || 'FormatException' => _translation(language, detail) ?? text,
+    _ => text,
   };
-  for (final entry in errorPrefixes.entries) {
-    if (text.startsWith(entry.key)) {
-      return '${entry.value}${text.substring(entry.key.length)}';
-    }
-  }
-  return text;
 }
 
 class AppText extends StatelessWidget {
@@ -220,6 +337,7 @@ class AppText extends StatelessWidget {
     this.data, {
     Key? key,
     this.style,
+    this.arguments = const {},
     this.strutStyle,
     this.textAlign,
     this.textDirection,
@@ -236,6 +354,7 @@ class AppText extends StatelessWidget {
   }) : textKey = key;
 
   final String data;
+  final Map<String, Object> arguments;
   final Key? textKey;
   final TextStyle? style;
   final StrutStyle? strutStyle;
@@ -255,7 +374,7 @@ class AppText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      localizeText(context, data),
+      localizeText(context, data, arguments),
       key: textKey,
       style: style,
       strutStyle: strutStyle,

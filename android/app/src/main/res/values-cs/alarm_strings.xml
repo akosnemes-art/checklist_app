@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarm_channel_name">Připomínky seznamů</string>
+    <string name="alarm_channel_description">Přehrává zvuk uložených připomínek seznamů</string>
+    <string name="checklist_reminder">připomínka seznamu</string>
+    <string name="stop_alarm">zastavit</string>
+</resources>

@@ -31,10 +31,6 @@ void main() {
     expect(paddleBridge.lengthSync(), greaterThan(90000));
     expect(openCvJava.lengthSync(), greaterThan(300000));
 
-    final manifest =
-        File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
-    expect(manifest, isNot(contains('android.permission.INTERNET')));
-
     final gradle = File('android/app/build.gradle.kts').readAsStringSync();
     expect(gradle, contains('ppocr-sdk-release.aar'));
     expect(gradle, contains('onnxruntime-android'));
@@ -52,6 +48,20 @@ void main() {
     expect(activity, contains('BitmapFactory.Options()'));
     expect(activity, contains('Bitmap.createScaledBitmap('));
     expect(activity, contains('engine.recognize(preparedBitmap)'));
+  });
+
+  test('website previews use an isolated WebView with bounded capture', () {
+    final manifest =
+        File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+    expect(manifest, contains('android.permission.INTERNET'));
+    final capture = File(
+      'android/app/src/main/kotlin/com/gather/checklist/WebsitePreviewCapture.kt',
+    ).readAsStringSync();
+    expect(capture, contains('postVisualStateCallback'));
+    expect(capture, contains('allowFileAccess = false'));
+    expect(capture, contains('allowContentAccess = false'));
+    expect(capture, contains('browser.destroy()'));
+    expect(capture, isNot(contains('addJavascriptInterface')));
   });
 
   test('Android reminders use exact alarm-clock scheduling and alarm audio',
@@ -78,7 +88,10 @@ void main() {
     expect(alarmService, contains('AudioAttributes.USAGE_ALARM'));
     expect(alarmService, contains('isLooping = true'));
     expect(alarmService, contains('setWakeMode('));
-    expect(alarmService, contains('addAction(0, "stop", stopIntent)'));
+    expect(
+        alarmService,
+        contains(
+            'addAction(0, strings.getString(R.string.stop_alarm), stopIntent)'));
 
     final activity = File(
       'android/app/src/main/kotlin/com/gather/checklist/MainActivity.kt',

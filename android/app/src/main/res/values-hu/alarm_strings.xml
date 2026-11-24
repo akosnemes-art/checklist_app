@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarm_channel_name">Listaemlékeztetők</string>
+    <string name="alarm_channel_description">Hangjelzés a mentett listaemlékeztetőkhöz</string>
+    <string name="checklist_reminder">listaemlékeztető</string>
+    <string name="stop_alarm">leállítás</string>
+</resources>

@@ -1,3 +1,4 @@
+import 'package:checklist_app/app_version.dart';
 import 'package:checklist_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,8 +18,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('welcome-dialog')), findsOneWidget);
-      expect(find.textContaining('CHECKLIST version 0.4.8'), findsOneWidget);
-      expect(find.textContaining('build 33'), findsOneWidget);
+      expect(find.textContaining('CHECKLIST version 0.5.1'), findsOneWidget);
+      expect(
+          find.textContaining('build $checklistBuildNumber'), findsOneWidget);
       expect(
         find.textContaining('Designed by Ákos Nemes using Codex AI.'),
         findsOneWidget,
@@ -48,7 +50,8 @@ void main() {
         find.byKey(const ValueKey('implemented-changes-title')),
         findsOneWidget,
       );
-      expect(find.textContaining('note formatting render'), findsOneWidget);
+      expect(
+          find.textContaining('German and Simplified Chinese'), findsOneWidget);
       expect(find.text('read less'), findsOneWidget);
       expect(
         tester.getSize(expandingContent).height,
@@ -61,7 +64,8 @@ void main() {
 
       final preferences = await SharedPreferences.getInstance();
       expect(preferences.getBool('checklist.welcome.v1'), isTrue);
-      expect(preferences.getString('checklist.lastSeenVersion.v1'), '0.4.8+33');
+      expect(preferences.getString('checklist.lastSeenVersion.v1'),
+          checklistRelease);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
@@ -89,7 +93,8 @@ void main() {
 
     expect(find.byKey(const ValueKey('welcome-dialog')), findsOneWidget);
     final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getString('checklist.lastSeenVersion.v1'), '0.4.8+33');
+    expect(preferences.getString('checklist.lastSeenVersion.v1'),
+        checklistRelease);
     expect(tester.takeException(), isNull);
   });
 
@@ -107,7 +112,8 @@ void main() {
 
     expect(find.byKey(const ValueKey('welcome-dialog')), findsNothing);
     final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getString('checklist.lastSeenVersion.v1'), '0.4.8+33');
+    expect(preferences.getString('checklist.lastSeenVersion.v1'),
+        checklistRelease);
     expect(tester.takeException(), isNull);
   });
 }
