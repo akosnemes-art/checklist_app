@@ -1,4 +1,4 @@
-# Checklist 0.5.1
+# Checklist 0.5.2
 
 CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
 
@@ -8,8 +8,6 @@ CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
 
 In Obtainium, you can also open **Add App** and paste the [repository URL](https://github.com/akosnemes-art/checklist_app).
 Obtainium tracks stable GitHub releases and downloads the universal APK.
-If you already installed v0.5.1 build 38, install build 39 once from the
-[release page](https://github.com/akosnemes-art/checklist_app/releases/tag/v0.5.1) so Android can apply the same-version update.
 
 The approved product behaviour and visual invariants are recorded in
 [`AGENTS.md`](AGENTS.md). Read that specification before modifying the app.
@@ -65,7 +63,8 @@ The approved product behaviour and visual invariants are recorded in
 - Create-note windows follow the writing surface and frame of the current
   theme. Dialog frames draw before their contents fade in.
 - Offline Android photo-to-text for English and Hungarian notes using
-  PaddleOCR, from either an existing picture or the device camera. The camera
+  PaddleOCR, from either an existing picture or the device camera. Imported
+  text retains detected bold, italic, and underline as editable formatting. The camera
   previews for Notes and checklist covers can switch lenses and show detected
   text and QR links. The Notes camera can open links directly from the live
   preview. Links from a captured note photo become tappable in the note.
@@ -121,7 +120,7 @@ preferred Android App Bundle format with `flutter build appbundle`.
 
 ## Publish an update
 
-Publish a stable GitHub release with a tag such as `v0.5.1` and attach one
+Publish a stable GitHub release with a tag such as `v0.5.2` and attach one
 universal `checklist-<version>-android.apk`. Increment the Android build
 number and sign each update with the certificate used for the previous APK.
 The current GitHub APK uses the project's Android debug certificate.

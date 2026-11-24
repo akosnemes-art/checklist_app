@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:checklist_app/app_version.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart';
 
 void main() {
   test('welcome release metadata stays aligned with pubspec', () {
@@ -60,6 +61,35 @@ void main() {
         ),
       );
     }
+  });
+
+  test('launcher artwork is centred inside the square icon', () {
+    final icon =
+        decodePng(File('Checklist_app_icon_safe.png').readAsBytesSync());
+    expect(icon, isNotNull);
+    final image = icon!;
+    expect(image.width, image.height);
+
+    final lettering = image.where((pixel) =>
+        pixel.y >= image.height / 4 &&
+        pixel.y < image.height * 3 / 4 &&
+        pixel.r > 232 &&
+        pixel.g > 232 &&
+        pixel.b > 232);
+    var left = image.width;
+    var right = -1;
+    var top = image.height;
+    var bottom = -1;
+    for (final pixel in lettering) {
+      if (pixel.x < left) left = pixel.x;
+      if (pixel.x > right) right = pixel.x;
+      if (pixel.y < top) top = pixel.y;
+      if (pixel.y > bottom) bottom = pixel.y;
+    }
+    expect(right, greaterThan(left));
+    expect(bottom, greaterThan(top));
+    expect((left + right + 1) / (2 * image.width), closeTo(0.5, 0.025));
+    expect((top + bottom + 1) / (2 * image.height), closeTo(0.5, 0.025));
   });
 
   test('task text uses the 140 millisecond hold reorder contract', () {

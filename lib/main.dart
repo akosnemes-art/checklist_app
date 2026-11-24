@@ -66,10 +66,8 @@ const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
 const _implementedChanges = <String>[
-  'Popup frames draw in before their contents fade in.',
-  'Linked notes show formatting and open hyperlinks.',
-  'Saved note links can be browsed with website screenshots.',
-  'German and Simplified Chinese are available.',
+  'Photo imports preserve detected bold, italic, and underlined text.',
+  'The launcher icon lettering is centred.',
 ];
 const _noteColours = <Color>[
   Color(0xFFE85D75),
@@ -1156,12 +1154,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
           ? await _ocrService.recognisePicture()
           : await _ocrService.recognisePhoto(photoPath);
       if (!mounted || _selectedNoteId != noteId || recognised == null) return;
-      final text = restorePhotoWebLinks(recognised.trim());
-      if (text.isEmpty) {
+      if (recognised.noteText.isEmpty) {
         _showMessage('No text was found in that image.');
         return;
       }
-      _insertRecognisedText(text);
+      _insertRecognisedText(recognised);
       _showMessage('Text added to your note.');
     } on PlatformException catch (error) {
       if (mounted) {
@@ -1177,7 +1174,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     }
   }
 
-  void _insertRecognisedText(String recognised) {
+  void _insertRecognisedText(CameraText recognised) {
     final current = _noteController.text;
     final selection = _noteController.selection;
     final start = selection.start >= 0 ? selection.start : current.length;
@@ -1188,7 +1185,18 @@ class _ChecklistHomeState extends State<ChecklistHome>
         prefix.isNotEmpty && !prefix.endsWith('\n') ? '\n' : '';
     final trailingBreak =
         suffix.isNotEmpty && !suffix.startsWith('\n') ? '\n' : '';
-    final insertion = '$leadingBreak$recognised';
+    final text = recognised.noteText;
+    final formatting = _noteController.formatting;
+    var currentStyle = formatting.rawStyles[start];
+    final styledText = StringBuffer();
+    for (var index = 0; index < text.length; index++) {
+      final style = recognised.styleAt(index);
+      _writeNoteStyleChanges(styledText, currentStyle, style);
+      styledText.writeCharCode(text.codeUnitAt(index));
+      currentStyle = style;
+    }
+    _writeNoteStyleChanges(styledText, currentStyle, formatting.rawStyles[end]);
+    final insertion = '$leadingBreak$styledText';
     final updated = '$prefix$insertion$trailingBreak$suffix';
     _noteController.value = TextEditingValue(
       text: updated,

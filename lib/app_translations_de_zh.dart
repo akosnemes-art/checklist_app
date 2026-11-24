@@ -1,6 +1,14 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  'Photo imports preserve detected bold, italic, and underlined text.': (
+    'Beim Fotoimport bleiben erkannter Fettdruck, Kursivschrift und Unterstreichungen erhalten.',
+    '导入照片时会保留检测到的粗体、斜体和下划线。'
+  ),
+  'The launcher icon lettering is centred.': (
+    'Der Schriftzug auf dem App-Symbol ist zentriert.',
+    '应用启动图标中的文字已居中。'
+  ),
   welcomeMessage: (
     "Du verwendest CHECKLIST {version} (Build {build}).\n\nEntwickelt von Ákos Nemes mit Codex AI.",
     "你正在使用 CHECKLIST {version}（内部版本 {build}）。\n\n由 Ákos Nemes 使用 Codex AI 设计。",

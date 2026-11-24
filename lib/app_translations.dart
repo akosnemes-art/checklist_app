@@ -1,6 +1,14 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  'Photo imports preserve detected bold, italic, and underlined text.': (
+    'L’import de photos conserve les styles gras, italique et souligné détectés.',
+    'Import fotografií zachovává rozpoznané tučné písmo, kurzívu a podtržení.'
+  ),
+  'The launcher icon lettering is centred.': (
+    'Le texte de l’icône de l’application est centré.',
+    'Nápis na ikoně aplikace je vycentrovaný.'
+  ),
   'German': ('Allemand', 'Němčina'),
   'Simplified Chinese': ('Chinois simplifié', 'Zjednodušená čínština'),
   'website links': ('liens web', 'webové odkazy'),

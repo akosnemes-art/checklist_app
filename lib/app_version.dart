@@ -1,3 +1,3 @@
-const checklistVersion = '0.5.1';
-const checklistBuildNumber = '39';
+const checklistVersion = '0.5.2';
+const checklistBuildNumber = '40';
 const checklistRelease = '$checklistVersion+$checklistBuildNumber';

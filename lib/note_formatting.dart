@@ -10,6 +10,15 @@ enum _NoteFormat {
       String.fromCharCode(0xe000 + index * 2 + (enabled ? 0 : 1));
 }
 
+void _writeNoteStyleChanges(StringBuffer output, int from, int to) {
+  final changed = from ^ to;
+  for (final format in _NoteFormat.values) {
+    if ((changed & format.bit) != 0) {
+      output.write(format.marker((to & format.bit) != 0));
+    }
+  }
+}
+
 class _NoteFormatting {
   _NoteFormatting(String text, List<NoteLink> links)
       : offsets = List.filled(text.length + 1, 0),
@@ -93,12 +102,7 @@ class _NoteFormatting {
     var selectionEnd = 0;
 
     void writeMarkers(int nextStyle) {
-      final changed = style ^ nextStyle;
-      for (final format in _NoteFormat.values) {
-        if ((changed & format.bit) != 0) {
-          output.write(format.marker((nextStyle & format.bit) != 0));
-        }
-      }
+      _writeNoteStyleChanges(output, style, nextStyle);
       style = nextStyle;
     }
 

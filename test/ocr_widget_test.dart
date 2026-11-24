@@ -151,7 +151,15 @@ void main() {
         .setMockMethodCallHandler(channel, (call) async {
       expect(call.method, 'pickAndRecognise');
       expect(call.arguments, {'source': 'picture'});
-      return 'English text\nMagyar ő és ű';
+      const text = 'English text\nMagyar ő és ű';
+      return {
+        'text': text,
+        'styles': [
+          [0, 7, 1],
+          [8, 12, 2],
+          [13, text.length, 4],
+        ],
+      };
     });
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -189,8 +197,22 @@ void main() {
     await tester.tap(find.text('add picture'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('English text'), findsOneWidget);
+    expect(find.textContaining('English'), findsOneWidget);
     expect(find.textContaining('Magyar ő és ű'), findsOneWidget);
+    final field = find.byType(EditableText);
+    final editable = tester.widget<EditableText>(field);
+    final formatted = editable.controller.buildTextSpan(
+      context: tester.element(field),
+      style: editable.style,
+      withComposing: false,
+    );
+    final spans = {
+      for (final span in formatted.children!.cast<TextSpan>())
+        span.text: span.style,
+    };
+    expect(spans['English']!.fontWeight, FontWeight.w700);
+    expect(spans['text']!.fontStyle, FontStyle.italic);
+    expect(spans['Magyar ő és ű']!.decoration, TextDecoration.underline);
     await tester.pump(const Duration(milliseconds: 300));
     final preferences = await SharedPreferences.getInstance();
     expect(
@@ -257,7 +279,13 @@ void main() {
       }
       expect(call.method, 'recognisePhoto');
       expect(call.arguments, {'path': photo.path});
-      return {'text': 'Magyar ő és ű\n$ocrUrl', 'qr': qrUrl};
+      return {
+        'text': 'Magyar ő és ű\n$ocrUrl',
+        'qr': qrUrl,
+        'styles': [
+          [0, 'Magyar'.length, 1],
+        ],
+      };
     });
     messenger.setMockMethodCallHandler(launchChannel, (call) async {
       opened.add(call);
@@ -325,19 +353,20 @@ void main() {
     expect(platform.operations,
         containsAllInOrder(['stopImageStream', 'capture 2', 'dispose 2']));
 
-    const plainText = 'Magyar ő és ű\n';
     final editable = tester.state<EditableTextState>(find.byType(EditableText));
-    expect(editable.widget.controller.text, '$plainText$ocrUrl\n$qrUrl');
+    final imported = editable.widget.controller.text;
+    expect(imported, '\uE000Magyar\uE001 ő és ű\n$ocrUrl\n$qrUrl');
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString('checklist.notes.v1'), contains(qrUrl));
     expect(opened, isEmpty);
 
     final render = editable.renderEditable;
+    final qrStart = imported.indexOf(qrUrl);
     final linkBox = render
         .getBoxesForSelection(
           TextSelection(
-            baseOffset: plainText.length + ocrUrl.length + 1,
-            extentOffset: plainText.length + ocrUrl.length + 6,
+            baseOffset: qrStart,
+            extentOffset: qrStart + 5,
           ),
         )
         .first;
@@ -412,6 +441,26 @@ void main() {
           .noteText,
       'See example.org',
     );
+  });
+
+  test('repairing photo links keeps style offsets in the surrounding text', () {
+    const raw = '  Bold https : / / example . org /Notes?q=1 Italic  ';
+    final italic = raw.indexOf('Italic');
+    final scanned = CameraText.fromNative({
+      'text': raw,
+      'qr': 'https://example.org/QR',
+      'styles': [
+        [2, 6, 1],
+        [italic, italic + 6, 2],
+      ],
+    });
+
+    expect(scanned.noteText,
+        'Bold https://example.org/Notes?q=1 Italic\nhttps://example.org/QR');
+    expect(scanned.styleAt(0), 1);
+    expect(scanned.styleAt(scanned.noteText.indexOf('Italic')), 2);
+    expect(
+        scanned.styleAt(scanned.noteText.indexOf('https://example.org/QR')), 0);
   });
 
   testWidgets('picture button remains Android-only', (tester) async {

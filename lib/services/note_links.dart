@@ -89,15 +89,26 @@ final _ocrAddress = RegExp(
 );
 final _ocrUrlPunctuation = RegExp(r'\s+|[：．／]');
 
-String restorePhotoWebLinks(String text) => text.replaceAllMapped(
+String restorePhotoWebLinks(
+  String text, {
+  void Function(int start, int end, String replacement)? onRewrite,
+}) =>
+    text.replaceAllMapped(
       _ocrAddress,
-      (match) => match[0]!.replaceAllMapped(
-        _ocrUrlPunctuation,
-        (punctuation) => switch (punctuation[0]) {
-          '：' => ':',
-          '．' => '.',
-          '／' => '/',
-          _ => '',
-        },
-      ),
+      (match) {
+        final original = match[0]!;
+        final repaired = original.replaceAllMapped(
+          _ocrUrlPunctuation,
+          (punctuation) => switch (punctuation[0]) {
+            '：' => ':',
+            '．' => '.',
+            '／' => '/',
+            _ => '',
+          },
+        );
+        if (repaired != original) {
+          onRewrite?.call(match.start, match.end, repaired);
+        }
+        return repaired;
+      },
     );

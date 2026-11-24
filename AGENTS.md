@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current public version: **0.5.1**. The Flutter build number may increase for
+- Current public version: **0.5.2**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -231,6 +231,8 @@ rely on the palette positions.
   and three-dot buttons. Its menu offers `add picture` and `take a photo`.
   PaddleOCR turns the selected image into editable note text in English or
   Hungarian entirely offline and inserts it at the current editor selection.
+  Photo imports preserve detected bold, italic, and underline as editable
+  formatting. Style inference runs after capture and leaves live link scanning responsive.
   The live preview can switch between rear and front cameras when available.
   It displays recognised written addresses and QR links offline. Recognised
   addresses and QR links in a captured photo become tappable links in the note.
@@ -311,7 +313,8 @@ rely on the palette positions.
   drawer background extends behind a gesture indicator without a white strip;
   safe-area padding still keeps interactive controls clear of system UI.
 - The app label is `CHECKLIST`. Gradle packages the approved
-  `Checklist_app_icon_safe.png` as both the legacy and adaptive launcher icon.
+  `Checklist_app_icon_safe.png` with centred lettering as both the legacy and
+  adaptive launcher icon.
 
 ## Persistence and compatibility
 
@@ -358,6 +361,8 @@ deletion must remain restricted to the app-owned support directory.
   bridge, Android gesture exclusion, and offline PaddleOCR bridge.
 - `android/app/src/main/kotlin/com/gather/checklist/CameraLinkScanner.kt`:
   camera-frame preparation and offline QR decoding.
+- `android/app/src/main/kotlin/com/gather/checklist/PhotoTypography.kt` and
+  `PhotoTextStyles.kt`: photo word regions and lettering style detection.
 - `android/app/src/main/jniLibs/`: locally rebuilt OpenCV 4.5.3 JNI and C++
   runtime libraries for PaddleOCR, including 16 KB Android page support.
 - `tool/opencv_16k.config.py`: reproducible OpenCV Android ABI/linker build
@@ -386,9 +391,10 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Public version: `0.5.1`.
-- Last completed APK: version 0.5.1 internal build `39`.
-- Current source baseline: 70 passing tests, clean static analysis, and a
+- Public version: `0.5.2`.
+- Last completed APK: version 0.5.2 internal build `40`.
+- Current source baseline: 72 passing Flutter tests, two passing JVM
+  typography tests, clean static analysis, and a
   successful Android release build. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,
   task-to-note links, tappable Notes hyperlinks, live text and QR link

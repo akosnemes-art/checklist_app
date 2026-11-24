@@ -18,7 +18,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('welcome-dialog')), findsOneWidget);
-      expect(find.textContaining('CHECKLIST version 0.5.1'), findsOneWidget);
+      expect(find.textContaining('CHECKLIST version $checklistVersion'),
+          findsOneWidget);
       expect(
           find.textContaining('build $checklistBuildNumber'), findsOneWidget);
       expect(
@@ -50,8 +51,8 @@ void main() {
         find.byKey(const ValueKey('implemented-changes-title')),
         findsOneWidget,
       );
-      expect(
-          find.textContaining('German and Simplified Chinese'), findsOneWidget);
+      expect(find.textContaining('detected bold, italic, and underlined text'),
+          findsOneWidget);
       expect(find.text('read less'), findsOneWidget);
       expect(
         tester.getSize(expandingContent).height,

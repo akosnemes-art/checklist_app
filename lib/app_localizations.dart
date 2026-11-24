@@ -21,6 +21,10 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  'Photo imports preserve detected bold, italic, and underlined text.':
+      'A fényképek importálása megőrzi a felismert félkövér, dőlt és aláhúzott szöveget.',
+  'The launcher icon lettering is centred.':
+      'Az alkalmazásikon felirata középre került.',
   'German': 'Német',
   'Simplified Chinese': 'Egyszerűsített kínai',
   'website links': 'webhelyhivatkozások',

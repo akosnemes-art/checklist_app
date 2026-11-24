@@ -1,7 +1,7 @@
 name: checklist_app
 description: A local-first checklist and notes app for Android.
 publish_to: 'none'
-version: 0.5.1+39
+version: 0.5.2+40
 
 environment:
   sdk: '>=3.6.0 <4.0.0'

@@ -1036,7 +1036,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-about')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('settings-about-page')), findsOneWidget);
-    expect(find.textContaining('CHECKLIST 0.5.1'), findsOneWidget);
+    expect(find.textContaining('CHECKLIST $checklistVersion'), findsOneWidget);
     expect(find.textContaining('Ákos Nemes'), findsOneWidget);
     expect(find.text('akosnemes@proton.me'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -1089,10 +1089,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 455));
 
     expect(find.byKey(const ValueKey('version-info-dialog')), findsOneWidget);
-    expect(find.text('CHECKLIST 0.5.1'), findsOneWidget);
+    expect(find.text('CHECKLIST $checklistVersion'), findsOneWidget);
     expect(find.text('build $checklistBuildNumber'), findsOneWidget);
-    expect(
-        find.textContaining('German and Simplified Chinese'), findsOneWidget);
+    expect(find.textContaining('detected bold, italic, and underlined text'),
+        findsOneWidget);
     expect(find.text('Makers: Ákos Nemes · Codex AI'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

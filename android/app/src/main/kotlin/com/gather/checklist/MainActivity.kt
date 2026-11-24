@@ -216,7 +216,11 @@ class MainActivity : FlutterActivity(), SensorEventListener {
                 val content = withContext(Dispatchers.IO) {
                     val bitmap = loadOcrBitmap(imageUri = imageUri, imageFile = imageFile)
                     try {
-                        if (imageFile == null) recogniseText(bitmap) else readCameraLinks(bitmap)
+                        if (imageFile == null) {
+                            recogniseText(bitmap, includeStyles = true)
+                        } else {
+                            readCameraLinks(bitmap, includeStyles = true)
+                        }
                     } finally {
                         bitmap.recycle()
                     }
@@ -262,21 +266,27 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         }
     }
 
-    private suspend fun readCameraLinks(bitmap: Bitmap): Map<String, String> {
+    private suspend fun readCameraLinks(
+        bitmap: Bitmap,
+        includeStyles: Boolean = false,
+    ): Map<String, Any> {
         val qr = CameraLinkScanner.readQr(bitmap)
-        val text = try {
-            recogniseText(bitmap)
+        val result = try {
+            recogniseText(bitmap, includeStyles)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
             if (qr == null) throw error
             Log.w(TAG, "Text recognition failed for a frame containing a QR code", error)
-            ""
+            mapOf("text" to "")
         }
-        return if (qr == null) mapOf("text" to text) else mapOf("text" to text, "qr" to qr)
+        return if (qr == null) result else result + ("qr" to qr)
     }
 
-    private suspend fun recogniseText(preparedBitmap: Bitmap): String = recognitionLock.withLock {
+    private suspend fun recogniseText(
+        preparedBitmap: Bitmap,
+        includeStyles: Boolean,
+    ): Map<String, Any> = recognitionLock.withLock {
         if (paddleOCR == null && !OpenCVUtils.init(applicationContext)) {
             throw IllegalStateException("The offline image reader could not start.")
         }
@@ -290,10 +300,15 @@ class MainActivity : FlutterActivity(), SensorEventListener {
             ),
             engineConfig = EngineConfig(numThreads = 4),
         ).also { paddleOCR = it }
-        engine.recognize(preparedBitmap).results
-            .map { it.text.trim() }
-            .filter { it.isNotEmpty() }
-            .joinToString("\n")
+        val lines = engine.recognize(preparedBitmap).results
+        if (includeStyles) {
+            try {
+                return@withLock PhotoTextStyles.read(preparedBitmap, lines)
+            } catch (error: Exception) {
+                Log.w(TAG, "Could not read photo typography", error)
+            }
+        }
+        mapOf("text" to lines.map { it.text.trim() }.filter { it.isNotEmpty() }.joinToString("\n"))
     }
 
     private fun loadOcrBitmap(imageUri: Uri?, imageFile: File?): Bitmap {
