@@ -1,6 +1,48 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Added the Pixel and Glass themes.": (
+    "Die Designs Pixel und Glass wurden hinzugefügt.",
+    "新增 Pixel 和 Glass 主题。"
+  ),
+  "Added separate colour customisation for each theme.": (
+    "Die Farben jedes Designs können separat angepasst werden.",
+    "每个主题均可单独自定义颜色。"
+  ),
+  "customise": ("anpassen", "自定义"),
+  "customise colours": ("Farben anpassen", "自定义颜色"),
+  "reset colours": ("Farben zurücksetzen", "重置颜色"),
+  "app background": ("App-Hintergrund", "应用背景"),
+  "panels and fields": ("Flächen und Felder", "面板和输入框"),
+  "sidebar": ("Seitenleiste", "侧边栏"),
+  "text": ("Text", "文字"),
+  "buttons": ("Schaltflächen", "按钮"),
+  "borders": ("Rahmen", "边框"),
+  "checklist accent": ("Akzent für Checklisten", "清单强调色"),
+  "notes accent": ("Akzent für Notizen", "笔记强调色"),
+  "note links": ("Notizlinks", "笔记链接"),
+  "low priority": ("niedrige Priorität", "低优先级"),
+  "medium priority": ("mittlere Priorität", "中优先级"),
+  "high priority": ("hohe Priorität", "高优先级"),
+  "hue": ("Farbton", "色相"),
+  "saturation": ("Sättigung", "饱和度"),
+  "value": ("Helligkeit", "明度"),
+  "could not save theme colours": (
+    "Die Designfarben konnten nicht gespeichert werden.",
+    "无法保存主题颜色。"
+  ),
+  'Gave Black Metal blood-red controls and a faster steel glint.': (
+    'Black Metal hat blutrote Bedienelemente und einen schnelleren Metallreflex.',
+    'Black Metal 主题采用血红色控件与更快的金属亮光。'
+  ),
+  'Added Black Metal with distressed panels and a soft moving shine.': (
+    'Das neue Design Black Metal hat verwitterte Flächen mit einem sanft wandernden Lichtreflex.',
+    '新增 Black Metal 主题，采用做旧面板与柔和流动的反光。'
+  ),
+  'Renamed Goth to Copper and removed the circular artwork.': (
+    'Goth heißt jetzt Copper, und das kreisförmige Motiv wurde entfernt.',
+    'Goth 主题更名为 Copper，并移除了圆形图案。'
+  ),
   'Photo imports preserve detected bold, italic, and underlined text.': (
     'Beim Fotoimport bleiben erkannter Fettdruck, Kursivschrift und Unterstreichungen erhalten.',
     '导入照片时会保留检测到的粗体、斜体和下划线。'

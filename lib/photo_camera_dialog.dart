@@ -260,7 +260,11 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
       aspectRatio: _aspectRatio,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border.all(color: _defaultNoteBlue, width: 3),
+          border: Border.all(
+            color: Theme.of(context).metalPalette?.checklistAccent ??
+                _defaultNoteBlue,
+            width: 3,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(3),

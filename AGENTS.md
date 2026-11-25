@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current public version: **0.5.2**. The Flutter build number may increase for
+- Current public version: **0.5.3**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -271,9 +271,24 @@ rely on the palette positions.
 - The main Settings page contains `themes`, `language`, `import / export`, and
   `about`.
 - The Themes page replaces the main option text with a fade and offers `Boi`,
-  `Pencil`, and `Pastel`. Boi is the established dark appearance, Pencil is the
-  established light appearance, and Pastel uses the five canonical pastel
-  colours. The selected theme is saved locally.
+  `Pencil`, `Pastel`, `Copper`, `Black Metal`, `Pixel`, and `Glass`. Boi is the established dark appearance,
+  Pencil is the established light appearance, and Pastel uses the five
+  canonical pastel colours. Copper uses charcoal surfaces, wine and plum
+  sidebars, antique-gold progress and popup frames, dusty-rose note links,
+  and serif headings. Copper keeps the previous Goth preference value and
+  uses a plain gradient backdrop. Black Metal uses distressed black panels,
+  deep-red buttons with a mottled finish, and steel-grey Notes links.
+  Medium priority uses dark purple and low priority uses grey. The sidebar
+  and workspace have staggered 640 ms metallic glints that pause between
+  passes and are disabled under reduced motion. Pixel uses black and neon
+  green, 1980s-style Pixelify Sans typography, and softly glowing priority
+  controls. Saved Newsprint selections migrate to Pixel. Glass uses
+  translucent fields and navigation with a static refraction shader and a
+  gradient fallback. The selected theme is saved locally.
+- A `customise` action appears beneath the selected theme. Its labelled
+  swatches open hue, saturation, and value sliders with live colour previews.
+  Saving persists colours independently per theme. Reset restores the theme's
+  defaults when saved, and cancel discards the draft.
 - The Language page offers persistent English, Hungarian, French, Czech,
   German, and Simplified Chinese selection. The translate icon is on the main Language row. Language choices
   are text-only. Visible interface labels, hints, menus, dialogs, tooltips,
@@ -324,6 +339,7 @@ backward-compatible decoding:
 - `checklist.projects.v1`
 - `checklist.darkMode.v1`
 - `checklist.theme.v1`
+- `checklist.themeColours.v1`
 - `checklist.language.v1`
 - `checklist.sort.v1`
 - `checklist.noteSort.v1`
@@ -343,6 +359,11 @@ deletion must remain restricted to the app-owned support directory.
 
 - `lib/main.dart`: themes, application shell, checklist and Notes UI,
   interactions, dialogs, heart animation, and shared visual constants.
+- `lib/metal_theme.dart` and `lib/black_metal_finish.dart`: Copper and
+  Black Metal palettes, surface texture, and panel sheen.
+- `lib/modern_themes.dart` and `shaders/glass.frag`: Pixel and Glass palettes,
+  textures, and glass refraction.
+- `lib/theme_colours.dart`: role colours, theme overrides, and the HSV editor.
 - `lib/app_localizations.dart` and `lib/app_translations.dart`: interface
   translations and the localized text wrapper.
 - `lib/app_version.dart`: public version and internal build number.
@@ -391,9 +412,9 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Public version: `0.5.2`.
-- Last completed APK: version 0.5.2 internal build `40`.
-- Current source baseline: 72 passing Flutter tests, two passing JVM
+- Public version: `0.5.3`.
+- Last completed APK: version 0.5.3 internal build `44`.
+- Current source baseline: 76 passing Flutter tests, two passing JVM
   typography tests, clean static analysis, and a
   successful Android release build. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,

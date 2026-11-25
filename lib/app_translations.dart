@@ -1,6 +1,48 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Added the Pixel and Glass themes.": (
+    "Ajout des thèmes Pixel et Glass.",
+    "Přidány motivy Pixel a Glass."
+  ),
+  "Added separate colour customisation for each theme.": (
+    "Chaque thème peut être personnalisé séparément.",
+    "Barvy každého motivu lze upravit samostatně."
+  ),
+  "customise": ("personnaliser", "přizpůsobit"),
+  "customise colours": ("personnaliser les couleurs", "přizpůsobit barvy"),
+  "reset colours": ("réinitialiser les couleurs", "obnovit barvy"),
+  "app background": ("arrière-plan", "pozadí aplikace"),
+  "panels and fields": ("panneaux et champs", "panely a pole"),
+  "sidebar": ("barre latérale", "postranní panel"),
+  "text": ("texte", "text"),
+  "buttons": ("boutons", "tlačítka"),
+  "borders": ("bordures", "okraje"),
+  "checklist accent": ("accent des listes", "akcent seznamů"),
+  "notes accent": ("accent des notes", "akcent poznámek"),
+  "note links": ("liens des notes", "odkazy v poznámkách"),
+  "low priority": ("priorité basse", "nízká priorita"),
+  "medium priority": ("priorité moyenne", "střední priorita"),
+  "high priority": ("priorité haute", "vysoká priorita"),
+  "hue": ("teinte", "odstín"),
+  "saturation": ("saturation", "sytost"),
+  "value": ("luminosité", "jas"),
+  "could not save theme colours": (
+    "Impossible d’enregistrer les couleurs du thème.",
+    "Barvy motivu se nepodařilo uložit."
+  ),
+  'Gave Black Metal blood-red controls and a faster steel glint.': (
+    'Le thème Black Metal gagne des boutons rouge sang et un reflet métallique plus rapide.',
+    'Motiv Black Metal má krvavě červená tlačítka a rychlejší ocelový odlesk.'
+  ),
+  'Added Black Metal with distressed panels and a soft moving shine.': (
+    'Ajout du thème Black Metal avec des panneaux patinés et un reflet discret en mouvement.',
+    'Přidán motiv Black Metal s patinovanými panely a jemným pohyblivým odleskem.'
+  ),
+  'Renamed Goth to Copper and removed the circular artwork.': (
+    'Le thème Goth devient Copper et son motif circulaire a été retiré.',
+    'Motiv Goth se přejmenoval na Copper a kruhová kresba byla odstraněna.'
+  ),
   'Photo imports preserve detected bold, italic, and underlined text.': (
     'L’import de photos conserve les styles gras, italique et souligné détectés.',
     'Import fotografií zachovává rozpoznané tučné písmo, kurzívu a podtržení.'

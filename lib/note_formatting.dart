@@ -250,7 +250,16 @@ class _FormattedNoteController extends TextEditingController {
 }
 
 Color _noteLinkColour(ThemeData theme, [bool highlighted = false]) {
-  if (theme.scaffoldBackgroundColor == _pastelPeach) {
+  if (theme.custom(_ThemeColour.links) case final link?) {
+    return highlighted ? Color.lerp(link, _contrastingInk(link), 0.18)! : link;
+  }
+  if (theme.appearance?._modernPalette case final palette?) {
+    return highlighted ? palette.checklistAccent : palette.notesAccent;
+  }
+  if (theme.metalPalette case final palette?) {
+    return highlighted ? palette.checklistAccent : palette.notesAccent;
+  }
+  if (theme.appearance == AppTheme.pastel) {
     return highlighted ? _defaultNoteBlue : _deepBlueButton;
   }
   return theme.brightness == Brightness.dark ? _brandYellow : _defaultNoteBlue;

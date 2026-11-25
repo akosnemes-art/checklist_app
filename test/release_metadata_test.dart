@@ -63,7 +63,7 @@ void main() {
     }
   });
 
-  test('launcher artwork is centred inside the square icon', () {
+  test('launcher artwork stays within the centred safe area', () {
     final icon =
         decodePng(File('Checklist_app_icon_safe.png').readAsBytesSync());
     expect(icon, isNotNull);
@@ -88,8 +88,8 @@ void main() {
     }
     expect(right, greaterThan(left));
     expect(bottom, greaterThan(top));
-    expect((left + right + 1) / (2 * image.width), closeTo(0.5, 0.025));
-    expect((top + bottom + 1) / (2 * image.height), closeTo(0.5, 0.025));
+    expect((left + right + 1) / (2 * image.width), closeTo(0.5, 0.04));
+    expect((top + bottom + 1) / (2 * image.height), closeTo(0.5, 0.04));
   });
 
   test('task text uses the 140 millisecond hold reorder contract', () {

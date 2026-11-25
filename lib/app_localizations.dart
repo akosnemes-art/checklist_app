@@ -21,6 +21,34 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Added the Pixel and Glass themes.": "Új Pixel és Glass témák.",
+  "Added separate colour customisation for each theme.":
+      "A témák színei külön-külön testreszabhatók.",
+  "customise": "testreszabás",
+  "customise colours": "színek testreszabása",
+  "reset colours": "színek visszaállítása",
+  "app background": "alkalmazás háttere",
+  "panels and fields": "panelek és mezők",
+  "sidebar": "oldalsáv",
+  "text": "szöveg",
+  "buttons": "gombok",
+  "borders": "keretek",
+  "checklist accent": "ellenőrzőlista kiemelése",
+  "notes accent": "jegyzetek kiemelése",
+  "note links": "jegyzethivatkozások",
+  "low priority": "alacsony prioritás",
+  "medium priority": "közepes prioritás",
+  "high priority": "magas prioritás",
+  "hue": "árnyalat",
+  "saturation": "telítettség",
+  "value": "fényesség",
+  "could not save theme colours": "Nem sikerült menteni a téma színeit.",
+  'Gave Black Metal blood-red controls and a faster steel glint.':
+      'A Black Metal vérvörös gombokat és gyorsabb fémes felvillanást kapott.',
+  'Added Black Metal with distressed panels and a soft moving shine.':
+      'Az új Black Metal témában koptatott panelek és finoman mozgó fények jelennek meg.',
+  'Renamed Goth to Copper and removed the circular artwork.':
+      'A Goth téma új neve Copper, a kör alakú díszítés eltűnt.',
   'Photo imports preserve detected bold, italic, and underlined text.':
       'A fényképek importálása megőrzi a felismert félkövér, dőlt és aláhúzott szöveget.',
   'The launcher icon lettering is centred.':

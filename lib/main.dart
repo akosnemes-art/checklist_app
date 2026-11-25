@@ -24,6 +24,10 @@ import 'services/ocr_service.dart';
 import 'services/reminder_service.dart';
 import 'services/website_previews.dart';
 
+part 'black_metal_finish.dart';
+part 'metal_theme.dart';
+part 'modern_themes.dart';
+part 'theme_colours.dart';
 part 'note_formatting.dart';
 part 'photo_camera_dialog.dart';
 part 'popup_animation.dart';
@@ -66,6 +70,11 @@ const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
 const _implementedChanges = <String>[
+  'Added the Pixel and Glass themes.',
+  'Added separate colour customisation for each theme.',
+  'Gave Black Metal blood-red controls and a faster steel glint.',
+  'Added Black Metal with distressed panels and a soft moving shine.',
+  'Renamed Goth to Copper and removed the circular artwork.',
   'Photo imports preserve detected bold, italic, and underlined text.',
   'The launcher icon lettering is centred.',
 ];
@@ -130,7 +139,32 @@ Future<T?> showDialog<T>({
   );
 }
 
-enum AppTheme { boi, pencil, pastel }
+enum AppTheme {
+  boi,
+  pencil,
+  pastel,
+  copper,
+  blackMetal,
+  pixel,
+  glass;
+
+  bool get isDark => this == boi || this == pixel || _metalPalette != null;
+
+  // Builds that call Copper "Goth" use this same saved preference.
+  String get _preferenceValue => this == copper ? 'goth' : name;
+
+  _MetalPalette? get _metalPalette => switch (this) {
+        copper => _copperPalette,
+        blackMetal => _blackMetalPalette,
+        _ => null,
+      };
+
+  _ModernPalette? get _modernPalette => switch (this) {
+        pixel => _pixelPalette,
+        glass => _glassPalette,
+        _ => null,
+      };
+}
 
 class ChecklistApp extends StatefulWidget {
   const ChecklistApp({super.key});
@@ -144,6 +178,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   AppTheme _appTheme = AppTheme.boi;
   AppLanguage _appLanguage = AppLanguage.english;
+  Map<String, Map<String, int>> _themeColours = {};
   bool _notesActive = false;
 
   @override
@@ -158,11 +193,14 @@ class _ChecklistAppState extends State<ChecklistApp> {
         _store.loadTheme(),
         _store.loadDarkMode(),
         _store.loadLanguage(),
+        _store.loadThemeColours(),
       ]);
       final savedTheme = results[0] as String?;
       final legacyDarkMode = results[1]! as bool;
       final savedLanguage = results[2] as String?;
-      final theme = AppTheme.values.where((value) => value.name == savedTheme);
+      final theme = AppTheme.values.where((value) =>
+          value._preferenceValue ==
+          (savedTheme == 'newsprint' ? 'pixel' : savedTheme));
       final language = AppLanguage.values.where(
         (value) => value.name == savedLanguage,
       );
@@ -174,7 +212,9 @@ class _ChecklistAppState extends State<ChecklistApp> {
                 ? AppTheme.boi
                 : AppTheme.pencil;
         if (language.isNotEmpty) _appLanguage = language.first;
+        _themeColours = results[3]! as Map<String, Map<String, int>>;
       });
+      if (savedTheme == 'newsprint') await _setTheme(AppTheme.pixel);
     } catch (error) {
       debugPrint('Could not load appearance setting: $error');
     }
@@ -196,8 +236,8 @@ class _ChecklistAppState extends State<ChecklistApp> {
     setState(() => _appTheme = value);
     try {
       await Future.wait([
-        _store.saveTheme(value.name),
-        _store.saveDarkMode(value == AppTheme.boi),
+        _store.saveTheme(value._preferenceValue),
+        _store.saveDarkMode(value.isDark),
       ]);
     } catch (error) {
       debugPrint('Could not save theme setting: $error');
@@ -209,6 +249,24 @@ class _ChecklistAppState extends State<ChecklistApp> {
 
   void _setNotesActive(bool value) {
     if (_notesActive != value) setState(() => _notesActive = value);
+  }
+
+  Future<void> _setThemeColours(AppTheme theme, Map<String, int> values) async {
+    final updated = {..._themeColours};
+    if (values.isEmpty) {
+      updated.remove(theme._preferenceValue);
+    } else {
+      updated[theme._preferenceValue] = Map.unmodifiable(values);
+    }
+    setState(() => _themeColours = updated);
+    try {
+      await _store.saveThemeColours(updated);
+    } catch (error) {
+      debugPrint('Could not save theme colours: $error');
+      _messengerKey.currentState?.showSnackBar(
+        const SnackBar(content: AppText('could not save theme colours')),
+      );
+    }
   }
 
   @override
@@ -484,13 +542,24 @@ class _ChecklistAppState extends State<ChecklistApp> {
       AppTheme.boi => dark,
       AppTheme.pencil => light,
       AppTheme.pastel => pastel,
+      AppTheme.copper =>
+        _buildMetalTheme(dark, _copperPalette, notesActive: _notesActive),
+      AppTheme.blackMetal =>
+        _buildMetalTheme(dark, _blackMetalPalette, notesActive: _notesActive),
+      AppTheme.pixel => _buildModernTheme(dark, _pixelPalette,
+          notes: _notesActive, pixel: true),
+      AppTheme.glass => _buildModernTheme(light, _glassPalette,
+          notes: _notesActive, pixel: false),
     };
+    final colours =
+        _themeColours[_appTheme._preferenceValue] ?? const <String, int>{};
 
     return MaterialApp(
       title: 'Checklist',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: _messengerKey,
-      theme: selectedTheme,
+      theme:
+          _applyThemeColours(selectedTheme, _appTheme, colours, _notesActive),
       locale: _appLanguage.locale,
       supportedLocales:
           AppLanguage.values.map((language) => language.locale).toList(),
@@ -503,6 +572,8 @@ class _ChecklistAppState extends State<ChecklistApp> {
         appTheme: _appTheme,
         appLanguage: _appLanguage,
         onThemeChanged: _setTheme,
+        themeColours: colours,
+        onThemeColoursChanged: _setThemeColours,
         onLanguageChanged: _setLanguage,
         onNotesModeChanged: _setNotesActive,
       ),
@@ -521,6 +592,8 @@ class ChecklistHome extends StatefulWidget {
     required this.appTheme,
     required this.appLanguage,
     required this.onThemeChanged,
+    required this.themeColours,
+    required this.onThemeColoursChanged,
     required this.onLanguageChanged,
     required this.onNotesModeChanged,
     super.key,
@@ -529,10 +602,12 @@ class ChecklistHome extends StatefulWidget {
   final AppTheme appTheme;
   final AppLanguage appLanguage;
   final ValueChanged<AppTheme> onThemeChanged;
+  final Map<String, int> themeColours;
+  final void Function(AppTheme, Map<String, int>) onThemeColoursChanged;
   final ValueChanged<AppLanguage> onLanguageChanged;
   final ValueChanged<bool> onNotesModeChanged;
 
-  bool get isDark => appTheme == AppTheme.boi;
+  bool get isDark => appTheme.isDark;
   bool get isPastel => appTheme == AppTheme.pastel;
 
   @override
@@ -541,6 +616,10 @@ class ChecklistHome extends StatefulWidget {
 
 class _ChecklistHomeState extends State<ChecklistHome>
     with TickerProviderStateMixin {
+  _MetalPalette? get _metalPalette => widget.appTheme._metalPalette;
+  bool get _blackMetal => widget.appTheme == AppTheme.blackMetal;
+  _ModernPalette? get _modernPalette => widget.appTheme._modernPalette;
+
   late final _noteReveal = _newContentReveal();
   late final _projectReveal = _newContentReveal();
 
@@ -1069,12 +1148,20 @@ class _ChecklistHomeState extends State<ChecklistHome>
     required String tooltip,
   }) {
     final active = (_activeNoteFormats & format.bit) != 0;
+    final palette = _metalPalette;
+    final accent = Theme.of(context).custom(
+          active ? _ThemeColour.checklistAccent : _ThemeColour.notesAccent,
+        ) ??
+        _modernPalette?.accent(!active);
     return IconButton(
       key: ValueKey('note-format-${format.name}'),
       tooltip: localizeText(context, tooltip),
       onPressed: () => _toggleNoteFormat(format),
       style: IconButton.styleFrom(
-        foregroundColor: active ? _brandYellow : _defaultNoteBlue,
+        foregroundColor: accent ??
+            (active
+                ? (palette?.checklistAccent ?? _brandYellow)
+                : (palette?.notesAccent ?? _defaultNoteBlue)),
         side: BorderSide.none,
         shape: const RoundedRectangleBorder(),
       ),
@@ -1508,11 +1595,16 @@ class _ChecklistHomeState extends State<ChecklistHome>
         builder: (context) => _TaskLinkedNoteDialog(
           note: note,
           onOpenLink: _openNoteLink,
-          frameColour: switch (widget.appTheme) {
-            AppTheme.boi => _defaultNoteBlue,
-            AppTheme.pencil => _lightLine,
-            AppTheme.pastel => _pastelYellow,
-          },
+          frameColour: Theme.of(context).custom(_ThemeColour.borders) ??
+              switch (widget.appTheme) {
+                AppTheme.boi => _defaultNoteBlue,
+                AppTheme.pencil => _lightLine,
+                AppTheme.pastel => _pastelYellow,
+                AppTheme.copper => _copperPalette.checklistAccent,
+                AppTheme.blackMetal => _blackMetalPalette.checklistAccent,
+                AppTheme.pixel => _pixelPalette.border,
+                AppTheme.glass => _glassPalette.border,
+              },
         ),
       );
 
@@ -1729,6 +1821,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
       );
     }
 
+    final palette = _metalPalette;
     final wide = MediaQuery.sizeOf(context).width >= 820;
     final sidebar = _buildSidebar(mobile: !wide);
     final mobileSidebar = Platform.isAndroid
@@ -1784,21 +1877,41 @@ class _ChecklistHomeState extends State<ChecklistHome>
               children: [
                 if (wide) SizedBox(width: 282, child: sidebar),
                 Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    child: _showNotes
-                        ? KeyedSubtree(
-                            key: const ValueKey('notes'),
-                            child: _buildNotes(wide: wide),
+                  child: AnimatedContainer(
+                    key: const ValueKey('workspace-surface'),
+                    duration: const Duration(milliseconds: 280),
+                    decoration: palette != null
+                        ? _metalBackdrop(
+                            palette,
+                            notesActive: _showNotes,
+                            background: Theme.of(context)
+                                .custom(_ThemeColour.background),
+                            sidebar:
+                                Theme.of(context).custom(_ThemeColour.sidebar),
                           )
-                        : KeyedSubtree(
-                            key: const ValueKey('checklist'),
-                            child: _selected == null
-                                ? const Center(
-                                    child: AppText('choose a checklist'),
-                                  )
-                                : _buildMain(_selected!, wide: wide),
-                          ),
+                        : const BoxDecoration(),
+                    child: _AppearanceBackdrop(
+                      child: _BlackMetalPanel(
+                        enabled: _blackMetal,
+                        initialDelay: const Duration(milliseconds: 2300),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          child: _showNotes
+                              ? KeyedSubtree(
+                                  key: const ValueKey('notes'),
+                                  child: _buildNotes(wide: wide),
+                                )
+                              : KeyedSubtree(
+                                  key: const ValueKey('checklist'),
+                                  child: _selected == null
+                                      ? const Center(
+                                          child: AppText('choose a checklist'),
+                                        )
+                                      : _buildMain(_selected!, wide: wide),
+                                ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1966,6 +2079,44 @@ class _ChecklistHomeState extends State<ChecklistHome>
     );
   }
 
+  Widget _themeChoice(AppTheme appearance) {
+    final (key, label, icon) = switch (appearance) {
+      AppTheme.boi => ('boi', 'Boi', Icons.dark_mode_outlined),
+      AppTheme.pencil => ('pencil', 'Pencil', Icons.edit_outlined),
+      AppTheme.pastel => ('pastel', 'Pastel', Icons.color_lens_outlined),
+      AppTheme.copper => ('copper', 'Copper', Icons.nights_stay_outlined),
+      AppTheme.blackMetal => (
+          'black-metal',
+          'Black Metal',
+          Icons.bolt_outlined
+        ),
+      AppTheme.pixel => ('pixel', 'Pixel', Icons.videogame_asset_outlined),
+      AppTheme.glass => ('glass', 'Glass', Icons.layers_outlined),
+    };
+    return _settingsOption(
+      key: ValueKey('theme-$key'),
+      label: label,
+      icon: icon,
+      selected: appearance == widget.appTheme,
+      onTap: () => widget.onThemeChanged(appearance),
+    );
+  }
+
+  Future<void> _customiseTheme() async {
+    final appearance = widget.appTheme;
+    final defaults = _themeColourDefaults(appearance, _showNotes);
+    final values = await showDialog<Map<String, int>>(
+      context: context,
+      builder: (context) => _ThemeColourDialog(
+        defaults: defaults,
+        colours: widget.themeColours,
+      ),
+    );
+    if (mounted && values != null) {
+      widget.onThemeColoursChanged(appearance, values);
+    }
+  }
+
   Widget _settingsContent() {
     switch (_settingsPage) {
       case _SettingsPage.main:
@@ -2000,32 +2151,31 @@ class _ChecklistHomeState extends State<ChecklistHome>
           ],
         );
       case _SettingsPage.themes:
-        return Column(
+        return ConstrainedBox(
           key: const ValueKey('settings-theme-choices'),
-          children: [
-            _settingsBack('themes'),
-            _settingsOption(
-              key: const ValueKey('theme-boi'),
-              label: 'Boi',
-              icon: Icons.dark_mode_outlined,
-              selected: widget.appTheme == AppTheme.boi,
-              onTap: () => widget.onThemeChanged(AppTheme.boi),
+          constraints: BoxConstraints(
+            maxHeight: math.max(100, MediaQuery.sizeOf(context).height - 255),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                _settingsBack('themes'),
+                for (final appearance in AppTheme.values) ...[
+                  _themeChoice(appearance),
+                  if (appearance == widget.appTheme)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 22),
+                      child: _settingsOption(
+                        key: const ValueKey('theme-customise'),
+                        label: 'customise',
+                        icon: Icons.tune_rounded,
+                        onTap: _customiseTheme,
+                      ),
+                    ),
+                ],
+              ],
             ),
-            _settingsOption(
-              key: const ValueKey('theme-pencil'),
-              label: 'Pencil',
-              icon: Icons.edit_outlined,
-              selected: widget.appTheme == AppTheme.pencil,
-              onTap: () => widget.onThemeChanged(AppTheme.pencil),
-            ),
-            _settingsOption(
-              key: const ValueKey('theme-pastel'),
-              label: 'Pastel',
-              icon: Icons.color_lens_outlined,
-              selected: widget.appTheme == AppTheme.pastel,
-              onTap: () => widget.onThemeChanged(AppTheme.pastel),
-            ),
-          ],
+          ),
         );
       case _SettingsPage.language:
         return Column(
@@ -2221,14 +2371,29 @@ class _ChecklistHomeState extends State<ChecklistHome>
 
   Widget _buildSidebar({required bool mobile}) {
     final theme = Theme.of(context);
+    final palette = _metalPalette;
     final projects = _sortedProjects;
     final notes = _sortedNotes;
-    final sidebarColor = widget.isDark
-        ? (_showNotes ? _notesSidebar : _checklistSidebar)
-        : widget.isPastel
-            ? (_showNotes ? _pastelMauve : _pastelGreen)
-            : _lightSidebar;
-    final sidebarForeground = widget.isDark ? _borderWhite : _lightText;
+    final modern = _modernPalette;
+    final sidebarDefault = _sidebarColour(widget.appTheme, _showNotes);
+    final sidebarColor = theme
+            .custom(_ThemeColour.sidebar)
+            ?.withValues(alpha: sidebarDefault.a) ??
+        sidebarDefault;
+    final sidebarForeground = theme.custom(_ThemeColour.text) ??
+        palette?.ink ??
+        modern?.ink ??
+        (widget.isDark ? _borderWhite : _lightText);
+    final buttonOverride = theme.custom(_ThemeColour.buttons);
+    final buttonColour = buttonOverride ??
+        (modern == null
+            ? null
+            : theme.custom(_showNotes
+                ? _ThemeColour.notesAccent
+                : _ThemeColour.checklistAccent)) ??
+        _createButtonColour(widget.appTheme, _showNotes);
+    final controlFrame =
+        theme.custom(_ThemeColour.borders) ?? sidebarForeground;
     final wordmark = _BrandWordmark(
       notesActive: _showNotes,
       onChecklistPressed: _openChecklist,
@@ -2297,17 +2462,15 @@ class _ChecklistHomeState extends State<ChecklistHome>
       label: AppText(_showNotes ? 'new note' : 'new checklist'),
       style: FilledButton.styleFrom(
         alignment: Alignment.centerLeft,
-        backgroundColor: widget.isDark
-            ? (_showNotes ? _deepBlueButton : _darkPurpleButton)
-            : widget.isPastel
-                ? _pastelYellow
-                : _lightControl,
-        foregroundColor: sidebarForeground,
-        side: BorderSide(color: sidebarForeground, width: 2),
+        backgroundColor: buttonColour,
+        foregroundColor: buttonOverride != null
+            ? _contrastingInk(buttonColour)
+            : modern?.buttonInk ?? sidebarForeground,
+        side: BorderSide(color: controlFrame, width: 2),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       ),
     );
-    return Material(
+    final sidebar = Material(
       color: Colors.transparent,
       child: AnimatedContainer(
         key: const ValueKey('sidebar-surface'),
@@ -2315,7 +2478,15 @@ class _ChecklistHomeState extends State<ChecklistHome>
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
           color: sidebarColor,
-          border: Border(right: BorderSide(color: sidebarForeground, width: 2)),
+          border: Border(
+            right: BorderSide(
+              color: theme.custom(_ThemeColour.borders) ??
+                  palette?.line ??
+                  modern?.border ??
+                  sidebarForeground,
+              width: 2,
+            ),
+          ),
         ),
         padding: EdgeInsets.fromLTRB(18, mobile ? 55 : 22, 14, 14),
         child: Column(
@@ -2346,7 +2517,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             width: 50,
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: sidebarForeground,
+                                color: controlFrame,
                                 width: 2,
                               ),
                             ),
@@ -2396,15 +2567,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               itemBuilder: (context, index) {
                                 final note = notes[index];
                                 final category = _categoryFor(note);
-                                final noteColor = widget.isDark
-                                    ? (category == null
-                                        ? _defaultNoteBlue
-                                        : Color(category.colorValue))
-                                    : widget.isPastel
-                                        ? (category == null
-                                            ? _pastelMauve
-                                            : Color(category.colorValue))
-                                        : _lightControl;
+                                final noteColor = _noteColour(category);
                                 final selected = note.id == _selectedNoteId;
                                 return _SidebarFadeItem(
                                   key: ValueKey('sidebar-note-${note.id}'),
@@ -2524,7 +2687,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                     child: Material(
                                       color: selected
                                           ? (widget.isDark
-                                                  ? _brandPurple
+                                                  ? (palette?.checklistAccent ??
+                                                      _brandPurple)
                                                   : widget.isPastel
                                                       ? _pastelMauve
                                                       : _lightLine)
@@ -2686,17 +2850,43 @@ class _ChecklistHomeState extends State<ChecklistHome>
         ),
       ),
     );
+    return _AppearanceBackdrop(
+      lens: true,
+      child: _BlackMetalPanel(
+        enabled: _blackMetal,
+        initialDelay: const Duration(milliseconds: 1350),
+        child: sidebar,
+      ),
+    );
+  }
+
+  Color _noteColour(NoteCategory? category) {
+    if (category != null && widget.appTheme != AppTheme.pencil) {
+      return Color(category.colorValue);
+    }
+    return Theme.of(context).custom(_ThemeColour.notesAccent) ??
+        (switch (widget.appTheme) {
+          AppTheme.pencil => _lightControl,
+          AppTheme.boi => _defaultNoteBlue,
+          AppTheme.pastel => _pastelMauve,
+          AppTheme.copper || AppTheme.blackMetal => _metalPalette!.notesAccent,
+          AppTheme.pixel || AppTheme.glass => _modernPalette!.notesAccent,
+        });
   }
 
   Widget _buildNotes({required bool wide}) {
     final theme = Theme.of(context);
+    final palette = _metalPalette;
+    final modern = _modernPalette;
     final note = _selectedNote;
     final category = note == null ? null : _categoryFor(note);
-    final noteColour = widget.isDark
-        ? (category == null ? _defaultNoteBlue : Color(category.colorValue))
-        : widget.isPastel
-            ? (category == null ? _pastelMauve : Color(category.colorValue))
-            : _lightControl;
+    final noteColour = _noteColour(category);
+    final bodyColour = theme.custom(_ThemeColour.text) ??
+        palette?.ink ??
+        modern?.ink ??
+        (widget.isDark ? _borderWhite : _lightText);
+    final border = theme.custom(_ThemeColour.borders);
+    final panel = theme.custom(_ThemeColour.panel);
 
     final editor = note == null
         ? Center(
@@ -2766,9 +2956,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           decoration: BoxDecoration(
                             border: Border.all(color: _borderWhite, width: 2),
                           ),
-                          child: const CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: _defaultNoteBlue,
+                            color: palette?.notesAccent ?? _defaultNoteBlue,
                           ),
                         )
                       else
@@ -2796,9 +2986,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             decoration: BoxDecoration(
                               border: Border.all(color: _borderWhite, width: 2),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.add_rounded,
-                              color: _defaultNoteBlue,
+                              color: palette?.notesAccent ?? _defaultNoteBlue,
                             ),
                           ),
                         ),
@@ -2900,9 +3090,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                         textAlignVertical: TextAlignVertical.top,
                         textCapitalization: TextCapitalization.sentences,
                         keyboardType: TextInputType.multiline,
-                        cursorColor: widget.isDark ? _borderWhite : _lightText,
+                        cursorColor: bodyColour,
                         style: TextStyle(
-                          color: widget.isDark ? _borderWhite : _lightText,
+                          color: bodyColour,
                           height: 1.5,
                         ),
                         contextMenuBuilder: _buildNoteSelectionToolbar,
@@ -2913,32 +3103,39 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           hintText: localizeText(context, 'start writing…'),
                           hintStyle: const TextStyle(color: _switchGrey),
                           filled: true,
-                          fillColor: widget.isDark
-                              ? _surfaceDark
-                              : widget.isPastel
-                                  ? _pastelWhite
-                                  : _lightSurface,
+                          fillColor:
+                              panel?.withValues(alpha: modern?.panel.a ?? 1) ??
+                                  modern?.panel ??
+                                  (widget.isDark
+                                      ? (palette?.surface ?? _surfaceDark)
+                                      : widget.isPastel
+                                          ? _pastelWhite
+                                          : _lightSurface),
                           alignLabelWithHint: true,
                           contentPadding: const EdgeInsets.all(18),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.zero,
                             borderSide: BorderSide(
-                              color: widget.isDark
-                                  ? noteColour.withValues(alpha: 0.55)
-                                  : widget.isPastel
-                                      ? _pastelMauve
-                                      : _lightLine,
+                              color: border ??
+                                  modern?.border ??
+                                  (widget.isDark
+                                      ? noteColour.withValues(alpha: 0.55)
+                                      : widget.isPastel
+                                          ? _pastelMauve
+                                          : _lightLine),
                               width: 2,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.zero,
                             borderSide: BorderSide(
-                              color: widget.isDark
-                                  ? noteColour
-                                  : widget.isPastel
-                                      ? _pastelMauve
-                                      : _lightLine,
+                              color: border ??
+                                  modern?.notesAccent ??
+                                  (widget.isDark
+                                      ? noteColour
+                                      : widget.isPastel
+                                          ? _pastelMauve
+                                          : _lightLine),
                               width: 2,
                             ),
                           ),
@@ -2956,11 +3153,18 @@ class _ChecklistHomeState extends State<ChecklistHome>
 
   Widget _buildMain(ChecklistProject project, {required bool wide}) {
     final theme = Theme.of(context);
+    final accent = theme.custom(_ThemeColour.checklistAccent) ??
+        _metalPalette?.checklistAccent ??
+        _modernPalette?.checklistAccent;
     final done = project.completedTaskCount;
     final usesSoftKeyboardAction = theme.platform == TargetPlatform.android ||
         theme.platform == TargetPlatform.iOS;
-    final composerFrameColor =
-        theme.brightness == Brightness.dark ? _borderWhite : theme.dividerColor;
+    final composerFrameColor = theme.custom(_ThemeColour.borders) ??
+        accent ??
+        (theme.brightness == Brightness.dark
+            ? _borderWhite
+            : theme.dividerColor);
+    final reminderColor = accent ?? _brandPurple;
     return LayoutBuilder(
       builder: (context, constraints) {
         final horizontal = wide
@@ -3070,14 +3274,15 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             child: OutlinedButton.icon(
                               key: const ValueKey('checklist-reminder-button'),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: widget.isDark
-                                    ? _brandPurple
-                                    : widget.isPastel
-                                        ? _pastelMauve
-                                        : _lightText,
+                                foregroundColor:
+                                    widget.isDark || _modernPalette != null
+                                        ? reminderColor
+                                        : widget.isPastel
+                                            ? _pastelMauve
+                                            : _lightText,
                                 side: BorderSide(
-                                  color: widget.isDark
-                                      ? _brandPurple
+                                  color: widget.isDark || _modernPalette != null
+                                      ? reminderColor
                                       : widget.isPastel
                                           ? _pastelMauve
                                           : _lightLine,
@@ -3112,16 +3317,18 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             const SizedBox(height: 16),
                             _AnimatedChecklistProgress(
                               value: done / project.tasks.length,
-                              color: widget.isDark
-                                  ? _brandYellow
-                                  : widget.isPastel
-                                      ? _pastelMauve
-                                      : _lightText,
-                              backgroundColor: widget.isDark
-                                  ? theme.dividerColor
-                                  : widget.isPastel
-                                      ? _pastelYellow
-                                      : const Color(0xFFD8D8D6),
+                              color: accent ??
+                                  (widget.isDark
+                                      ? _brandYellow
+                                      : widget.isPastel
+                                          ? _pastelMauve
+                                          : _lightText),
+                              backgroundColor:
+                                  widget.isDark || _modernPalette != null
+                                      ? theme.dividerColor
+                                      : widget.isPastel
+                                          ? _pastelYellow
+                                          : const Color(0xFFD8D8D6),
                             ),
                           ],
                           const SizedBox(height: 27),
@@ -3394,14 +3601,6 @@ class _BrandWordmark extends StatelessWidget {
   final VoidCallback onChecklistPressed;
   final VoidCallback onNotesPressed;
 
-  TextStyle _style(Color color) => TextStyle(
-        color: color,
-        fontSize: 15,
-        height: 1,
-        fontWeight: FontWeight.w900,
-        letterSpacing: -0.4,
-      );
-
   Widget _modeButton({
     required String label,
     required bool active,
@@ -3409,9 +3608,29 @@ class _BrandWordmark extends StatelessWidget {
     required Key textKey,
     required Key slotKey,
     required Color checkColor,
+    required ThemeData theme,
   }) {
-    const activeColor = _borderWhite;
-    const inactiveColor = Color(0xFF8C8791);
+    final metal = theme.metalPalette;
+    final modern = theme.appearance?._modernPalette;
+    final pixel = theme.appearance == AppTheme.pixel;
+    final ink = theme.custom(_ThemeColour.text);
+    final activeColor = ink ?? metal?.ink ?? modern?.ink ?? _borderWhite;
+    final inactiveColor = ink?.withValues(alpha: 0.66) ??
+        metal?.muted ??
+        modern?.ink.withValues(alpha: 0.70) ??
+        const Color(0xFF8C8791);
+    final style = TextStyle(
+      color: active ? activeColor : inactiveColor,
+      fontFamily: pixel
+          ? _pixelFont
+          : metal != null
+              ? _metalSerif
+              : null,
+      fontSize: metal != null || pixel ? 14 : 15,
+      height: 1,
+      fontWeight: metal != null || pixel ? FontWeight.w700 : FontWeight.w900,
+      letterSpacing: metal != null ? 0.75 : -0.4,
+    );
     return Semantics(
       label: label,
       button: true,
@@ -3427,7 +3646,7 @@ class _BrandWordmark extends StatelessWidget {
               AnimatedDefaultTextStyle(
                 key: textKey,
                 duration: const Duration(milliseconds: 220),
-                style: _style(active ? activeColor : inactiveColor),
+                style: style,
                 child: AppText(label, maxLines: 1),
               ),
               AnimatedContainer(
@@ -3465,6 +3684,9 @@ class _BrandWordmark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.metalPalette;
+    final modern = theme.appearance?._modernPalette;
     return SizedBox(
       height: 28,
       child: Row(
@@ -3475,7 +3697,11 @@ class _BrandWordmark extends StatelessWidget {
             onPressed: onChecklistPressed,
             textKey: const ValueKey('checklist-word-style'),
             slotKey: const ValueKey('checklist-check-slot'),
-            checkColor: _brandCyan,
+            checkColor: theme.custom(_ThemeColour.checklistAccent) ??
+                palette?.checklistAccent ??
+                modern?.checklistAccent ??
+                _brandCyan,
+            theme: theme,
           ),
           const SizedBox(width: 6),
           _modeButton(
@@ -3484,7 +3710,11 @@ class _BrandWordmark extends StatelessWidget {
             onPressed: onNotesPressed,
             textKey: const ValueKey('notes-word-style'),
             slotKey: const ValueKey('notes-check-slot'),
-            checkColor: _defaultNoteBlue,
+            checkColor: theme.custom(_ThemeColour.notesAccent) ??
+                palette?.notesAccent ??
+                modern?.notesAccent ??
+                _defaultNoteBlue,
+            theme: theme,
           ),
         ],
       ),
@@ -3504,6 +3734,8 @@ class _WelcomeDialogState extends State<_WelcomeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final changesColour =
+        Theme.of(context).metalPalette?.checklistAccent ?? _brandPurple;
     return _popupAlert(
       context,
       key: const ValueKey('welcome-dialog'),
@@ -3526,7 +3758,7 @@ class _WelcomeDialogState extends State<_WelcomeDialog> {
             TextButton(
               key: const ValueKey('welcome-read-more'),
               style: TextButton.styleFrom(
-                foregroundColor: _brandPurple,
+                foregroundColor: changesColour,
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 36),
                 side: BorderSide.none,
@@ -3536,11 +3768,11 @@ class _WelcomeDialogState extends State<_WelcomeDialog> {
             ),
             if (_showChanges) ...[
               const SizedBox(height: 4),
-              const AppText(
+              AppText(
                 'implemented changes',
-                key: ValueKey('implemented-changes-title'),
+                key: const ValueKey('implemented-changes-title'),
                 style: TextStyle(
-                  color: _brandPurple,
+                  color: changesColour,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -3860,25 +4092,51 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final base = Theme.of(context);
-    final pastel = base.scaffoldBackgroundColor == _pastelPeach;
-    final lightCreate =
-        !widget.usePaleBackground && base.brightness == Brightness.light;
-    final dialogSurface = widget.usePaleBackground
-        ? _renameNotePastelBlue
-        : lightCreate
-            ? (pastel ? _pastelWhite : _lightSurface)
-            : _notesSidebar;
-    final dialogForeground = widget.usePaleBackground
-        ? _pencilPriorityHigh
-        : lightCreate
-            ? _lightText
-            : _borderWhite;
-    final fieldBorder =
-        widget.usePaleBackground ? _deepBlueButton : _borderWhite;
-    final blueTheme = base.copyWith(
+    final pastel = base.appearance == AppTheme.pastel;
+    final modern = base.appearance?._modernPalette;
+    final lightCreate = modern == null &&
+        !widget.usePaleBackground &&
+        base.brightness == Brightness.light;
+    final palette = base.metalPalette;
+    final dialogSurface = base.custom(_ThemeColour.panel) ??
+        palette?.surface ??
+        (modern != null
+            ? base.dialogTheme.backgroundColor!
+            : widget.usePaleBackground
+                ? _renameNotePastelBlue
+                : lightCreate
+                    ? (pastel ? _pastelWhite : _lightSurface)
+                    : _notesSidebar);
+    final dialogForeground = base.custom(_ThemeColour.text) ??
+        palette?.ink ??
+        modern?.ink ??
+        (widget.usePaleBackground
+            ? _pencilPriorityHigh
+            : lightCreate
+                ? _lightText
+                : _borderWhite);
+    final fieldBorder = base.custom(_ThemeColour.borders) ??
+        palette?.line ??
+        modern?.border ??
+        (widget.usePaleBackground ? _deepBlueButton : _borderWhite);
+    final buttonOverride = base.custom(_ThemeColour.buttons);
+    final noteAccent = base.custom(_ThemeColour.notesAccent) ??
+        palette?.notesAccent ??
+        modern?.notesAccent ??
+        _defaultNoteBlue;
+    final actionBackground = buttonOverride ??
+        palette?.notesButton ??
+        (modern != null ? noteAccent : _deepBlueButton);
+    final actionForeground = buttonOverride != null
+        ? _contrastingInk(actionBackground)
+        : palette?.ink ?? modern?.buttonInk ?? _borderWhite;
+    final noteTheme = base.copyWith(
       colorScheme: base.colorScheme.copyWith(
-        primary: _defaultNoteBlue,
-        secondary: _deepBlueButton,
+        primary: noteAccent,
+        secondary: base.custom(_ThemeColour.checklistAccent) ??
+            palette?.checklistAccent ??
+            modern?.checklistAccent ??
+            _deepBlueButton,
         surface: dialogSurface,
         onSurface: dialogForeground,
       ),
@@ -3886,9 +4144,10 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
         fillColor: dialogSurface,
         hintStyle: TextStyle(
-          color: widget.usePaleBackground || lightCreate
-              ? _lightControl
-              : _switchGrey,
+          color: palette?.muted ??
+              (widget.usePaleBackground || lightCreate
+                  ? _lightControl
+                  : _switchGrey),
         ),
         labelStyle: TextStyle(color: dialogForeground),
         enabledBorder: OutlineInputBorder(
@@ -3902,17 +4161,19 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: _deepBlueButton,
-          foregroundColor: _borderWhite,
+          backgroundColor: actionBackground,
+          foregroundColor: actionForeground,
           shape: const RoundedRectangleBorder(),
-          side: const BorderSide(color: _borderWhite, width: 2),
+          side: BorderSide(color: actionForeground, width: 2),
+          backgroundBuilder: base.isBlackMetal ? _blackMetalButtonFinish : null,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: widget.usePaleBackground || lightCreate
-              ? _deepBlueButton
-              : _defaultNoteBlue,
+          foregroundColor: palette?.notesAccent ??
+              (widget.usePaleBackground || lightCreate
+                  ? _deepBlueButton
+                  : noteAccent),
           shape: const RoundedRectangleBorder(),
           side: BorderSide(color: fieldBorder, width: 2),
         ),
@@ -3920,7 +4181,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
     );
 
     return Theme(
-      data: blueTheme,
+      data: noteTheme,
       child: _popupAlert(
         context,
         key: const ValueKey('note-details-dialog'),
@@ -3928,7 +4189,9 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
         shape: lightCreate
             ? RoundedRectangleBorder(
                 side: BorderSide(
-                    color: pastel ? _pastelYellow : _lightLine, width: 2),
+                    color: base.custom(_ThemeColour.borders) ??
+                        (pastel ? _pastelYellow : _lightLine),
+                    width: 2),
               )
             : null,
         title: AppText(widget.title),
@@ -4131,6 +4394,21 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = Theme.of(context).metalPalette;
+    final theme = Theme.of(context);
+    final modern = theme.appearance?._modernPalette;
+    final cancelFrame = theme.custom(_ThemeColour.borders) ??
+        palette?.checklistAccent ??
+        modern?.border ??
+        _defaultNoteBlue;
+    final buttonOverride = theme.custom(_ThemeColour.buttons);
+    final actionBackground = buttonOverride ??
+        palette?.notesButton ??
+        modern?.notesAccent ??
+        _deepBlueButton;
+    final actionInk = buttonOverride != null
+        ? _contrastingInk(actionBackground)
+        : modern?.buttonInk ?? _borderWhite;
     return _popupAlert(
       context,
       key: const ValueKey('category-picker-dialog'),
@@ -4196,7 +4474,7 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       foregroundColor: _switchGrey,
-                      side: const BorderSide(color: _defaultNoteBlue, width: 2),
+                      side: BorderSide(color: cancelFrame, width: 2),
                     ),
                     onPressed: () => Navigator.pop(context),
                     child: const AppText('cancel'),
@@ -4207,8 +4485,8 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
                   child: FilledButton(
                     key: const ValueKey('category-new-button'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: _deepBlueButton,
-                      foregroundColor: _borderWhite,
+                      backgroundColor: actionBackground,
+                      foregroundColor: actionInk,
                       side: const BorderSide(color: _borderWhite, width: 2),
                     ),
                     onPressed: () => Navigator.pop(context, '__new__'),
@@ -4220,8 +4498,8 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
                   child: FilledButton(
                     key: const ValueKey('category-remove-button'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: _deepBlueButton,
-                      foregroundColor: _borderWhite,
+                      backgroundColor: actionBackground,
+                      foregroundColor: actionInk,
                       side: const BorderSide(color: _borderWhite, width: 2),
                     ),
                     onPressed: _categories.isEmpty
@@ -4247,7 +4525,7 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       foregroundColor: _switchGrey,
-                      side: const BorderSide(color: _defaultNoteBlue, width: 2),
+                      side: BorderSide(color: cancelFrame, width: 2),
                     ),
                     onPressed: _removingId == null
                         ? () => Navigator.pop(context)
@@ -5153,7 +5431,11 @@ class _CoverCropDialogState extends State<_CoverCropDialog> {
                 child: DecoratedBox(
                   key: const ValueKey('cover-crop-frame'),
                   decoration: BoxDecoration(
-                    border: Border.all(color: _brandPurple, width: 3),
+                    border: Border.all(
+                      color: Theme.of(context).metalPalette?.checklistAccent ??
+                          _brandPurple,
+                      width: 3,
+                    ),
                   ),
                 ),
               ),
@@ -5475,8 +5757,13 @@ class _TaskLinkedNoteDialogState extends State<_TaskLinkedNoteDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = theme.metalPalette;
+    final modern = theme.appearance?._modernPalette;
     final bodyStyle = (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
-      color: theme.brightness == Brightness.dark ? _borderWhite : _lightText,
+      color: theme.custom(_ThemeColour.text) ??
+          palette?.ink ??
+          modern?.ink ??
+          (theme.brightness == Brightness.dark ? _borderWhite : _lightText),
       height: 1.5,
     );
     return _popupAlert(
@@ -5487,7 +5774,11 @@ class _TaskLinkedNoteDialogState extends State<_TaskLinkedNoteDialog> {
       ),
       title: Row(
         children: [
-          const Icon(Icons.note_rounded, color: _defaultNoteBlue),
+          Icon(Icons.note_rounded,
+              color: theme.custom(_ThemeColour.notesAccent) ??
+                  palette?.notesAccent ??
+                  modern?.notesAccent ??
+                  _defaultNoteBlue),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -5637,10 +5928,12 @@ class _LinkedNoteButtonState extends State<_LinkedNoteButton> {
 
   @override
   Widget build(BuildContext context) {
-    final restingColour = Theme.of(context).brightness == Brightness.dark
-        ? _brandYellow
-        : _defaultNoteBlue;
-    final targetColor = _opening ? _brandPurple : restingColour;
+    final theme = Theme.of(context);
+    final palette = theme.metalPalette;
+    final restingColour = palette?.checklistAccent ??
+        (theme.brightness == Brightness.dark ? _brandYellow : _defaultNoteBlue);
+    final targetColor =
+        _opening ? (palette?.notesAccent ?? _brandPurple) : restingColour;
     return IconButton(
       key: ValueKey('task-note-button-${widget.taskId}'),
       tooltip: localizeText(context, 'open linked note'),
@@ -5795,17 +6088,17 @@ class _ImportanceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isPastel
-        ? _pastelImportanceColor(importance)
-        : isPencil
-            ? _pencilImportanceColor(importance)
-            : Theme.of(context).brightness == Brightness.dark
-                ? _importanceColor(importance)
-                : Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final color = _themedImportanceColor(theme, importance,
+        isPastel: isPastel, isPencil: isPencil);
     return Container(
       width: width,
       height: height,
-      decoration: BoxDecoration(color: color),
+      decoration: BoxDecoration(
+        color: color,
+        border: _blackMetalMediumRim(theme, importance),
+        boxShadow: _pixelPriorityGlow(theme, color),
+      ),
     );
   }
 }
@@ -5824,19 +6117,16 @@ class _ImportanceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = isPastel
-        ? _pastelImportanceColor(importance)
-        : isPencil
-            ? _pencilImportanceColor(importance)
-            : theme.brightness == Brightness.dark
-                ? _importanceColor(importance)
-                : theme.colorScheme.primary;
+    final color = _themedImportanceColor(theme, importance,
+        isPastel: isPastel, isPencil: isPencil);
+    final mediumRim = _blackMetalMediumRim(theme, importance, width: 2);
     return Container(
       key: ValueKey('priority-chip-${importance.name}'),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        border: Border.all(color: color, width: 2),
+        color: mediumRim != null ? color : color.withValues(alpha: 0.12),
+        border: mediumRim ?? Border.all(color: color, width: 2),
+        boxShadow: _pixelPriorityGlow(theme, color),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -5851,7 +6141,8 @@ class _ImportanceChip extends StatelessWidget {
           const SizedBox(width: 7),
           AppText(
             _importanceLabel(importance),
-            style: theme.textTheme.labelMedium?.copyWith(color: color),
+            style: theme.textTheme.labelMedium?.copyWith(
+                color: mediumRim != null ? _blackMetalMediumLabel : color),
           ),
         ],
       ),
@@ -5873,13 +6164,9 @@ class _ImportanceMenuLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = isPastel
-        ? _pastelImportanceColor(importance)
-        : isPencil
-            ? _pencilImportanceColor(importance)
-            : theme.brightness == Brightness.dark
-                ? _importanceColor(importance)
-                : theme.colorScheme.primary;
+    final color = _themedImportanceColor(theme, importance,
+        isPastel: isPastel, isPencil: isPencil);
+    final mediumRim = _blackMetalMediumRim(theme, importance);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -5887,12 +6174,16 @@ class _ImportanceMenuLabel extends StatelessWidget {
           key: ValueKey('priority-menu-${importance.name}'),
           width: 4,
           height: 18,
-          color: color,
+          color: mediumRim == null ? color : null,
+          decoration: mediumRim == null
+              ? null
+              : BoxDecoration(color: color, border: mediumRim),
         ),
         const SizedBox(width: 8),
         AppText(
           _importanceLabel(importance),
-          style: theme.textTheme.bodyMedium?.copyWith(color: color),
+          style: theme.textTheme.bodyMedium?.copyWith(
+              color: mediumRim != null ? _blackMetalMediumLabel : color),
         ),
       ],
     );
@@ -5905,6 +6196,47 @@ String _importanceLabel(ProjectImportance importance) {
     ProjectImportance.normal => 'medium',
     ProjectImportance.high => 'high',
   };
+}
+
+Border? _blackMetalMediumRim(ThemeData theme, ProjectImportance importance,
+        {double width = 1}) =>
+    theme.isBlackMetal && importance == ProjectImportance.normal
+        ? Border.all(color: const Color(0xFF9E70AE), width: width)
+        : null;
+
+List<BoxShadow>? _pixelPriorityGlow(ThemeData theme, Color colour) =>
+    theme.appearance == AppTheme.pixel
+        ? [BoxShadow(color: colour.withValues(alpha: 0.23), blurRadius: 7)]
+        : null;
+
+Color _themedImportanceColor(
+  ThemeData theme,
+  ProjectImportance importance, {
+  required bool isPastel,
+  required bool isPencil,
+}) {
+  final custom = theme.custom(switch (importance) {
+    ProjectImportance.low => _ThemeColour.low,
+    ProjectImportance.normal => _ThemeColour.medium,
+    ProjectImportance.high => _ThemeColour.high,
+  });
+  if (custom != null) return custom;
+  if (isPastel) return _pastelImportanceColor(importance);
+  if (isPencil) return _pencilImportanceColor(importance);
+  if (theme.metalPalette case final palette?) {
+    return switch (importance) {
+      ProjectImportance.low => palette.muted,
+      ProjectImportance.normal =>
+        theme.isBlackMetal ? _blackMetalMedium : palette.notesAccent,
+      ProjectImportance.high => palette.checklistAccent,
+    };
+  }
+  if (theme.appearance?._modernPalette case final palette?) {
+    return palette.priorities[importance.index];
+  }
+  return theme.brightness == Brightness.dark
+      ? _importanceColor(importance)
+      : theme.colorScheme.primary;
 }
 
 Color _importanceColor(ProjectImportance importance) {

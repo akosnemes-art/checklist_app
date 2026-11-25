@@ -51,6 +51,12 @@ void main() {
         find.byKey(const ValueKey('implemented-changes-title')),
         findsOneWidget,
       );
+      expect(find.textContaining('Added Black Metal'), findsOneWidget);
+      expect(find.textContaining('Renamed Goth to Copper'), findsOneWidget);
+      expect(find.textContaining('Added the Pixel and Glass themes'),
+          findsOneWidget);
+      expect(find.textContaining('Gave Black Metal blood-red controls'),
+          findsOneWidget);
       expect(find.textContaining('detected bold, italic, and underlined text'),
           findsOneWidget);
       expect(find.text('read less'), findsOneWidget);

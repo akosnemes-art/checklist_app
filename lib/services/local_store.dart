@@ -31,6 +31,7 @@ class LocalStore {
   static const _projectsKey = 'checklist.projects.v1';
   static const _darkModeKey = 'checklist.darkMode.v1';
   static const _themeKey = 'checklist.theme.v1';
+  static const _themeColoursKey = 'checklist.themeColours.v1';
   static const _languageKey = 'checklist.language.v1';
   static const _sortKey = 'checklist.sort.v1';
   static const _noteSortKey = 'checklist.noteSort.v1';
@@ -127,6 +128,35 @@ class LocalStore {
     final preferences = await SharedPreferences.getInstance();
     final saved = await preferences.setString(_themeKey, theme);
     if (!saved) throw StateError('Could not save the theme setting.');
+  }
+
+  Future<Map<String, Map<String, int>>> loadThemeColours() async {
+    final preferences = await SharedPreferences.getInstance();
+    final encoded = preferences.getString(_themeColoursKey);
+    if (encoded == null) return {};
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! Map<String, dynamic>) return {};
+      return {
+        for (final theme in decoded.entries)
+          if (theme.value case final Map<String, dynamic> values)
+            theme.key: {
+              for (final colour in values.entries)
+                if (colour.value case final int argb
+                    when argb >= 0xff000000 && argb <= 0xffffffff)
+                  colour.key: argb,
+            },
+      };
+    } on FormatException {
+      return {};
+    }
+  }
+
+  Future<void> saveThemeColours(Map<String, Map<String, int>> colours) async {
+    final preferences = await SharedPreferences.getInstance();
+    final saved =
+        await preferences.setString(_themeColoursKey, jsonEncode(colours));
+    if (!saved) throw StateError('Could not save the theme colours.');
   }
 
   Future<String?> loadLanguage() async {

@@ -1,5 +1,10 @@
 # Third-party notices
 
+## Pixelify Sans
+
+The Pixel theme includes Pixelify Sans by Stefie Justprince.
+The [SIL Open Font License 1.1](assets/fonts/PixelifySans-OFL.txt) ships with the font.
+
 ## PaddleOCR Android SDK and PP-OCRv6 models
 
 CHECKLIST includes the PaddleOCR Android SDK and PP-OCRv6 Tiny detection and
