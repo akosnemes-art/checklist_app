@@ -1,6 +1,18 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Notes extend to the status bar and use a solid writing surface.": (
+    "Le fond des notes atteint la barre d’état et la zone de saisie est opaque.",
+    "Pozadí poznámek sahá ke stavovému řádku a plocha pro psaní je neprůhledná."
+  ),
+  "Pixel has CRT noise and theme changes draw from bottom to top.": (
+    "Pixel affiche un bruit cathodique et les thèmes se dessinent de bas en haut.",
+    "Pixel má šum CRT a motivy se při změně vykreslují zdola nahoru."
+  ),
+  "The version fades out when Settings opens.": (
+    "La version disparaît en fondu à l’ouverture des réglages.",
+    "Při otevření nastavení číslo verze plynule zmizí."
+  ),
   "Added the Pixel and Glass themes.": (
     "Ajout des thèmes Pixel et Glass.",
     "Přidány motivy Pixel a Glass."

@@ -125,6 +125,7 @@ preferred Android App Bundle format with `flutter build appbundle`.
 Publish a stable GitHub release with a tag such as `v0.5.3` and attach one
 universal `checklist-<version>-android.apk`. Increment the Android build
 number and sign each update with the certificate used for the previous APK.
+Use a tag such as `v0.5.3-build45` for a new build of the same public version.
 The current GitHub APK uses the project's Android debug certificate.
 
 ## Project structure

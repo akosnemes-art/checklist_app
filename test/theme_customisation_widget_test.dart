@@ -103,7 +103,7 @@ void main() {
     expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('Glass packages its refraction shader and keeps editing usable',
+  testWidgets('Glass Notes reach the status bar with a solid writing surface',
       (tester) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
@@ -117,6 +117,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.padding = const FakeViewPadding(top: 32, bottom: 24);
+    tester.view.viewPadding = const FakeViewPadding(top: 32, bottom: 24);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
 
     final program = await tester
         .runAsync(() => ui.FragmentProgram.fromAsset('shaders/glass.frag'));
@@ -128,12 +132,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.bySemanticsLabel('NOTES'));
     await tester.pumpAndSettle();
+    expect(_key('glass-wallpaper'), findsOneWidget);
     tester.state<ScaffoldState>(find.byType(Scaffold)).closeDrawer();
     await tester.pumpAndSettle();
+    expect(_key('glass-wallpaper'), findsNothing);
+    expect(tester.getTopLeft(_key('workspace-surface')).dy, 0);
+    expect(tester.getTopLeft(_key('note-editor')).dy, greaterThanOrEqualTo(32));
 
     final noteField = _key('note-content-field');
     final field = tester.widget<TextField>(noteField);
-    expect(field.decoration!.fillColor!.a, inExclusiveRange(0, 1));
+    expect(field.decoration!.fillColor!.a, 1);
     await tester.enterText(noteField, 'Still editable');
     await tester.pumpAndSettle();
     expect(field.controller!.text, 'Still editable');

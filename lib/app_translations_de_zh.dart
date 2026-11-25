@@ -1,6 +1,18 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Notes extend to the status bar and use a solid writing surface.": (
+    "Der Notizhintergrund reicht bis zur Statusleiste. Das Schreibfeld ist deckend.",
+    "笔记背景延伸至状态栏，书写区域采用不透明底色。"
+  ),
+  "Pixel has CRT noise and theme changes draw from bottom to top.": (
+    "Pixel zeigt Röhrenrauschen. Beim Designwechsel baut sich die Oberfläche von unten nach oben auf.",
+    "Pixel 增加显像管噪点，切换主题时界面从下向上显现。"
+  ),
+  "The version fades out when Settings opens.": (
+    "Beim Öffnen der Einstellungen blendet sich die Versionsnummer aus.",
+    "打开设置时，版本号会淡出。"
+  ),
   "Added the Pixel and Glass themes.": (
     "Die Designs Pixel und Glass wurden hinzugefügt.",
     "新增 Pixel 和 Glass 主题。"

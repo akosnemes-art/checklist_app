@@ -25,6 +25,7 @@ import 'services/reminder_service.dart';
 import 'services/website_previews.dart';
 
 part 'black_metal_finish.dart';
+part 'appearance_motion.dart';
 part 'metal_theme.dart';
 part 'modern_themes.dart';
 part 'theme_colours.dart';
@@ -69,7 +70,13 @@ const _taskReorderHoldDuration = Duration(milliseconds: 140);
 const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
+const _buildChanges = <String>[
+  'Notes extend to the status bar and use a solid writing surface.',
+  'Pixel has CRT noise and theme changes draw from bottom to top.',
+  'The version fades out when Settings opens.',
+];
 const _implementedChanges = <String>[
+  ..._buildChanges,
   'Added the Pixel and Glass themes.',
   'Added separate colour customisation for each theme.',
   'Gave Black Metal blood-red controls and a faster steel glint.',
@@ -622,6 +629,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
 
   late final _noteReveal = _newContentReveal();
   late final _projectReveal = _newContentReveal();
+  late final _themeBuild = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+    value: 1,
+  );
 
   AnimationController _newContentReveal() => AnimationController(
         vsync: this,
@@ -720,6 +732,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
   void dispose() {
     _noteReveal.dispose();
     _projectReveal.dispose();
+    _themeBuild.dispose();
     _noteSaveTimer?.cancel();
     _websitePreviewTimer?.cancel();
     _heartTapResetTimer?.cancel();
@@ -1846,6 +1859,22 @@ class _ChecklistHomeState extends State<ChecklistHome>
             ],
           )
         : sidebar;
+    final workspace = AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      child: _showNotes
+          ? KeyedSubtree(
+              key: const ValueKey('notes'),
+              child: _buildNotes(wide: wide),
+            )
+          : KeyedSubtree(
+              key: const ValueKey('checklist'),
+              child: _selected == null
+                  ? const Center(
+                      child: AppText('choose a checklist'),
+                    )
+                  : _buildMain(_selected!, wide: wide),
+            ),
+    );
     final systemIconBrightness =
         widget.isDark ? Brightness.light : Brightness.dark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -1872,10 +1901,17 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   }
                 },
           body: SafeArea(
-            key: const ValueKey('main-content-safe-area'),
+            top: !_showNotes,
             child: Row(
               children: [
-                if (wide) SizedBox(width: 282, child: sidebar),
+                if (wide)
+                  SafeArea(
+                    top: _showNotes,
+                    bottom: false,
+                    left: false,
+                    right: false,
+                    child: SizedBox(width: 282, child: sidebar),
+                  ),
                 Expanded(
                   child: AnimatedContainer(
                     key: const ValueKey('workspace-surface'),
@@ -1891,24 +1927,20 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           )
                         : const BoxDecoration(),
                     child: _AppearanceBackdrop(
-                      child: _BlackMetalPanel(
-                        enabled: _blackMetal,
-                        initialDelay: const Duration(milliseconds: 2300),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 220),
-                          child: _showNotes
-                              ? KeyedSubtree(
-                                  key: const ValueKey('notes'),
-                                  child: _buildNotes(wide: wide),
-                                )
-                              : KeyedSubtree(
-                                  key: const ValueKey('checklist'),
-                                  child: _selected == null
-                                      ? const Center(
-                                          child: AppText('choose a checklist'),
-                                        )
-                                      : _buildMain(_selected!, wide: wide),
-                                ),
+                      matte: _showNotes,
+                      child: _ThemeBuildReveal(
+                        progress: _themeBuild,
+                        child: SafeArea(
+                          key: const ValueKey('main-content-safe-area'),
+                          top: _showNotes,
+                          bottom: false,
+                          left: false,
+                          right: false,
+                          child: _BlackMetalPanel(
+                            enabled: _blackMetal,
+                            initialDelay: const Duration(milliseconds: 2300),
+                            child: workspace,
+                          ),
                         ),
                       ),
                     ),
@@ -2098,7 +2130,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
       label: label,
       icon: icon,
       selected: appearance == widget.appTheme,
-      onTap: () => widget.onThemeChanged(appearance),
+      onTap: () {
+        if (appearance == widget.appTheme) return;
+        widget.onThemeChanged(appearance);
+        _revealContent(_themeBuild);
+      },
     );
   }
 
@@ -2243,8 +2279,22 @@ class _ChecklistHomeState extends State<ChecklistHome>
     }
   }
 
+  Widget _websiteGalleryButton(Color foreground) => IconButton(
+        key: const ValueKey('note-website-gallery'),
+        tooltip: localizeText(context, 'website links'),
+        style: IconButton.styleFrom(
+          foregroundColor: foreground,
+          side: BorderSide.none,
+        ),
+        icon: const Icon(Icons.language_rounded, size: 18),
+        onPressed: _openWebsiteGallery,
+      );
+
   Widget _buildSettingsPanel(Color foreground) {
     const settingsFontSize = 13.0;
+    final compactDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 200);
     return Column(
       key: const ValueKey('settings-panel'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2255,8 +2305,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
           height: 2,
           color: foreground.withValues(alpha: 0.45),
         ),
-        SizedBox(
-          height: 50,
+        AnimatedContainer(
+          duration: compactDuration,
+          height: _settingsOpen ? 46 : 50,
           child: Row(
             children: [
               Expanded(
@@ -2298,6 +2349,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   child: const SizedBox.expand(),
                 ),
               ),
+              if (_showNotes && _settingsOpen)
+                _websiteGalleryButton(foreground),
               IconButton(
                 key: const ValueKey('settings-chevron'),
                 tooltip: localizeText(
@@ -2318,28 +2371,40 @@ class _ChecklistHomeState extends State<ChecklistHome>
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(left: 27, bottom: 4),
-          child: Row(
-            children: [
-              Text(
-                checklistVersion,
-                key: const ValueKey('settings-version'),
-                style: _settingsTextStyle(foreground, false)
-                    .copyWith(fontSize: settingsFontSize / 2),
-              ),
-              if (_showNotes)
-                IconButton(
-                  key: const ValueKey('note-website-gallery'),
-                  tooltip: localizeText(context, 'website links'),
-                  style: IconButton.styleFrom(
-                    foregroundColor: foreground,
-                    side: BorderSide.none,
-                  ),
-                  icon: const Icon(Icons.language_rounded, size: 18),
-                  onPressed: _openWebsiteGallery,
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: _settingsOpen ? 0 : 1),
+          duration: compactDuration,
+          curve: Curves.easeInOut,
+          builder: (context, fraction, child) => ClipRect(
+            child: Align(
+              key: const ValueKey('settings-version-space'),
+              alignment: Alignment.topLeft,
+              heightFactor: fraction,
+              child: IgnorePointer(
+                ignoring: _settingsOpen,
+                child: Opacity(
+                  key: const ValueKey('settings-version-fade'),
+                  opacity: fraction,
+                  child: child,
                 ),
-            ],
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 27, bottom: 4),
+            child: Row(
+              children: [
+                Text(
+                  checklistVersion,
+                  key: const ValueKey('settings-version'),
+                  style: _settingsTextStyle(foreground, false)
+                      .copyWith(fontSize: settingsFontSize / 2),
+                ),
+                if (_showNotes && !_settingsOpen)
+                  _websiteGalleryButton(foreground),
+                if (_showNotes && _settingsOpen) const SizedBox(height: 48),
+              ],
+            ),
           ),
         ),
         ClipRect(
@@ -2852,10 +2917,13 @@ class _ChecklistHomeState extends State<ChecklistHome>
     );
     return _AppearanceBackdrop(
       lens: true,
-      child: _BlackMetalPanel(
-        enabled: _blackMetal,
-        initialDelay: const Duration(milliseconds: 1350),
-        child: sidebar,
+      child: _ThemeBuildReveal(
+        progress: _themeBuild,
+        child: _BlackMetalPanel(
+          enabled: _blackMetal,
+          initialDelay: const Duration(milliseconds: 1350),
+          child: sidebar,
+        ),
       ),
     );
   }
@@ -3103,14 +3171,13 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           hintText: localizeText(context, 'start writing…'),
                           hintStyle: const TextStyle(color: _switchGrey),
                           filled: true,
-                          fillColor:
-                              panel?.withValues(alpha: modern?.panel.a ?? 1) ??
-                                  modern?.panel ??
-                                  (widget.isDark
-                                      ? (palette?.surface ?? _surfaceDark)
-                                      : widget.isPastel
-                                          ? _pastelWhite
-                                          : _lightSurface),
+                          fillColor: panel ??
+                              modern?.panel.withValues(alpha: 1) ??
+                              (widget.isDark
+                                  ? (palette?.surface ?? _surfaceDark)
+                                  : widget.isPastel
+                                      ? _pastelWhite
+                                      : _lightSurface),
                           alignLabelWithHint: true,
                           contentPadding: const EdgeInsets.all(18),
                           enabledBorder: OutlineInputBorder(
@@ -3777,7 +3844,7 @@ class _WelcomeDialogState extends State<_WelcomeDialog> {
                 ),
               ),
               const SizedBox(height: 8),
-              for (final change in _implementedChanges)
+              for (final change in _buildChanges)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(

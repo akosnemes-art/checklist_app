@@ -116,10 +116,15 @@ ThemeData _buildModernTheme(
 }
 
 class _AppearanceBackdrop extends StatelessWidget {
-  const _AppearanceBackdrop({required this.child, this.lens = false});
+  const _AppearanceBackdrop({
+    required this.child,
+    this.lens = false,
+    this.matte = false,
+  });
 
   final Widget child;
   final bool lens;
+  final bool matte;
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +133,7 @@ class _AppearanceBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.passthrough,
       children: [
-        if (appearance == AppTheme.glass)
+        if (appearance == AppTheme.glass && !matte)
           Positioned.fill(
             child: RepaintBoundary(
               child: _GlassWallpaper(
@@ -143,6 +148,12 @@ class _AppearanceBackdrop extends StatelessWidget {
             child: RepaintBoundary(
               child: CustomPaint(painter: _PixelScanlines()),
             ),
+          ),
+        if (appearance == AppTheme.pixel &&
+            !lens &&
+            !MediaQuery.disableAnimationsOf(context))
+          const Positioned.fill(
+            child: IgnorePointer(child: RepaintBoundary(child: _PixelNoise())),
           ),
         KeyedSubtree(
             key: const ValueKey('appearance-panel-child'), child: child),

@@ -204,6 +204,8 @@ rely on the palette positions.
   selecting an entry must not automatically close an already-open drawer.
 - The note page is expanded and shows, in order: note name, creation date,
   category, then the large writing field.
+- The Notes workspace background extends behind the status bar. Its controls
+  remain in the safe area, and the writing surface is opaque in every theme.
 - Note content autosaves locally after a short debounce.
 - Links in note text are underlined and open in the system browser or registered
   app when tapped outside edit mode. Boi uses brand yellow `#F3ED23`, Pencil
@@ -239,7 +241,8 @@ rely on the palette positions.
   Detected links can also be opened from the live Notes camera preview.
 - The globe beside the version in the Notes sidebar opens saved web links
   across all notes with clickable screenshots. The app attempts to capture
-  previews of newly typed and photographed website links while online.
+  previews of newly typed and photographed website links while online. The
+  globe moves into the Settings row while Settings is open.
 
 ### Category management
 
@@ -262,8 +265,9 @@ rely on the palette positions.
 
 - The former dark/light switch is removed. The bottom of the sidebar has a
   single `settings` row beneath a fixed full-width line. The public version is
-  displayed below the row at half the Settings text size. The line stays the
-  same length whether Settings is open or closed.
+  displayed below the closed row at half the Settings text size. It fades and
+  collapses when Settings opens, and the menu sits close to the Settings label.
+  The line stays the same length whether Settings is open or closed.
 - Opening Settings fades and expands the option content. Closing it collapses
   the content and returns to the main Settings page.
 - The Settings arrow points down when open and up when closed. Pressing a
@@ -281,10 +285,13 @@ rely on the palette positions.
   Medium priority uses dark purple and low priority uses grey. The sidebar
   and workspace have staggered 640 ms metallic glints that pause between
   passes and are disabled under reduced motion. Pixel uses black and neon
-  green, 1980s-style Pixelify Sans typography, and softly glowing priority
-  controls. Saved Newsprint selections migrate to Pixel. Glass uses
-  translucent fields and navigation with a static refraction shader and a
-  gradient fallback. The selected theme is saved locally.
+  green, 1980s-style Pixelify Sans typography, softly glowing priority controls,
+  and occasional travelling CRT noise across its scanlines. Saved Newsprint
+  selections migrate to Pixel. Glass uses translucent Checklist and navigation
+  surfaces with a static refraction shader and a gradient fallback. The main
+  Notes workspace is matte. Selecting a different theme reveals the new UI
+  from bottom to top. Both effects respect the system's reduced-motion setting.
+  The selected theme is saved locally.
 - A `customise` action appears beneath the selected theme. Its labelled
   swatches open hue, saturation, and value sliders with live colour previews.
   Saving persists colours independently per theme. Reset restores the theme's
@@ -363,6 +370,7 @@ deletion must remain restricted to the app-owned support directory.
   Black Metal palettes, surface texture, and panel sheen.
 - `lib/modern_themes.dart` and `shaders/glass.frag`: Pixel and Glass palettes,
   textures, and glass refraction.
+- `lib/appearance_motion.dart`: bottom-to-top theme reveal and Pixel CRT noise.
 - `lib/theme_colours.dart`: role colours, theme overrides, and the HSV editor.
 - `lib/app_localizations.dart` and `lib/app_translations.dart`: interface
   translations and the localized text wrapper.
@@ -413,8 +421,8 @@ deletion must remain restricted to the app-owned support directory.
 ## Current verification baseline
 
 - Public version: `0.5.3`.
-- Last completed APK: version 0.5.3 internal build `44`.
-- Current source baseline: 76 passing Flutter tests, two passing JVM
+- Last completed APK: version 0.5.3 internal build `45`.
+- Current source baseline: 78 passing Flutter tests, two passing JVM
   typography tests, clean static analysis, and a
   successful Android release build. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,

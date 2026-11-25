@@ -21,6 +21,12 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Notes extend to the status bar and use a solid writing surface.":
+      "A Jegyzetek háttere az állapotsávig ér, az írófelület pedig egyszínű.",
+  "Pixel has CRT noise and theme changes draw from bottom to top.":
+      "A Pixel témában megjelenik a CRT-zaj, témaváltáskor az elemek alulról felfelé rajzolódnak ki.",
+  "The version fades out when Settings opens.":
+      "A Beállítások megnyitásakor a verziószám elhalványul.",
   "Added the Pixel and Glass themes.": "Új Pixel és Glass témák.",
   "Added separate colour customisation for each theme.":
       "A témák színei külön-külön testreszabhatók.",
