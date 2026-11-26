@@ -44,19 +44,6 @@ const _pixelPalette = _ModernPalette(
   priorities: [Color(0xFF58DDAA), Color(0xFFA9FF42), Color(0xFFFFCF61)],
 );
 
-const _glassPalette = _ModernPalette(
-  background: Color(0xFFE4ECFB),
-  panel: Color(0xB8F9FCFF),
-  checklistSidebar: Color(0x61F3FAFF),
-  notesSidebar: Color(0x62F2EDFF),
-  ink: Color(0xFF192641),
-  border: Color(0xFF6B7AA1),
-  checklistAccent: Color(0xFF2257A0),
-  notesAccent: Color(0xFF644595),
-  buttonInk: Color(0xFFF8FAFF),
-  priorities: [Color(0xFF356987), Color(0xFF4F55AD), Color(0xFF8B3C75)],
-);
-
 ThemeData _buildModernTheme(
   ThemeData base,
   _ModernPalette palette, {
@@ -89,7 +76,7 @@ ThemeData _buildModernTheme(
   final frame = RoundedRectangleBorder(
     side: BorderSide(color: palette.border, width: 2),
   );
-  final popup = pixel ? palette.panel : const Color(0xFFF0F3FC);
+  final popup = palette.panel;
   return base.copyWith(
     scaffoldBackgroundColor: palette.background,
     colorScheme: scheme,
@@ -118,13 +105,11 @@ ThemeData _buildModernTheme(
 class _AppearanceBackdrop extends StatelessWidget {
   const _AppearanceBackdrop({
     required this.child,
-    this.lens = false,
-    this.matte = false,
+    this.sidebar = false,
   });
 
   final Widget child;
-  final bool lens;
-  final bool matte;
+  final bool sidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -133,24 +118,18 @@ class _AppearanceBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.passthrough,
       children: [
-        if (appearance == AppTheme.glass && !matte)
+        if (appearance == AppTheme.cyberpunk)
           Positioned.fill(
-            child: RepaintBoundary(
-              child: _GlassWallpaper(
-                background: theme.scaffoldBackgroundColor,
-                lens:
-                    MediaQuery.highContrastOf(context) ? 0 : (lens ? 1 : 0.28),
-              ),
-            ),
+            child: RepaintBoundary(child: _CyberpunkBackdrop(sidebar: sidebar)),
           ),
-        if (appearance == AppTheme.pixel && !lens)
+        if (appearance == AppTheme.pixel && !sidebar)
           const Positioned.fill(
             child: RepaintBoundary(
               child: CustomPaint(painter: _PixelScanlines()),
             ),
           ),
         if (appearance == AppTheme.pixel &&
-            !lens &&
+            !sidebar &&
             !MediaQuery.disableAnimationsOf(context))
           const Positioned.fill(
             child: IgnorePointer(child: RepaintBoundary(child: _PixelNoise())),
@@ -175,92 +154,4 @@ class _PixelScanlines extends CustomPainter {
 
   @override
   bool shouldRepaint(_PixelScanlines oldDelegate) => false;
-}
-
-class _GlassWallpaper extends StatefulWidget {
-  const _GlassWallpaper({required this.background, required this.lens});
-
-  final Color background;
-  final double lens;
-
-  @override
-  State<_GlassWallpaper> createState() => _GlassWallpaperState();
-}
-
-class _GlassWallpaperState extends State<_GlassWallpaper> {
-  static Future<ui.FragmentProgram>? _program;
-  ui.FragmentShader? _shader;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadShader();
-  }
-
-  Future<void> _loadShader() async {
-    try {
-      final program = await (_program ??=
-          ui.FragmentProgram.fromAsset('shaders/glass.frag'));
-      if (mounted) setState(() => _shader = program.fragmentShader());
-    } catch (error) {
-      debugPrint('Glass shader unavailable: $error');
-    }
-  }
-
-  @override
-  void dispose() {
-    _shader?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-        key: const ValueKey('glass-wallpaper'),
-        painter: _GlassRefraction(_shader, widget.background, widget.lens),
-      );
-}
-
-class _GlassRefraction extends CustomPainter {
-  _GlassRefraction(this.shader, this.background, this.lens);
-
-  final ui.FragmentShader? shader;
-  final Color background;
-  final double lens;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-    final paint = Paint();
-    const cool = Color(0xFFABCDF2);
-    const warm = Color(0xFFCEB8EE);
-    final bounds = Offset.zero & size;
-    if (shader case final effect?) {
-      effect.setFloat(0, size.width);
-      effect.setFloat(1, size.height);
-      var index = 2;
-      for (final colour in [background, cool, warm]) {
-        effect.setFloat(index++, colour.r);
-        effect.setFloat(index++, colour.g);
-        effect.setFloat(index++, colour.b);
-      }
-      effect.setFloat(index, lens);
-      paint.shader = effect;
-    } else {
-      paint.shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color.lerp(background, cool, 0.55)!,
-          Color.lerp(background, warm, 0.35)!
-        ],
-      ).createShader(bounds);
-    }
-    canvas.drawRect(bounds, paint);
-  }
-
-  @override
-  bool shouldRepaint(_GlassRefraction oldDelegate) =>
-      oldDelegate.shader != shader ||
-      oldDelegate.background != background ||
-      oldDelegate.lens != lens;
 }

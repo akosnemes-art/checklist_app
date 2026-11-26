@@ -1036,9 +1036,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-about')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('settings-about-page')), findsOneWidget);
-    expect(find.textContaining('CHECKLIST $checklistVersion'), findsOneWidget);
     expect(find.textContaining('Ákos Nemes'), findsOneWidget);
-    expect(find.text('akosnemes@proton.me'), findsOneWidget);
+    expect(find.text('akosnemes@proton.me'), findsNothing);
+    expect(find.byKey(const ValueKey('about-credits')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1433,11 +1433,15 @@ void main() {
     );
     expect(wordmark, findsOneWidget);
     expect(brandCheck, findsOneWidget);
-    expect(tester.getTopLeft(brandText).dy, greaterThanOrEqualTo(55));
+    final sidebar = tester.widget<AnimatedContainer>(
+      find.byKey(const ValueKey('sidebar-surface')),
+    );
+    expect(sidebar.padding!.resolve(TextDirection.ltr).top, 27.5);
+    expect(tester.getTopLeft(brandText).dy, inInclusiveRange(27.5, 41.5));
     expect(
       tester.getTopLeft(newChecklistButton).dy -
           tester.getBottomRight(brandText).dy,
-      inInclusiveRange(6, 12),
+      inInclusiveRange(3, 10),
     );
     expect(tester.getTopLeft(sortButton).dy, greaterThanOrEqualTo(32));
     expect(

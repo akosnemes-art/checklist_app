@@ -338,7 +338,7 @@ Color _sidebarColour(AppTheme appearance, bool notes) {
     AppTheme.blackMetal =>
       appearance._metalPalette!.sidebar(notes),
     AppTheme.pixel ||
-    AppTheme.glass =>
+    AppTheme.cyberpunk =>
       appearance._modernPalette!.sidebar(notes),
   };
 }
@@ -351,9 +351,9 @@ Color _createButtonColour(AppTheme appearance, bool notes) {
     AppTheme.copper ||
     AppTheme.blackMetal =>
       appearance._metalPalette!.button(notes),
-    AppTheme.pixel ||
-    AppTheme.glass =>
-      appearance._modernPalette!.accent(notes),
+    AppTheme.pixel => appearance._modernPalette!.accent(notes),
+    AppTheme.cyberpunk =>
+      notes ? _cyberpunkPalette.notesAccent : _cyberpunkCreateRed,
   };
 }
 

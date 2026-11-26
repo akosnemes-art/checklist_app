@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current public version: **0.5.3**. The Flutter build number may increase for
+- Current source version: **0.5.4**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -35,7 +35,8 @@ regression test for every approved visual or interaction change.
 These details have already been approved and must not change incidentally:
 
 - Square corners are used throughout buttons, fields, dialogs, menus, chips,
-  drawers, snackbars, and window chrome.
+  drawers, snackbars, and window chrome. The Cyberpunk new-checklist and
+  reminder buttons have the same bevel at the lower-right corner.
 - `CHECKLIST` and `NOTES` form one wordmark in the same font. There is no
   chromatic-aberration text effect. A checkmark appears immediately beside the
   selected mode, is visually aligned with the surrounding text, glitches when
@@ -48,8 +49,10 @@ These details have already been approved and must not change incidentally:
   only the approved neutral greys except for explicitly retained blue dialog
   frames, blue note links, and blue/yellow Notes formatting controls. Pastel uses its approved
   palette with blue Notes hyperlinks and warm-grey selected note rows.
-- The checklist completion progress is brand yellow (`#F3ED23`) in dark mode.
-  In light mode its progress is black on a light-grey track.
+- Boi checklist completion progress is brand yellow (`#F3ED23`). Pencil
+  progress is black on a light-grey track. Cyberpunk uses a glowing brand
+  yellow fill and electric-blue (`#379BFF`) track, including for checklists
+  with zero tasks.
 - Checklist priorities are: low blue (`#229FE3`), normal purple
   (`#922FD0`), and high yellow (`#F3ED23`).
 - The task-composer placeholder beginning `add a task…` is grey (`#9AA0AA`).
@@ -171,9 +174,10 @@ rely on the palette positions.
   `#0E2F44` for high, dark grey `#64696A` for medium, and grey `#999999` for
   low. Boi priority colours do not change.
 - The selected checklist header includes its creation date and task counts.
-- When tasks exist, their completion progress is yellow in dark mode and black
-  in light mode. The light-mode track is a lighter grey. Progress changes
-  animate smoothly rather than jumping to the new value.
+- Progress changes animate smoothly rather than jumping to the new value.
+  Cyberpunk priority buttons and menu markers glow in their priority colours.
+- The Checklist header uses 11 px of top padding inside the safe area. Its
+  vertical gaps to the date, reminder, progress, and cover use compact spacing.
 - New checklist and note rows fade into the sidebar. Confirmed deletion fades
   the row out before removing and persisting it.
 - Selecting a different checklist fades in its title, cover image, and tasks
@@ -205,7 +209,8 @@ rely on the palette positions.
 - The note page is expanded and shows, in order: note name, creation date,
   category, then the large writing field.
 - The Notes workspace background extends behind the status bar. Its controls
-  remain in the safe area, and the writing surface is opaque in every theme.
+  remain in the safe area with 14 px of top padding, and the writing surface
+  is opaque in every theme.
 - Note content autosaves locally after a short debounce.
 - Links in note text are underlined and open in the system browser or registered
   app when tapped outside edit mode. Boi uses brand yellow `#F3ED23`, Pencil
@@ -239,10 +244,10 @@ rely on the palette positions.
   It displays recognised written addresses and QR links offline. Recognised
   addresses and QR links in a captured photo become tappable links in the note.
   Detected links can also be opened from the live Notes camera preview.
-- The globe beside the version in the Notes sidebar opens saved web links
+- The globe immediately before the Notes formatting buttons appears when the
+  selected note contains an HTTP or HTTPS link. It opens saved web links
   across all notes with clickable screenshots. The app attempts to capture
-  previews of newly typed and photographed website links while online. The
-  globe moves into the Settings row while Settings is open.
+  previews of newly typed and photographed website links while online.
 
 ### Category management
 
@@ -275,7 +280,8 @@ rely on the palette positions.
 - The main Settings page contains `themes`, `language`, `import / export`, and
   `about`.
 - The Themes page replaces the main option text with a fade and offers `Boi`,
-  `Pencil`, `Pastel`, `Copper`, `Black Metal`, `Pixel`, and `Glass`. Boi is the established dark appearance,
+  `Pencil`, `Pastel`, `Copper`, `Black Metal`, `Pixel`, and `Cyberpunk`.
+  Boi is the established dark appearance,
   Pencil is the established light appearance, and Pastel uses the five
   canonical pastel colours. Copper uses charcoal surfaces, wine and plum
   sidebars, antique-gold progress and popup frames, dusty-rose note links,
@@ -287,10 +293,14 @@ rely on the palette positions.
   passes and are disabled under reduced motion. Pixel uses black and neon
   green, 1980s-style Pixelify Sans typography, softly glowing priority controls,
   and occasional travelling CRT noise across its scanlines. Saved Newsprint
-  selections migrate to Pixel. Glass uses translucent Checklist and navigation
-  surfaces with a static refraction shader and a gradient fallback. The main
-  Notes workspace is matte. Selecting a different theme reveals the new UI
-  from bottom to top. Both effects respect the system's reduced-motion setting.
+  selections migrate to Pixel and saved Glass selections migrate to Pencil.
+  Cyberpunk uses coral Checklist and cyan
+  Notes accents, Rajdhani headings, and a text-free circuit-board backdrop with
+  red and cyan moving signals. Its red new-checklist button glitches on touch
+  and at random intervals from 5 to 15 seconds while visible. The other
+  Cyberpunk buttons have a 280 ms glitch on touch or hover. Cyberpunk loads
+  directly, and all themes use the shared bottom-to-top reveal on selection.
+  Backdrop movement, button glitches, and the reveal respect reduced motion.
   The selected theme is saved locally.
 - A `customise` action appears beneath the selected theme. Its labelled
   swatches open hue, saturation, and value sliders with live colour previews.
@@ -306,9 +316,11 @@ rely on the palette positions.
   validates the file and replaces the starter/local content after explicit
   confirmation. App-private cover image paths are cleared because they are not
   portable between installations.
-- The About page shows the public version, internal build, maker credits
-  `Ákos Nemes · Codex AI`, and contact email `akosnemes@proton.me`. It does not
-  show update notes.
+- The About page reads `designed by Ákos Nemes` above a theme-coloured
+  `credits` button. The button is brand yellow in Boi. The popup scrolls the
+  credits upwards and includes Ákos Nemes and his email, Codex AI, and Allan
+  Ferreira with a link to his portfolio. It can be scrolled manually and
+  disables automatic movement under reduced motion.
 - Both the main workspace and sidebar respond to theme changes.
 - Seven taps on the empty middle area of the Settings row toggle
   the hidden heart animation. Seven taps again stop it.
@@ -324,6 +336,8 @@ rely on the palette positions.
 - The minimum supported Android version is Android 8.0 (API 26), as required
   by the bundled PaddleOCR Android SDK.
 - Android is portrait-only. Do not re-enable automatic rotation unless asked.
+- The mobile drawer starts above its former content position with half of the
+  previous space above the wordmark, preserving the status-bar inset.
 - `PopScope(canPop: false)` prevents an Android back gesture from closing the
   app while it is running.
 - Android 10+ reserves a left-edge gesture-exclusion area in `MainActivity.kt`
@@ -368,9 +382,11 @@ deletion must remain restricted to the app-owned support directory.
   interactions, dialogs, heart animation, and shared visual constants.
 - `lib/metal_theme.dart` and `lib/black_metal_finish.dart`: Copper and
   Black Metal palettes, surface texture, and panel sheen.
-- `lib/modern_themes.dart` and `shaders/glass.frag`: Pixel and Glass palettes,
-  textures, and glass refraction.
+- `lib/modern_themes.dart`: Pixel palette, scanlines, and shared theme backdrop.
 - `lib/appearance_motion.dart`: bottom-to-top theme reveal and Pixel CRT noise.
+- `lib/cyberpunk_theme.dart` and `lib/cyberpunk_backdrop.dart`: Cyberpunk
+  palette, button glitches, and animated circuitry.
+- `lib/credits.dart`: scrolling credits and external links.
 - `lib/theme_colours.dart`: role colours, theme overrides, and the HSV editor.
 - `lib/app_localizations.dart` and `lib/app_translations.dart`: interface
   translations and the localized text wrapper.
@@ -420,11 +436,10 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Public version: `0.5.3`.
-- Last completed APK: version 0.5.3 internal build `45`.
-- Current source baseline: 78 passing Flutter tests, two passing JVM
-  typography tests, clean static analysis, and a
-  successful Android release build. The APK includes camera-based cover
+- Verified Android APK: version 0.5.4 internal build `48`.
+- Current source baseline: 83 passing Flutter tests, clean static analysis,
+  and a successful Android release build. The two JVM typography tests last
+  passed for build 45. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,
   task-to-note links, tappable Notes hyperlinks, live text and QR link
   detection, and locally rebuilt OpenCV 4.5.3 libraries. All packaged
@@ -432,7 +447,9 @@ deletion must remain restricted to the app-owned support directory.
   pass the 16 KB-alignment regression check. OCR input is sampled and capped
   to a 1600-pixel longest side before detection to remain within the Android
   heap limit.
-- Distribution APK naming convention: `dist/checklist-<version>-android.apk`.
+- Distribution APK names are `dist/checklist-<version>-android.apk` for a new
+  public version and `dist/checklist-<version>-build<number>-android.apk` for
+  a rebuild of the same public version.
 - Publish one universal APK on each stable GitHub Release. Obtainium tracks
   the public repository URL. Keep the signing certificate consistent across updates.
 

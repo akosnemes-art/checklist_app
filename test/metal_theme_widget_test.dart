@@ -60,7 +60,7 @@ void main() {
       'Copper',
       'Black Metal',
       'Pixel',
-      'Glass'
+      'Cyberpunk'
     ]) {
       expect(find.text(theme), findsOneWidget);
     }

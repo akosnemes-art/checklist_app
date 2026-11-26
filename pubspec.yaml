@@ -1,7 +1,7 @@
 name: checklist_app
 description: A local-first checklist and notes app for Android.
 publish_to: 'none'
-version: 0.5.3+45
+version: 0.5.4+48
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -32,9 +32,14 @@ flutter:
   assets:
     - Checklist_app_icon_safe.png
     - assets/fonts/PixelifySans-OFL.txt
+    - assets/fonts/Rajdhani-OFL.txt
   fonts:
     - family: Pixelify Sans
       fonts:
         - asset: assets/fonts/PixelifySans.ttf
-  shaders:
-    - shaders/glass.frag
+    - family: Rajdhani
+      fonts:
+        - asset: assets/fonts/Rajdhani-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Rajdhani-Bold.ttf
+          weight: 700

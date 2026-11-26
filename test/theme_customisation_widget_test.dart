@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui' as ui;
 
 import 'package:checklist_app/app_version.dart';
 import 'package:checklist_app/main.dart';
@@ -48,7 +47,7 @@ void main() {
     await openThemes();
     expect(find.text('Newsprint'), findsNothing);
     expect(_key('theme-pixel'), findsOneWidget);
-    expect(_key('theme-glass'), findsOneWidget);
+    expect(_key('theme-glass'), findsNothing);
     await tap(_key('theme-customise'));
     final swatch = _key('theme-colour-background');
     expect(swatch, findsOneWidget);
@@ -77,16 +76,14 @@ void main() {
       'pixel': {'background': purple.toARGB32()}
     });
 
-    await tap(_key('theme-glass'));
-    expect(theme().scaffoldBackgroundColor, const Color(0xFFE4ECFB));
-    expect(theme().colorScheme.surface.a, lessThan(1));
-    expect(_key('glass-wallpaper'), findsNWidgets(2));
+    await tap(_key('theme-pencil'));
+    expect(theme().scaffoldBackgroundColor, const Color(0xFFF7F5F2));
     await tap(_key('theme-customise'));
     await tap(_key('theme-colour-background'));
     adjust('value', .2);
     await tester.pump();
     await tap(find.widgetWithText(TextButton, 'cancel'));
-    expect(theme().scaffoldBackgroundColor, const Color(0xFFE4ECFB));
+    expect(theme().scaffoldBackgroundColor, const Color(0xFFF7F5F2));
     await tap(_key('theme-pixel'));
     expect(theme().scaffoldBackgroundColor, purple);
 
@@ -103,12 +100,15 @@ void main() {
     expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('Glass Notes reach the status bar with a solid writing surface',
+  testWidgets(
+      'Glass migrates to Pencil and compact headers respect the safe area',
       (tester) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
       'checklist.lastSeenVersion.v1': checklistRelease,
       'checklist.theme.v1': 'glass',
+      'checklist.darkMode.v1': true,
+      'checklist.themeColours.v1': '{"glass":{"background":4281545523}}',
       'checklist.notes.v1':
           '[{"id":"glass-note","name":"Glass note","createdAt":"2026-11-21T12:00:00.000Z","content":"Editable note"}]',
       'checklist.selectedNote.v1': 'glass-note',
@@ -122,22 +122,30 @@ void main() {
     addTearDown(tester.view.resetPadding);
     addTearDown(tester.view.resetViewPadding);
 
-    final program = await tester
-        .runAsync(() => ui.FragmentProgram.fromAsset('shaders/glass.frag'));
-    expect(program, isNotNull);
     await tester.pumpWidget(const ChecklistApp());
     await tester.pumpAndSettle();
-    expect(_key('glass-wallpaper'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('checklist.theme.v1'), 'pencil');
+    expect(prefs.getBool('checklist.darkMode.v1'), false);
+    expect(prefs.getString('checklist.themeColours.v1'),
+        '{"glass":{"background":4281545523}}');
+    final workspace = _key('workspace-surface');
+    expect(Theme.of(tester.element(workspace)).scaffoldBackgroundColor,
+        const Color(0xFFF7F5F2));
+    final header = tester.widget<SliverPadding>(_key('checklist-header'));
+    expect(header.padding.resolve(TextDirection.ltr).top, 11);
     await tester.tap(find.byTooltip('open menu'));
     await tester.pumpAndSettle();
+    final drawer = tester.widget<AnimatedContainer>(_key('sidebar-surface'));
+    expect(drawer.padding!.resolve(TextDirection.ltr).top, 43.5);
     await tester.tap(find.bySemanticsLabel('NOTES'));
     await tester.pumpAndSettle();
-    expect(_key('glass-wallpaper'), findsOneWidget);
     tester.state<ScaffoldState>(find.byType(Scaffold)).closeDrawer();
     await tester.pumpAndSettle();
-    expect(_key('glass-wallpaper'), findsNothing);
-    expect(tester.getTopLeft(_key('workspace-surface')).dy, 0);
-    expect(tester.getTopLeft(_key('note-editor')).dy, greaterThanOrEqualTo(32));
+    expect(tester.getTopLeft(workspace).dy, 0);
+    expect(tester.getTopLeft(_key('note-editor')).dy, 32);
+    final editor = tester.widget<Padding>(_key('note-editor'));
+    expect(editor.padding.resolve(TextDirection.ltr).top, 14);
 
     final noteField = _key('note-content-field');
     final field = tester.widget<TextField>(noteField);

@@ -1,6 +1,35 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Cyberpunk opens directly and adds neon progress and priority controls.": (
+    "Cyberpunk s’ouvre directement, avec une barre de progression et des priorités lumineuses.",
+    "Cyberpunk se otevírá přímo a má svítící ukazatel průběhu a tlačítka priority."
+  ),
+  "Reduced top spacing and removed the Glass theme.": (
+    "L’espace en haut a été réduit et le thème Glass a été retiré.",
+    "Horní mezery jsou menší a motiv Glass byl odebrán."
+  ),
+  "Moved the website globe beside the Notes formatting controls.": (
+    "Le globe des liens se trouve à côté des outils de mise en forme.",
+    "Ikona webových odkazů je vedle ovládacích prvků formátování poznámek."
+  ),
+  "Added the Cyberpunk theme with photography by Allan Ferreira.": (
+    "Ajout du thème Cyberpunk avec une photo d’Allan Ferreira.",
+    "Přidán motiv Cyberpunk s fotografií od Allana Ferreiry."
+  ),
+  "Added rolling credits in About and updated the launcher icon.": (
+    "Le générique défile dans À propos et l’icône de l’application a été mise à jour.",
+    "V sekci O aplikaci přibyly posuvné titulky a ikona aplikace byla aktualizována."
+  ),
+  "designed by {name}": ("conçu par {name}", "navrhl {name}"),
+  "credits": ("générique", "titulky"),
+  "design": ("conception", "návrh"),
+  "development": ("développement", "vývoj"),
+  "original Cyberpunk photography": (
+    "photographie originale de Cyberpunk",
+    "původní fotografie pro Cyberpunk"
+  ),
+  "view portfolio": ("voir le portfolio", "zobrazit portfolio"),
   "Notes extend to the status bar and use a solid writing surface.": (
     "Le fond des notes atteint la barre d’état et la zone de saisie est opaque.",
     "Pozadí poznámek sahá ke stavovému řádku a plocha pro psaní je neprůhledná."

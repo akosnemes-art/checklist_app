@@ -91,7 +91,7 @@ void main() {
     expect(visible().top, 0);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('Settings fades the version and keeps the Notes globe available',
+  testWidgets('Settings fades and collapses the version in Notes',
       (tester) async {
     await _pumpApp(tester);
     await _tap(tester, find.byTooltip('open menu'));
@@ -99,10 +99,8 @@ void main() {
     final space = _key('settings-version-space');
     final fade = _key('settings-version-fade');
     final label = find.text('settings');
-    final globe = _key('note-website-gallery');
-    expect(tester.getSize(space).height, greaterThan(40));
+    expect(tester.getSize(space).height, greaterThan(0));
     expect(tester.widget<Opacity>(fade).opacity, 1);
-    expect(tester.getCenter(globe).dy, greaterThan(tester.getCenter(label).dy));
 
     await tester.tap(_key('settings-chevron'));
     await tester.pump();
@@ -114,11 +112,9 @@ void main() {
     final menuGap = tester.getTopLeft(_key('settings-themes')).dy -
         tester.getBottomLeft(label).dy;
     expect(menuGap, lessThan(24));
-    expect(globe, findsOneWidget);
-    expect(tester.getCenter(globe).dy, closeTo(tester.getCenter(label).dy, 2));
 
     await _tap(tester, _key('settings-chevron'));
     expect(tester.widget<Opacity>(fade).opacity, 1);
-    expect(tester.getSize(space).height, greaterThan(40));
+    expect(tester.getSize(space).height, greaterThan(0));
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 }

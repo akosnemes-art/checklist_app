@@ -5,6 +5,15 @@
 The Pixel theme includes Pixelify Sans by Stefie Justprince.
 The [SIL Open Font License 1.1](assets/fonts/PixelifySans-OFL.txt) ships with the font.
 
+## Cyberpunk theme
+
+Rajdhani is by the Indian Type Foundry. The [SIL Open Font License 1.1](assets/fonts/Rajdhani-OFL.txt)
+ships with the font.
+
+Build 46 used [Wet city street at night](https://unsplash.com/photos/wet-city-street-at-night-IqkTY2vSNYc)
+by [Allan Ferreira](https://unsplash.com/@allnferreira), used under the
+[Unsplash License](https://unsplash.com/license).
+
 ## PaddleOCR Android SDK and PP-OCRv6 models
 
 CHECKLIST includes the PaddleOCR Android SDK and PP-OCRv6 Tiny detection and

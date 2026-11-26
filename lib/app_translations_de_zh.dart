@@ -1,6 +1,35 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Cyberpunk opens directly and adds neon progress and priority controls.": (
+    "Cyberpunk startet direkt und erhält leuchtende Fortschritts- und Prioritätsanzeigen.",
+    "Cyberpunk 主题直接打开，进度条和优先级按钮带有霓虹光效。"
+  ),
+  "Reduced top spacing and removed the Glass theme.": (
+    "Der obere Abstand wurde verkleinert und das Design Glass entfernt.",
+    "缩小顶部间距，并移除 Glass 主题。"
+  ),
+  "Moved the website globe beside the Notes formatting controls.": (
+    "Der Globus für Webseiten steht neben den Formatierungswerkzeugen der Notizen.",
+    "网站链接的地球图标已移到笔记格式按钮旁。"
+  ),
+  "Added the Cyberpunk theme with photography by Allan Ferreira.": (
+    "Das Design Cyberpunk mit einem Foto von Allan Ferreira wurde hinzugefügt.",
+    "新增 Cyberpunk 主题，背景照片由 Allan Ferreira 拍摄。"
+  ),
+  "Added rolling credits in About and updated the launcher icon.": (
+    "Unter „Über“ läuft ein Abspann. Das App-Symbol wurde aktualisiert.",
+    "“关于”中新增滚动制作人员名单，并更新了应用图标。"
+  ),
+  "designed by {name}": ("gestaltet von {name}", "由 {name} 设计"),
+  "credits": ("mitwirkende", "制作人员"),
+  "design": ("gestaltung", "设计"),
+  "development": ("entwicklung", "开发"),
+  "original Cyberpunk photography": (
+    "ursprüngliche Cyberpunk-Fotografie",
+    "Cyberpunk 原背景摄影"
+  ),
+  "view portfolio": ("Portfolio ansehen", "查看作品集"),
   "Notes extend to the status bar and use a solid writing surface.": (
     "Der Notizhintergrund reicht bis zur Statusleiste. Das Schreibfeld ist deckend.",
     "笔记背景延伸至状态栏，书写区域采用不透明底色。"

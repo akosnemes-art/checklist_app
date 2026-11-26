@@ -1,4 +1,4 @@
-# Checklist 0.5.3
+# Checklist 0.5.4
 
 CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
 
@@ -14,10 +14,12 @@ The approved product behaviour and visual invariants are recorded in
 
 ## What it includes
 
-- Boi, Pencil, Pastel, Copper, Black Metal, Pixel, and Glass themes. Pixel has
-  arcade lettering and glowing priorities. Glass uses translucent panels and
-  cached refraction. Each theme can be customised with colour swatches and
-  hue, saturation, and value sliders in Settings.
+- Boi, Pencil, Pastel, Copper, Black Metal, Pixel, and Cyberpunk themes.
+  Pixel has arcade lettering and subtle CRT noise. Cyberpunk has neon
+  circuitry, glowing progress and priority controls, and cut-corner
+  checklist and reminder buttons. Each theme can be customised with colour
+  swatches and hue, saturation, and value sliders. Saved Glass selections
+  move to Pencil.
 - Persistent English, Hungarian, French, Czech, German, and Simplified Chinese
   interface languages,
   including localized menus, dialogs, hints, tooltips, dates, and Android
@@ -76,9 +78,12 @@ The approved product behaviour and visual invariants are recorded in
   carry through to note titles and category labels while note body text remains
   white for readability.
 - Automatic local saving of projects, tasks, preferences, and copied cover
-  images, notes, and categories. The globe beside the version in Notes opens a
-  gallery of saved web links with screenshots when available. The app captures
-  screenshots online using Android WebView. Notes and OCR remain available offline.
+  images, notes, and categories. When the selected note has a website link,
+  the globe beside its formatting controls opens the gallery of saved links.
+  The app captures screenshots online using Android WebView. Notes and OCR
+  remain available offline.
+- About credits Ákos Nemes for the design. Its Credits button opens a rolling
+  list with the designer's contact, developer credit, and photographer's portfolio.
 - Fast save/create feedback, the public version below the Settings row, and a
   hidden three-tap version and feature window in that row.
 
@@ -122,7 +127,7 @@ preferred Android App Bundle format with `flutter build appbundle`.
 
 ## Publish an update
 
-Publish a stable GitHub release with a tag such as `v0.5.3` and attach one
+Publish a stable GitHub release with a tag such as `v0.5.4` and attach one
 universal `checklist-<version>-android.apk`. Increment the Android build
 number and sign each update with the certificate used for the previous APK.
 Use a tag such as `v0.5.3-build45` for a new build of the same public version.

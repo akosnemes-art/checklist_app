@@ -26,6 +26,9 @@ import 'services/website_previews.dart';
 
 part 'black_metal_finish.dart';
 part 'appearance_motion.dart';
+part 'credits.dart';
+part 'cyberpunk_backdrop.dart';
+part 'cyberpunk_theme.dart';
 part 'metal_theme.dart';
 part 'modern_themes.dart';
 part 'theme_colours.dart';
@@ -71,12 +74,17 @@ const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
 const _buildChanges = <String>[
-  'Notes extend to the status bar and use a solid writing surface.',
-  'Pixel has CRT noise and theme changes draw from bottom to top.',
-  'The version fades out when Settings opens.',
+  'Cyberpunk opens directly and adds neon progress and priority controls.',
+  'Reduced top spacing and removed the Glass theme.',
+  'Moved the website globe beside the Notes formatting controls.',
+  'Added rolling credits in About and updated the launcher icon.',
 ];
 const _implementedChanges = <String>[
   ..._buildChanges,
+  'Added the Cyberpunk theme with photography by Allan Ferreira.',
+  'Notes extend to the status bar and use a solid writing surface.',
+  'Pixel has CRT noise and theme changes draw from bottom to top.',
+  'The version fades out when Settings opens.',
   'Added the Pixel and Glass themes.',
   'Added separate colour customisation for each theme.',
   'Gave Black Metal blood-red controls and a faster steel glint.',
@@ -153,9 +161,13 @@ enum AppTheme {
   copper,
   blackMetal,
   pixel,
-  glass;
+  cyberpunk;
 
-  bool get isDark => this == boi || this == pixel || _metalPalette != null;
+  bool get isDark =>
+      this == boi ||
+      this == pixel ||
+      this == cyberpunk ||
+      _metalPalette != null;
 
   // Builds that call Copper "Goth" use this same saved preference.
   String get _preferenceValue => this == copper ? 'goth' : name;
@@ -168,7 +180,7 @@ enum AppTheme {
 
   _ModernPalette? get _modernPalette => switch (this) {
         pixel => _pixelPalette,
-        glass => _glassPalette,
+        cyberpunk => _cyberpunkPalette,
         _ => null,
       };
 }
@@ -205,23 +217,29 @@ class _ChecklistAppState extends State<ChecklistApp> {
       final savedTheme = results[0] as String?;
       final legacyDarkMode = results[1]! as bool;
       final savedLanguage = results[2] as String?;
-      final theme = AppTheme.values.where((value) =>
-          value._preferenceValue ==
-          (savedTheme == 'newsprint' ? 'pixel' : savedTheme));
+      final migratedTheme = switch (savedTheme) {
+        'newsprint' => AppTheme.pixel,
+        'glass' => AppTheme.pencil,
+        _ => null,
+      };
+      final theme = AppTheme.values.where(
+        (value) => value._preferenceValue == savedTheme,
+      );
       final language = AppLanguage.values.where(
         (value) => value.name == savedLanguage,
       );
       if (!mounted) return;
       setState(() {
-        _appTheme = theme.isNotEmpty
-            ? theme.first
-            : legacyDarkMode
-                ? AppTheme.boi
-                : AppTheme.pencil;
+        _appTheme = migratedTheme ??
+            (theme.isNotEmpty
+                ? theme.first
+                : legacyDarkMode
+                    ? AppTheme.boi
+                    : AppTheme.pencil);
         if (language.isNotEmpty) _appLanguage = language.first;
         _themeColours = results[3]! as Map<String, Map<String, int>>;
       });
-      if (savedTheme == 'newsprint') await _setTheme(AppTheme.pixel);
+      if (migratedTheme != null) await _setTheme(migratedTheme);
     } catch (error) {
       debugPrint('Could not load appearance setting: $error');
     }
@@ -555,8 +573,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
         _buildMetalTheme(dark, _blackMetalPalette, notesActive: _notesActive),
       AppTheme.pixel => _buildModernTheme(dark, _pixelPalette,
           notes: _notesActive, pixel: true),
-      AppTheme.glass => _buildModernTheme(light, _glassPalette,
-          notes: _notesActive, pixel: false),
+      AppTheme.cyberpunk => _buildCyberpunkTheme(dark, notes: _notesActive),
     };
     final colours =
         _themeColours[_appTheme._preferenceValue] ?? const <String, int>{};
@@ -634,7 +651,6 @@ class _ChecklistHomeState extends State<ChecklistHome>
     duration: const Duration(milliseconds: 420),
     value: 1,
   );
-
   AnimationController _newContentReveal() => AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 500),
@@ -1616,7 +1632,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 AppTheme.copper => _copperPalette.checklistAccent,
                 AppTheme.blackMetal => _blackMetalPalette.checklistAccent,
                 AppTheme.pixel => _pixelPalette.border,
-                AppTheme.glass => _glassPalette.border,
+                AppTheme.cyberpunk => _cyberpunkPalette.border,
               },
         ),
       );
@@ -1927,7 +1943,6 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           )
                         : const BoxDecoration(),
                     child: _AppearanceBackdrop(
-                      matte: _showNotes,
                       child: _ThemeBuildReveal(
                         progress: _themeBuild,
                         child: SafeArea(
@@ -2123,7 +2138,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
           Icons.bolt_outlined
         ),
       AppTheme.pixel => ('pixel', 'Pixel', Icons.videogame_asset_outlined),
-      AppTheme.glass => ('glass', 'Glass', Icons.layers_outlined),
+      AppTheme.cyberpunk => ('cyberpunk', 'Cyberpunk', Icons.memory_rounded),
     };
     return _settingsOption(
       key: ValueKey('theme-$key'),
@@ -2248,6 +2263,12 @@ class _ChecklistHomeState extends State<ChecklistHome>
           ],
         );
       case _SettingsPage.about:
+        final theme = Theme.of(context);
+        final creditColour = switch (widget.appTheme) {
+          AppTheme.boi => _brandYellow,
+          AppTheme.pastel => _deepBlueButton,
+          _ => theme.colorScheme.primary,
+        };
         return Padding(
           key: const ValueKey('settings-about-page'),
           padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
@@ -2256,22 +2277,23 @@ class _ChecklistHomeState extends State<ChecklistHome>
             children: [
               _settingsBack('about'),
               const AppText(
-                'CHECKLIST {version} · build {build}',
-                arguments: {
-                  'version': checklistVersion,
-                  'build': checklistBuildNumber
-                },
+                'designed by {name}',
+                arguments: {'name': _designerName},
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
-              const AppText(
-                'Ákos Nemes · Codex AI',
-                style: TextStyle(fontSize: 11),
-              ),
-              const SizedBox(height: 6),
-              const AppText(
-                'akosnemes@proton.me',
-                style: TextStyle(fontSize: 11),
+              TextButton(
+                key: const ValueKey('about-credits'),
+                style: TextButton.styleFrom(
+                  foregroundColor: creditColour,
+                  side: BorderSide(color: creditColour, width: 1.5),
+                ),
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (context) =>
+                      _CreditsDialog(onOpenLink: _openNoteLink),
+                ),
+                child: const AppText('credits'),
               ),
             ],
           ),
@@ -2349,8 +2371,6 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   child: const SizedBox.expand(),
                 ),
               ),
-              if (_showNotes && _settingsOpen)
-                _websiteGalleryButton(foreground),
               IconButton(
                 key: const ValueKey('settings-chevron'),
                 tooltip: localizeText(
@@ -2400,9 +2420,6 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   style: _settingsTextStyle(foreground, false)
                       .copyWith(fontSize: settingsFontSize / 2),
                 ),
-                if (_showNotes && !_settingsOpen)
-                  _websiteGalleryButton(foreground),
-                if (_showNotes && _settingsOpen) const SizedBox(height: 48),
               ],
             ),
           ),
@@ -2450,6 +2467,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
         modern?.ink ??
         (widget.isDark ? _borderWhite : _lightText);
     final buttonOverride = theme.custom(_ThemeColour.buttons);
+    final cyberpunkCreate =
+        widget.appTheme == AppTheme.cyberpunk && !_showNotes;
     final buttonColour = buttonOverride ??
         (modern == null
             ? null
@@ -2520,21 +2539,49 @@ class _ChecklistHomeState extends State<ChecklistHome>
         ),
       ],
     );
+    final createLabel = _showNotes ? 'new note' : 'new checklist';
     final createButton = FilledButton.icon(
       key: const ValueKey('sidebar-create-button'),
       onPressed: _showNotes ? _createNote : _createProject,
       icon: const Icon(Icons.add_rounded, size: 19),
-      label: AppText(_showNotes ? 'new note' : 'new checklist'),
+      label: cyberpunkCreate
+          ? Text(
+              localizeText(context, createLabel).toUpperCase(),
+              semanticsLabel: localizeText(context, createLabel),
+            )
+          : AppText(createLabel),
+      clipBehavior: cyberpunkCreate ? Clip.antiAlias : Clip.none,
       style: FilledButton.styleFrom(
-        alignment: Alignment.centerLeft,
+        alignment: cyberpunkCreate ? Alignment.center : Alignment.centerLeft,
         backgroundColor: buttonColour,
-        foregroundColor: buttonOverride != null
+        foregroundColor: buttonOverride != null || cyberpunkCreate
             ? _contrastingInk(buttonColour)
             : modern?.buttonInk ?? sidebarForeground,
-        side: BorderSide(color: controlFrame, width: 2),
+        side: cyberpunkCreate
+            ? BorderSide(
+                color: theme.custom(_ThemeColour.borders) ?? _cyberpunkRed)
+            : BorderSide(color: controlFrame, width: 2),
+        shape: cyberpunkCreate ? _cyberpunkBevel : null,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      ).copyWith(
+        backgroundBuilder: cyberpunkCreate
+            ? (context, states, child) => ListenableBuilder(
+                  listenable: _themeBuild,
+                  child: child,
+                  builder: (context, child) => _CyberpunkButtonGlitch(
+                    enabled: !states.contains(WidgetState.disabled),
+                    hovered: states.contains(WidgetState.hovered),
+                    ambient: _themeBuild.isCompleted &&
+                        (!mobile || _mobileDrawerActive),
+                    child: child ?? const SizedBox.shrink(),
+                  ),
+                )
+            : null,
       ),
     );
+    final statusBar = MediaQuery.viewPaddingOf(context).top;
+    final topSpacing =
+        mobile ? statusBar + math.max(0, 55 - statusBar) / 2 : 11.0;
     final sidebar = Material(
       color: Colors.transparent,
       child: AnimatedContainer(
@@ -2553,12 +2600,12 @@ class _ChecklistHomeState extends State<ChecklistHome>
             ),
           ),
         ),
-        padding: EdgeInsets.fromLTRB(18, mobile ? 55 : 22, 14, 14),
+        padding: EdgeInsets.fromLTRB(18, topSpacing, 14, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             wordmark,
-            SizedBox(height: mobile ? 5 : 12),
+            SizedBox(height: mobile ? 2.5 : 6),
             Expanded(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
@@ -2916,7 +2963,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
       ),
     );
     return _AppearanceBackdrop(
-      lens: true,
+      sidebar: true,
       child: _ThemeBuildReveal(
         progress: _themeBuild,
         child: _BlackMetalPanel(
@@ -2938,7 +2985,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
           AppTheme.boi => _defaultNoteBlue,
           AppTheme.pastel => _pastelMauve,
           AppTheme.copper || AppTheme.blackMetal => _metalPalette!.notesAccent,
-          AppTheme.pixel || AppTheme.glass => _modernPalette!.notesAccent,
+          AppTheme.pixel || AppTheme.cyberpunk => _modernPalette!.notesAccent,
         });
   }
 
@@ -2980,7 +3027,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
             key: const ValueKey('note-editor'),
             padding: EdgeInsets.fromLTRB(
               wide ? 52 : 24,
-              28,
+              14,
               wide ? 52 : 24,
               30,
             ),
@@ -3092,7 +3139,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 3),
                 AppText(
                   _formatDate(context, note.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -3123,6 +3170,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                         mainAxisSize: MainAxisSize.min,
                         key: const ValueKey('note-format-toolbar'),
                         children: [
+                          if (_noteController.links
+                              .any((link) => isWebsiteLink(link.uri)))
+                            _websiteGalleryButton(_noteLinkColour(theme)),
                           _noteFormatButton(
                               format: _NoteFormat.bold,
                               icon: Icons.format_bold_rounded,
@@ -3140,7 +3190,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 3),
                 Expanded(
                   child: _NoteBodyReveal(
                     progress: CurveTween(curve: const Interval(0.22, 1))
@@ -3223,6 +3273,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final accent = theme.custom(_ThemeColour.checklistAccent) ??
         _metalPalette?.checklistAccent ??
         _modernPalette?.checklistAccent;
+    final cyberpunk = widget.appTheme == AppTheme.cyberpunk;
     final done = project.completedTaskCount;
     final usesSoftKeyboardAction = theme.platform == TargetPlatform.android ||
         theme.platform == TargetPlatform.iOS;
@@ -3244,7 +3295,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 key: ValueKey(project.id),
                 slivers: [
                   SliverPadding(
-                    padding: EdgeInsets.fromLTRB(horizontal, 22, horizontal, 0),
+                    key: const ValueKey('checklist-header'),
+                    padding: EdgeInsets.fromLTRB(horizontal, 11, horizontal, 0),
                     sliver: SliverToBoxAdapter(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3282,7 +3334,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               ),
                             ],
                           ),
-                          const SizedBox(height: 9),
+                          const SizedBox(height: 4.5),
                           Row(
                             children: [
                               Expanded(
@@ -3330,7 +3382,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 5),
                           Tooltip(
                             message: localizeText(
                               context,
@@ -3340,7 +3392,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             ),
                             child: OutlinedButton.icon(
                               key: const ValueKey('checklist-reminder-button'),
+                              clipBehavior:
+                                  cyberpunk ? Clip.antiAlias : Clip.none,
                               style: OutlinedButton.styleFrom(
+                                shape: cyberpunk ? _cyberpunkBevel : null,
                                 foregroundColor:
                                     widget.isDark || _modernPalette != null
                                         ? reminderColor
@@ -3380,25 +3435,30 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               ),
                             ),
                           ),
-                          if (project.tasks.isNotEmpty) ...[
-                            const SizedBox(height: 16),
+                          if (cyberpunk || project.tasks.isNotEmpty) ...[
+                            const SizedBox(height: 8),
                             _AnimatedChecklistProgress(
-                              value: done / project.tasks.length,
-                              color: accent ??
-                                  (widget.isDark
-                                      ? _brandYellow
-                                      : widget.isPastel
-                                          ? _pastelMauve
-                                          : _lightText),
-                              backgroundColor:
-                                  widget.isDark || _modernPalette != null
+                              value: project.tasks.isEmpty
+                                  ? 0
+                                  : done / project.tasks.length,
+                              color: cyberpunk
+                                  ? _brandYellow
+                                  : accent ??
+                                      (widget.isDark
+                                          ? _brandYellow
+                                          : widget.isPastel
+                                              ? _pastelMauve
+                                              : _lightText),
+                              backgroundColor: cyberpunk
+                                  ? _cyberpunkProgressBlue
+                                  : widget.isDark || _modernPalette != null
                                       ? theme.dividerColor
                                       : widget.isPastel
                                           ? _pastelYellow
                                           : const Color(0xFFD8D8D6),
                             ),
                           ],
-                          const SizedBox(height: 27),
+                          const SizedBox(height: 13.5),
                           _contentFade(
                               project.coverImagePath == null
                                   ? const AlwaysStoppedAnimation(1.0)
@@ -3411,7 +3471,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                 onCamera: () => _takeCoverPhoto(project),
                                 onRemove: () => _removeCover(project),
                               )),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 12),
                         ],
                       ),
                     ),
@@ -3680,6 +3740,7 @@ class _BrandWordmark extends StatelessWidget {
     final metal = theme.metalPalette;
     final modern = theme.appearance?._modernPalette;
     final pixel = theme.appearance == AppTheme.pixel;
+    final cyberpunk = theme.appearance == AppTheme.cyberpunk;
     final ink = theme.custom(_ThemeColour.text);
     final activeColor = ink ?? metal?.ink ?? modern?.ink ?? _borderWhite;
     final inactiveColor = ink?.withValues(alpha: 0.66) ??
@@ -3690,13 +3751,17 @@ class _BrandWordmark extends StatelessWidget {
       color: active ? activeColor : inactiveColor,
       fontFamily: pixel
           ? _pixelFont
-          : metal != null
-              ? _metalSerif
-              : null,
+          : cyberpunk
+              ? _cyberpunkFont
+              : metal != null
+                  ? _metalSerif
+                  : null,
       fontSize: metal != null || pixel ? 14 : 15,
       height: 1,
-      fontWeight: metal != null || pixel ? FontWeight.w700 : FontWeight.w900,
-      letterSpacing: metal != null ? 0.75 : -0.4,
+      fontWeight: metal != null || pixel || cyberpunk
+          ? FontWeight.w700
+          : FontWeight.w900,
+      letterSpacing: cyberpunk || metal != null ? 0.75 : -0.4,
     );
     return Semantics(
       label: label,
@@ -4233,6 +4298,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
           shape: const RoundedRectangleBorder(),
           side: BorderSide(color: actionForeground, width: 2),
           backgroundBuilder: base.isBlackMetal ? _blackMetalButtonFinish : null,
+          foregroundBuilder: base.filledButtonTheme.style?.foregroundBuilder,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -4243,6 +4309,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
                   : noteAccent),
           shape: const RoundedRectangleBorder(),
           side: BorderSide(color: fieldBorder, width: 2),
+          foregroundBuilder: base.textButtonTheme.style?.foregroundBuilder,
         ),
       ),
     );
@@ -5940,17 +6007,53 @@ class _AnimatedChecklistProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cyberpunk = Theme.of(context).appearance == AppTheme.cyberpunk;
+    Widget glow(Color hue, double width, AlignmentDirectional alignment,
+            String key) =>
+        Positioned.fill(
+          child: FractionallySizedBox(
+            widthFactor: width,
+            alignment: alignment,
+            child: DecoratedBox(
+              key: ValueKey(key),
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: hue.withValues(alpha: 0.60),
+                    blurRadius: 9,
+                    spreadRadius: 0.5,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
     return TweenAnimationBuilder<double>(
       key: const ValueKey('animated-checklist-progress'),
       tween: Tween<double>(begin: 0, end: value),
       duration: const Duration(milliseconds: 420),
       curve: Curves.easeOutCubic,
-      builder: (context, animatedValue, child) => LinearProgressIndicator(
-        minHeight: 5,
-        value: animatedValue,
-        color: color,
-        backgroundColor: backgroundColor,
-      ),
+      builder: (context, animatedValue, child) {
+        final bar = LinearProgressIndicator(
+          minHeight: 5,
+          value: animatedValue,
+          color: color,
+          backgroundColor: backgroundColor,
+        );
+        if (!cyberpunk) return bar;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            if (animatedValue < 1)
+              glow(backgroundColor, 1 - animatedValue,
+                  AlignmentDirectional.centerEnd, 'cyberpunk-progress-track'),
+            if (animatedValue > 0)
+              glow(color, animatedValue, AlignmentDirectional.centerStart,
+                  'cyberpunk-progress-fill'),
+            bar,
+          ],
+        );
+      },
     );
   }
 }
@@ -6164,7 +6267,7 @@ class _ImportanceBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         border: _blackMetalMediumRim(theme, importance),
-        boxShadow: _pixelPriorityGlow(theme, color),
+        boxShadow: _priorityGlow(theme, color),
       ),
     );
   }
@@ -6193,7 +6296,7 @@ class _ImportanceChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: mediumRim != null ? color : color.withValues(alpha: 0.12),
         border: mediumRim ?? Border.all(color: color, width: 2),
-        boxShadow: _pixelPriorityGlow(theme, color),
+        boxShadow: _priorityGlow(theme, color),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -6234,6 +6337,10 @@ class _ImportanceMenuLabel extends StatelessWidget {
     final color = _themedImportanceColor(theme, importance,
         isPastel: isPastel, isPencil: isPencil);
     final mediumRim = _blackMetalMediumRim(theme, importance);
+    final glow = theme.appearance == AppTheme.cyberpunk
+        ? _priorityGlow(theme, color)
+        : null;
+    final decorate = mediumRim != null || glow != null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -6241,10 +6348,10 @@ class _ImportanceMenuLabel extends StatelessWidget {
           key: ValueKey('priority-menu-${importance.name}'),
           width: 4,
           height: 18,
-          color: mediumRim == null ? color : null,
-          decoration: mediumRim == null
-              ? null
-              : BoxDecoration(color: color, border: mediumRim),
+          color: decorate ? null : color,
+          decoration: decorate
+              ? BoxDecoration(color: color, border: mediumRim, boxShadow: glow)
+              : null,
         ),
         const SizedBox(width: 8),
         AppText(
@@ -6271,10 +6378,16 @@ Border? _blackMetalMediumRim(ThemeData theme, ProjectImportance importance,
         ? Border.all(color: const Color(0xFF9E70AE), width: width)
         : null;
 
-List<BoxShadow>? _pixelPriorityGlow(ThemeData theme, Color colour) =>
-    theme.appearance == AppTheme.pixel
-        ? [BoxShadow(color: colour.withValues(alpha: 0.23), blurRadius: 7)]
-        : null;
+List<BoxShadow>? _priorityGlow(ThemeData theme, Color colour) =>
+    switch (theme.appearance) {
+      AppTheme.pixel => [
+          BoxShadow(color: colour.withValues(alpha: 0.23), blurRadius: 7),
+        ],
+      AppTheme.cyberpunk => [
+          BoxShadow(color: colour.withValues(alpha: 0.38), blurRadius: 9),
+        ],
+      _ => null,
+    };
 
 Color _themedImportanceColor(
   ThemeData theme,

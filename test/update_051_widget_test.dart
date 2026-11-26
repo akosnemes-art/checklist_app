@@ -140,10 +140,13 @@ void main() {
     expect(_key('note-website-gallery'), findsNothing);
     await _openNotes(tester);
     final button = _key('note-website-gallery');
-    expect(tester.getTopLeft(button).dx,
-        greaterThanOrEqualTo(tester.getTopRight(_key('settings-version')).dx));
+    expect(button, findsNothing);
     await tester.enterText(_key('note-content-field'), url);
     await tester.pump(const Duration(seconds: 1));
+    final bold = _key('note-format-bold');
+    expect(
+        tester.getTopRight(button).dx, closeTo(tester.getTopLeft(bold).dx, 1));
+    expect(tester.getCenter(button).dy, tester.getCenter(bold).dy);
     for (var steps = 0; steps < 30 && captures.isEmpty; steps++) {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 10)));
@@ -172,5 +175,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(opens, [url]);
     expect(captures, [url]);
+    Navigator.of(tester.element(gallery)).pop();
+    await tester.pumpAndSettle();
+    await tester.enterText(_key('note-content-field'), 'Plain text');
+    await tester.pumpAndSettle();
+    expect(button, findsNothing);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 }

@@ -21,6 +21,22 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Cyberpunk opens directly and adds neon progress and priority controls.":
+      "A Cyberpunk azonnal elindul, és világító folyamatjelzőt és prioritásgombokat kapott.",
+  "Reduced top spacing and removed the Glass theme.":
+      "Csökkent a felső térköz, a Glass téma megszűnt.",
+  "Moved the website globe beside the Notes formatting controls.":
+      "A webhelyek földgömbje a jegyzetformázó gombok mellé került.",
+  "Added the Cyberpunk theme with photography by Allan Ferreira.":
+      "Új Cyberpunk téma Allan Ferreira fényképével.",
+  "Added rolling credits in About and updated the launcher icon.":
+      "A Névjegy gördülő stáblistát kapott, és megújult az alkalmazásikon.",
+  "designed by {name}": "tervezte: {name}",
+  "credits": "stáblista",
+  "design": "tervezés",
+  "development": "fejlesztés",
+  "original Cyberpunk photography": "A Cyberpunk eredeti háttérfotója",
+  "view portfolio": "portfólió megtekintése",
   "Notes extend to the status bar and use a solid writing surface.":
       "A Jegyzetek háttere az állapotsávig ér, az írófelület pedig egyszínű.",
   "Pixel has CRT noise and theme changes draw from bottom to top.":
