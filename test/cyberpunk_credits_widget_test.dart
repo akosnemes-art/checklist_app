@@ -173,14 +173,45 @@ void main() {
     await _tap(tester, create);
     expect(find.text('checklist name'), findsOneWidget);
     await _tap(tester, find.text('cancel'));
-    await _tap(tester, find.bySemanticsLabel('NOTES'));
-    expect(find.text('new note'), findsOneWidget);
-    expect(_key('cyberpunk-create-glitch'), findsNothing);
     expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets(
-      'Cyberpunk glows blue when empty, fills yellow, and styles its controls',
+  testWidgets('Cyberpunk new note shares the checklist bevel and glitches',
+      (tester) async {
+    await _openSettings(tester);
+    await _tap(tester, _key('settings-themes'));
+    final choice = _key('theme-cyberpunk');
+    await tester.ensureVisible(choice);
+    await _tap(tester, choice);
+
+    final create = _key('sidebar-create-button');
+    final checklistButton = tester.widget<FilledButton>(create);
+    final checklistSize = tester.getSize(create);
+    await _tap(tester, find.bySemanticsLabel('NOTES'));
+    expect(find.text('NEW NOTE'), findsOneWidget);
+    final noteButton = tester.widget<FilledButton>(create);
+    final style = noteButton.style!;
+    expect(style.shape!.resolve({}), checklistButton.style!.shape!.resolve({}));
+    expect(noteButton.clipBehavior, Clip.antiAlias);
+    expect(style.backgroundColor!.resolve({}), const Color(0xFF165AC8));
+    expect(style.side!.resolve({})!.color, const Color(0xFF379BFF));
+    expect(style.foregroundColor!.resolve({}), const Color(0xFFF8F7FF));
+    expect(tester.getSize(create), checklistSize);
+    expect(tester.getSize(_key('sidebar-filter-frame')).height,
+        checklistSize.height);
+
+    final press = await tester.startGesture(tester.getCenter(create));
+    await tester.pump();
+    expect(_key('cyberpunk-create-ghost'), findsOneWidget);
+    await press.cancel();
+    await tester.pumpAndSettle();
+    expect(_key('cyberpunk-create-ghost'), findsNothing);
+    await _tap(tester, create);
+    expect(find.text('make a note'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('Cyberpunk has a flat blue track and glowing yellow fill',
       (tester) async {
     SharedPreferences.setMockInitialValues({
       'checklist.welcome.v1': true,
@@ -218,8 +249,7 @@ void main() {
         (tester.widget<DecoratedBox>(layer).decoration as BoxDecoration)
             .boxShadow!
             .single;
-    expect(shadow(track).color, blue.withValues(alpha: 0.60));
-    expect(shadow(track).blurRadius, 9);
+    expect(track, findsNothing);
     expect(fill, findsNothing);
 
     final priority = _key('priority-chip-normal');
@@ -248,10 +278,12 @@ void main() {
     expect(progress().value, inExclusiveRange(0, 0.5));
     await tester.pumpAndSettle();
     expect(progress().value, 0.5);
+    expect(progress().backgroundColor, blue);
     expect(shadow(fill).color, yellow.withValues(alpha: 0.60));
+    expect(shadow(fill).blurRadius, 9);
     expect(tester.getSize(fill).width,
         closeTo(tester.getSize(indicator).width / 2, 0.1));
-    expect(tester.getSize(track).width, tester.getSize(fill).width);
+    expect(track, findsNothing);
 
     await _tap(tester, tasks.last);
     expect(progress().value, 1);

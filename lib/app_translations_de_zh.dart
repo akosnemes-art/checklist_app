@@ -1,6 +1,19 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Cyberpunk adds a blue cut-corner new-note button.": (
+    "In Cyberpunk hat die Schaltfläche für neue Notizen eine blaue Farbe und eine abgeschrägte Ecke.",
+    "Cyberpunk 主题的新增笔记按钮改为带切角的蓝色。"
+  ),
+  "Cyberpunk progress glows on the yellow fill.": (
+    "In Cyberpunk leuchtet der gelbe Teil des Fortschrittsbalkens.",
+    "Cyberpunk 主题进度条的黄色部分带有光效。"
+  ),
+  "Theme backgrounds reach the system bars, and the launcher icon is updated.":
+      (
+    "Die Designhintergründe reichen hinter die Systemleisten, und das App-Symbol wurde aktualisiert.",
+    "主题背景延伸到系统栏背后，应用图标也已更新。"
+  ),
   "Cyberpunk opens directly and adds neon progress and priority controls.": (
     "Cyberpunk startet direkt und erhält leuchtende Fortschritts- und Prioritätsanzeigen.",
     "Cyberpunk 主题直接打开，进度条和优先级按钮带有霓虹光效。"

@@ -352,8 +352,7 @@ Color _createButtonColour(AppTheme appearance, bool notes) {
     AppTheme.blackMetal =>
       appearance._metalPalette!.button(notes),
     AppTheme.pixel => appearance._modernPalette!.accent(notes),
-    AppTheme.cyberpunk =>
-      notes ? _cyberpunkPalette.notesAccent : _cyberpunkCreateRed,
+    AppTheme.cyberpunk => notes ? _cyberpunkCreateBlue : _cyberpunkCreateRed,
   };
 }
 

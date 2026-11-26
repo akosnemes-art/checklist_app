@@ -21,6 +21,12 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Cyberpunk adds a blue cut-corner new-note button.":
+      "A Cyberpunk új jegyzet gombja kék színt és levágott sarkot kapott.",
+  "Cyberpunk progress glows on the yellow fill.":
+      "A Cyberpunk folyamatjelző sárga része világít.",
+  "Theme backgrounds reach the system bars, and the launcher icon is updated.":
+      "A témák háttere a rendszersávok mögé ér, és megújult az alkalmazásikon.",
   "Cyberpunk opens directly and adds neon progress and priority controls.":
       "A Cyberpunk azonnal elindul, és világító folyamatjelzőt és prioritásgombokat kapott.",
   "Reduced top spacing and removed the Glass theme.":

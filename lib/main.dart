@@ -74,13 +74,16 @@ const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
 const _buildChanges = <String>[
+  'Cyberpunk adds a blue cut-corner new-note button.',
+  'Cyberpunk progress glows on the yellow fill.',
+  'Theme backgrounds reach the system bars, and the launcher icon is updated.',
+];
+const _implementedChanges = <String>[
+  ..._buildChanges,
   'Cyberpunk opens directly and adds neon progress and priority controls.',
   'Reduced top spacing and removed the Glass theme.',
   'Moved the website globe beside the Notes formatting controls.',
   'Added rolling credits in About and updated the launcher icon.',
-];
-const _implementedChanges = <String>[
-  ..._buildChanges,
   'Added the Cyberpunk theme with photography by Allan Ferreira.',
   'Notes extend to the status bar and use a solid writing surface.',
   'Pixel has CRT noise and theme changes draw from bottom to top.',
@@ -1917,17 +1920,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   }
                 },
           body: SafeArea(
-            top: !_showNotes,
+            top: false,
+            bottom: false,
             child: Row(
               children: [
-                if (wide)
-                  SafeArea(
-                    top: _showNotes,
-                    bottom: false,
-                    left: false,
-                    right: false,
-                    child: SizedBox(width: 282, child: sidebar),
-                  ),
+                if (wide) SizedBox(width: 282, child: sidebar),
                 Expanded(
                   child: AnimatedContainer(
                     key: const ValueKey('workspace-surface'),
@@ -1947,8 +1944,6 @@ class _ChecklistHomeState extends State<ChecklistHome>
                         progress: _themeBuild,
                         child: SafeArea(
                           key: const ValueKey('main-content-safe-area'),
-                          top: _showNotes,
-                          bottom: false,
                           left: false,
                           right: false,
                           child: _BlackMetalPanel(
@@ -2467,8 +2462,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
         modern?.ink ??
         (widget.isDark ? _borderWhite : _lightText);
     final buttonOverride = theme.custom(_ThemeColour.buttons);
-    final cyberpunkCreate =
-        widget.appTheme == AppTheme.cyberpunk && !_showNotes;
+    final cyberpunkCreate = widget.appTheme == AppTheme.cyberpunk;
     final buttonColour = buttonOverride ??
         (modern == null
             ? null
@@ -2559,7 +2553,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
             : modern?.buttonInk ?? sidebarForeground,
         side: cyberpunkCreate
             ? BorderSide(
-                color: theme.custom(_ThemeColour.borders) ?? _cyberpunkRed)
+                color: theme.custom(_ThemeColour.borders) ??
+                    (_showNotes ? _cyberpunkProgressBlue : _cyberpunkRed),
+              )
             : BorderSide(color: controlFrame, width: 2),
         shape: cyberpunkCreate ? _cyberpunkBevel : null,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -2580,8 +2576,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
       ),
     );
     final statusBar = MediaQuery.viewPaddingOf(context).top;
-    final topSpacing =
-        mobile ? statusBar + math.max(0, 55 - statusBar) / 2 : 11.0;
+    final topSpacing = mobile
+        ? statusBar + math.max(0, 55 - statusBar) / 2
+        : MediaQuery.paddingOf(context).top + 11;
     final sidebar = Material(
       color: Colors.transparent,
       child: AnimatedContainer(
@@ -2948,16 +2945,13 @@ class _ChecklistHomeState extends State<ChecklistHome>
               ),
             ),
             const SizedBox(height: 10),
-            if (mobile)
-              SafeArea(
-                key: const ValueKey('mobile-sidebar-safe-area'),
-                top: false,
-                left: false,
-                right: false,
-                child: _buildSettingsPanel(sidebarForeground),
-              )
-            else
-              _buildSettingsPanel(sidebarForeground),
+            SafeArea(
+              key: mobile ? const ValueKey('mobile-sidebar-safe-area') : null,
+              top: false,
+              left: false,
+              right: false,
+              child: _buildSettingsPanel(sidebarForeground),
+            ),
           ],
         ),
       ),
@@ -6008,26 +6002,6 @@ class _AnimatedChecklistProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cyberpunk = Theme.of(context).appearance == AppTheme.cyberpunk;
-    Widget glow(Color hue, double width, AlignmentDirectional alignment,
-            String key) =>
-        Positioned.fill(
-          child: FractionallySizedBox(
-            widthFactor: width,
-            alignment: alignment,
-            child: DecoratedBox(
-              key: ValueKey(key),
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: hue.withValues(alpha: 0.60),
-                    blurRadius: 9,
-                    spreadRadius: 0.5,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
     return TweenAnimationBuilder<double>(
       key: const ValueKey('animated-checklist-progress'),
       tween: Tween<double>(begin: 0, end: value),
@@ -6040,16 +6014,28 @@ class _AnimatedChecklistProgress extends StatelessWidget {
           color: color,
           backgroundColor: backgroundColor,
         );
-        if (!cyberpunk) return bar;
+        if (!cyberpunk || animatedValue == 0) return bar;
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            if (animatedValue < 1)
-              glow(backgroundColor, 1 - animatedValue,
-                  AlignmentDirectional.centerEnd, 'cyberpunk-progress-track'),
-            if (animatedValue > 0)
-              glow(color, animatedValue, AlignmentDirectional.centerStart,
-                  'cyberpunk-progress-fill'),
+            Positioned.fill(
+              child: FractionallySizedBox(
+                widthFactor: animatedValue,
+                alignment: AlignmentDirectional.centerStart,
+                child: DecoratedBox(
+                  key: const ValueKey('cyberpunk-progress-fill'),
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.60),
+                        blurRadius: 9,
+                        spreadRadius: 0.5,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             bar,
           ],
         );

@@ -51,9 +51,9 @@ void main() {
         find.byKey(const ValueKey('implemented-changes-title')),
         findsOneWidget,
       );
-      expect(find.textContaining('Moved the website globe'), findsOneWidget);
-      expect(find.textContaining('Cyberpunk opens directly'), findsOneWidget);
-      expect(find.textContaining('Added rolling credits'), findsOneWidget);
+      expect(find.textContaining('blue cut-corner new-note'), findsOneWidget);
+      expect(find.textContaining('glows on the yellow fill'), findsOneWidget);
+      expect(find.textContaining('Theme backgrounds reach'), findsOneWidget);
       expect(find.text('read less'), findsOneWidget);
       expect(
         tester.getSize(expandingContent).height,

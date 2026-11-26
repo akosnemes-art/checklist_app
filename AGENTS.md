@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current source version: **0.5.4**. The Flutter build number may increase for
+- Current source version: **0.5.5**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -35,8 +35,8 @@ regression test for every approved visual or interaction change.
 These details have already been approved and must not change incidentally:
 
 - Square corners are used throughout buttons, fields, dialogs, menus, chips,
-  drawers, snackbars, and window chrome. The Cyberpunk new-checklist and
-  reminder buttons have the same bevel at the lower-right corner.
+  drawers, snackbars, and window chrome. The Cyberpunk new-checklist, new-note,
+  and reminder buttons have the same bevel at the lower-right corner.
 - `CHECKLIST` and `NOTES` form one wordmark in the same font. There is no
   chromatic-aberration text effect. A checkmark appears immediately beside the
   selected mode, is visually aligned with the surrounding text, glitches when
@@ -51,8 +51,8 @@ These details have already been approved and must not change incidentally:
   palette with blue Notes hyperlinks and warm-grey selected note rows.
 - Boi checklist completion progress is brand yellow (`#F3ED23`). Pencil
   progress is black on a light-grey track. Cyberpunk uses a glowing brand
-  yellow fill and electric-blue (`#379BFF`) track, including for checklists
-  with zero tasks.
+  yellow fill and a flat electric-blue (`#379BFF`) track, including for
+  checklists with zero tasks.
 - Checklist priorities are: low blue (`#229FE3`), normal purple
   (`#922FD0`), and high yellow (`#F3ED23`).
 - The task-composer placeholder beginning `add a task…` is grey (`#9AA0AA`).
@@ -61,7 +61,8 @@ These details have already been approved and must not change incidentally:
 - Note-category colour affects the note title, category label, list indicator,
   and selected-row treatment. It does not recolour the note body text.
 - White frames are intentional around the create-note button, filter/sort
-  button, and category selector.
+  button, and category selector. The Cyberpunk sidebar create buttons use
+  colour-matched borders.
 - Every three-dot settings button is intentionally unframed and uses a vertical
   ellipsis. Do not restore horizontal dots or frames around these buttons.
 - The Notes filter button and `new note` button have exactly the same height.
@@ -296,8 +297,9 @@ rely on the palette positions.
   selections migrate to Pixel and saved Glass selections migrate to Pencil.
   Cyberpunk uses coral Checklist and cyan
   Notes accents, Rajdhani headings, and a text-free circuit-board backdrop with
-  red and cyan moving signals. Its red new-checklist button glitches on touch
-  and at random intervals from 5 to 15 seconds while visible. The other
+  red and cyan moving signals. Its red new-checklist and blue (`#165AC8`)
+  new-note buttons glitch on touch and at random intervals from 5 to 15
+  seconds while visible. The other
   Cyberpunk buttons have a 280 ms glitch on touch or hover. Cyberpunk loads
   directly, and all themes use the shared bottom-to-top reveal on selection.
   Backdrop movement, button glitches, and the reveal respect reduced motion.
@@ -345,9 +347,9 @@ rely on the palette positions.
 - The main content and mobile drawer respect the Android bottom safe area so
   the task composer and Settings panel stay above gesture or three-button
   system navigation.
-- Android uses transparent edge-to-edge system navigation. The active app or
-  drawer background extends behind a gesture indicator without a white strip;
-  safe-area padding still keeps interactive controls clear of system UI.
+- Android uses transparent edge-to-edge system bars. In both workspaces every
+  theme paints its background behind the status bar and navigation area.
+  Workspace and drawer controls remain at their safe-area positions.
 - The app label is `CHECKLIST`. Gradle packages the approved
   `Checklist_app_icon_safe.png` with centred lettering as both the legacy and
   adaptive launcher icon.
@@ -436,8 +438,8 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Verified Android APK: version 0.5.4 internal build `49`.
-- Current source baseline: 83 passing Flutter tests, clean static analysis,
+- Verified Android APK: version 0.5.5 internal build `50`.
+- Current source baseline: 85 passing Flutter tests, clean static analysis,
   and a successful Android release build. The two JVM typography tests last
   passed for build 45. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,

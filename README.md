@@ -1,4 +1,4 @@
-# Checklist 0.5.4
+# Checklist 0.5.5
 
 CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
 
@@ -16,10 +16,10 @@ The approved product behaviour and visual invariants are recorded in
 
 - Boi, Pencil, Pastel, Copper, Black Metal, Pixel, and Cyberpunk themes.
   Pixel has arcade lettering and subtle CRT noise. Cyberpunk has neon
-  circuitry, glowing progress and priority controls, and cut-corner
-  checklist and reminder buttons. Each theme can be customised with colour
-  swatches and hue, saturation, and value sliders. Saved Glass selections
-  move to Pencil.
+  circuitry, a glowing yellow progress fill, glowing priority controls,
+  and cut-corner checklist, note, and reminder buttons. Each theme can be
+  customised with colour swatches and hue, saturation, and value sliders.
+  Saved Glass selections move to Pencil.
 - Persistent English, Hungarian, French, Czech, German, and Simplified Chinese
   interface languages,
   including localized menus, dialogs, hints, tooltips, dates, and Android
@@ -127,7 +127,7 @@ preferred Android App Bundle format with `flutter build appbundle`.
 
 ## Publish an update
 
-Publish a stable GitHub release with a tag such as `v0.5.4` and attach one
+Publish a stable GitHub release with a tag such as `v0.5.5` and attach one
 universal `checklist-<version>-android.apk`. Increment the Android build
 number and sign each update with the certificate used for the previous APK.
 Use a tag such as `v0.5.3-build45` for a new build of the same public version.

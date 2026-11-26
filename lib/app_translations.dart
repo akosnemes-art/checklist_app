@@ -1,6 +1,19 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Cyberpunk adds a blue cut-corner new-note button.": (
+    "Dans Cyberpunk, le bouton de nouvelle note est bleu et son coin est coupé.",
+    "Cyberpunk má modré tlačítko nové poznámky se zkoseným rohem."
+  ),
+  "Cyberpunk progress glows on the yellow fill.": (
+    "Dans Cyberpunk, la partie jaune de la barre de progression est lumineuse.",
+    "V motivu Cyberpunk svítí žlutá výplň ukazatele průběhu."
+  ),
+  "Theme backgrounds reach the system bars, and the launcher icon is updated.":
+      (
+    "Les fonds s’étendent derrière les barres système, et l’icône a été mise à jour.",
+    "Pozadí sahá pod systémové lišty a ikona aplikace je aktualizovaná."
+  ),
   "Cyberpunk opens directly and adds neon progress and priority controls.": (
     "Cyberpunk s’ouvre directement, avec une barre de progression et des priorités lumineuses.",
     "Cyberpunk se otevírá přímo a má svítící ukazatel průběhu a tlačítka priority."

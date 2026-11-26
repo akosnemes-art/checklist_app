@@ -2,6 +2,7 @@ part of 'main.dart';
 
 const _cyberpunkFont = 'Rajdhani';
 const _cyberpunkCreateRed = Color(0xFFD91432);
+const _cyberpunkCreateBlue = Color(0xFF165AC8);
 const _cyberpunkProgressBlue = Color(0xFF379BFF);
 const _cyberpunkBevel = BeveledRectangleBorder(
   borderRadius: BorderRadius.only(bottomRight: Radius.circular(16)),

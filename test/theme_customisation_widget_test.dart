@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:checklist_app/app_version.dart';
 import 'package:checklist_app/main.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -154,5 +155,83 @@ void main() {
     await tester.pumpAndSettle();
     expect(field.controller!.text, 'Still editable');
     expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('All themes fill system insets while keeping controls in place',
+      (tester) async {
+    await tester.runAsync(() async {
+      final fonts = FontLoader('Rajdhani')
+        ..addFont(rootBundle.load('assets/fonts/Rajdhani-Medium.ttf'))
+        ..addFont(rootBundle.load('assets/fonts/Rajdhani-Bold.ttf'));
+      await fonts.load();
+    });
+    tester.view.physicalSize = const Size(400, 780);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 32, bottom: 24);
+    tester.view.viewPadding = const FakeViewPadding(top: 32, bottom: 24);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    const screenBounds = Rect.fromLTWH(0, 0, 400, 780);
+    final workspace = _key('workspace-surface');
+    final editor = _key('note-editor');
+    for (final appearance in AppTheme.values) {
+      final reason = appearance.name;
+      SharedPreferences.setMockInitialValues({
+        'checklist.welcome.v1': true,
+        'checklist.lastSeenVersion.v1': checklistRelease,
+        'checklist.theme.v1':
+            appearance == AppTheme.copper ? 'goth' : appearance.name,
+        'checklist.projects.v1':
+            '[{"id":"layout-checklist","name":"Layout checklist","createdAt":"2026-11-26T12:00:00.000Z","tasks":[]}]',
+        'checklist.notes.v1':
+            '[{"id":"layout-note","name":"Layout note","createdAt":"2026-11-26T12:00:00.000Z","content":"Note text"}]',
+      });
+      await tester.pumpWidget(const ChecklistApp());
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(workspace), screenBounds, reason: reason);
+      expect(tester.getTopLeft(_key('layout-checklist')).dy, 32,
+          reason: reason);
+      final header = tester.widget<SliverPadding>(_key('checklist-header'));
+      expect(header.padding.resolve(TextDirection.ltr).top, 11, reason: reason);
+      expect(tester.getTopLeft(find.byTooltip('open menu')).dy,
+          greaterThanOrEqualTo(43),
+          reason: reason);
+      expect(tester.getBottomLeft(find.byType(TextField)).dy, 734,
+          reason: reason);
+
+      await tester.tap(find.byTooltip('open menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('NOTES'));
+      await tester.pumpAndSettle();
+      tester.state<ScaffoldState>(find.byType(Scaffold)).closeDrawer();
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(workspace), screenBounds, reason: reason);
+      expect(tester.getTopLeft(editor).dy, 32, reason: reason);
+      expect(tester.getBottomLeft(editor).dy, 756, reason: reason);
+      expect(tester.takeException(), isNull, reason: reason);
+
+      if (appearance == AppTheme.cyberpunk) {
+        tester.view.physicalSize = const Size(1200, 780);
+        await tester.pumpAndSettle();
+        final sidebar = _key('sidebar-surface');
+        expect(
+            tester.getRect(workspace), const Rect.fromLTWH(282, 0, 918, 780));
+        expect(tester.getRect(sidebar), const Rect.fromLTWH(0, 0, 282, 780));
+        final padding = tester.widget<AnimatedContainer>(sidebar).padding!;
+        expect(padding.resolve(TextDirection.ltr).top, 43);
+        expect(tester.getBottomLeft(_key('settings-panel')).dy, 742);
+        expect(tester.getTopLeft(editor).dy, 32);
+        expect(tester.getBottomLeft(editor).dy, 756);
+        expect(tester.takeException(), isNull, reason: 'wide Cyberpunk');
+      }
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 }
