@@ -436,7 +436,7 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Verified Android APK: version 0.5.4 internal build `48`.
+- Verified Android APK: version 0.5.4 internal build `49`.
 - Current source baseline: 83 passing Flutter tests, clean static analysis,
   and a successful Android release build. The two JVM typography tests last
   passed for build 45. The APK includes camera-based cover
