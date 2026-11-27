@@ -1,6 +1,10 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Improved Pastel contrast and updated the 0.5.7 app icon.": (
+    "Le contraste du thème Pastel a été amélioré et l’icône de la version 0.5.7 a été mise à jour.",
+    "Motiv Pastel má lepší kontrast a ikona aplikace pro verzi 0.5.7 byla aktualizována."
+  ),
   "Refined sidebar Settings and added roomier Pastel calendar and priority controls.":
       (
     "Les réglages de la barre latérale ont été affinés. Le calendrier et les boutons de priorité de Pastel sont plus spacieux.",

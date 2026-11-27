@@ -1,6 +1,10 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Improved Pastel contrast and updated the 0.5.7 app icon.": (
+    "Der Kontrast im Pastel-Design wurde verbessert und das App-Symbol für 0.5.7 aktualisiert.",
+    "提高了 Pastel 主题的对比度，并更新了 0.5.7 版的应用图标。"
+  ),
   "Refined sidebar Settings and added roomier Pastel calendar and priority controls.":
       (
     "Die Einstellungen der Seitenleiste wurden verfeinert. Kalender und Prioritätsschaltflächen in Pastel sind größer.",

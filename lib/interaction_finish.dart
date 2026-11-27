@@ -49,6 +49,8 @@ class _SettingsMenuState<T> extends State<_SettingsMenu<T>> {
                 : null,
           ),
         ),
+      AppTheme.pastel => Icon(Icons.more_vert_rounded,
+          size: widget.iconSize, color: _pastelSecondaryInk(theme)),
       _ => Icon(Icons.more_vert_rounded,
           size: widget.iconSize, color: widget.colour),
     };
@@ -308,7 +310,7 @@ class _TaskCheckbox extends StatelessWidget {
               dimension: 18,
               child: _PastelPressFace(
                 radius: _pastelRadius(theme, scale: .25),
-                colour: checked ? null : _pastelClay,
+                colour: checked ? null : _pastelCheckboxFace,
                 pressed: checked,
                 child: const SizedBox.expand(),
               ),

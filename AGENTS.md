@@ -62,11 +62,14 @@ These details have already been approved and must not change incidentally:
   checklists with zero tasks.
 - Checklist priorities are: low blue (`#229FE3`), normal purple
   (`#922FD0`), and high yellow (`#F3ED23`).
-- The task-composer placeholder beginning `add a task…` is grey (`#9AA0AA`).
-- The note-editor placeholder `start writing…` is grey (`#9AA0AA`). Typed note
+- The task-composer placeholder beginning `add a task…` and the note-editor
+  placeholder `start writing…` are grey (`#9AA0AA`), with deeper grey-purple
+  ink (`#5E5267`) in Pastel for readability. Typed note
   body text is white (`#F8F7FF`) in dark mode and black in light mode.
 - Note-category colour affects the note title, category label, list indicator,
-  and selected-row treatment. It does not recolour the note body text.
+  and selected-row treatment. In Pastel, bright category ink is darkened for
+  readability while the category indicator retains the saved colour.
+  Category colour does not recolour the note body text.
 - White frames are intentional around the create-note button, filter/sort
   button, and category selector outside Pastel. Cyberpunk's general UI borders, including
   the sidebar create buttons, use electric blue (`#379BFF`) with a faint
@@ -194,7 +197,7 @@ rely on the palette positions.
 - The selected checklist header includes its creation date and task counts.
 - Progress changes animate smoothly rather than jumping to the new value.
   Pastel uses an uncoloured recessed track, including in empty checklists,
-  with a raised fill matching completed task panels (`#E5F4EB` by default).
+  with a raised fill matching completed task panels (`#CFE8DA` by default).
   Cyberpunk priority buttons and menu markers glow in their priority colours.
   Pixel's progress fill and task and workspace checkmarks glow. Cyberpunk
   task dividers use the current border colour at 50% opacity.
@@ -316,7 +319,9 @@ rely on the palette positions.
   Pencil is the established light appearance, and Pastel combines the
   canonical pastel colours with a lilac, blue, and blush background. Rounded
   material cards and controls have bevels, directional shadows and layered
-  pastel fills. Pink and blue sidebar create controls distinguish Checklist
+  pastel fills. Metadata, menu dots, and placeholders use deeper ink,
+  and priority labels use darker shades of their indicator colours. Pink and
+  blue sidebar create controls distinguish Checklist
   and Notes. Pastel headings use Coiny by Marcelo Magalhães and body text
   uses Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly. Copper uses
   charcoal surfaces, wine and plum
@@ -483,8 +488,8 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Verified Android APK: version 0.5.7 internal build `57`.
-- Current source baseline: 109 passing Flutter tests, clean static analysis,
+- Verified Android APK: version 0.5.7 internal build `58`.
+- Current source baseline: 110 passing Flutter tests, clean static analysis,
   and a successful Android release build. The two JVM typography tests last
   passed for build 45. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,

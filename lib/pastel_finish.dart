@@ -9,9 +9,27 @@ const _pastelLavender = Color(0xFFE7E0F0);
 const _pastelPorcelain = Color(0xFFF2EEF5);
 const _pastelRose = Color(0xFFF1E2E9);
 const _pastelClay = Color(0xFFEBE7F1);
-const _pastelCompletedTaskSurface = Color(0xFFE5F4EB);
-const _pastelPlateShadow = Color(0x4783709B);
+const _pastelCompletedTaskSurface = Color(0xFFCFE8DA);
+const _pastelPlateShadow = Color(0x54776689);
 const _pastelPlum = Color(0xFF75445F);
+const _pastelMutedInk = Color(0xFF5E5267);
+const _pastelCheckboxFace = Color(0xFFDCD3E5);
+
+Color _pastelSecondaryInk(ThemeData theme) =>
+    theme.custom(_ThemeColour.text) ?? _pastelMutedInk;
+
+Color _pastelAccentInk(Color colour) {
+  final luminanceLimit = (_pastelClay.computeLuminance() + .05) / 4.5 - .05;
+  if (colour.computeLuminance() <= luminanceLimit) return colour;
+  final shaded = Color.lerp(colour, _lightText, .48)!;
+  return shaded.computeLuminance() <= luminanceLimit
+      ? shaded
+      : Color.lerp(shaded, _lightText, .36)!;
+}
+
+Color _editorHintInk(ThemeData theme) => theme.appearance == AppTheme.pastel
+    ? _pastelSecondaryInk(theme)
+    : _switchGrey;
 
 BorderRadius _pastelRadius(ThemeData theme, {double scale = 1}) {
   if (theme.appearance != AppTheme.pastel) return BorderRadius.zero;
@@ -65,6 +83,7 @@ ThemeData _buildPastelFinish(ThemeData base, double radius) {
   return base.copyWith(
     colorScheme: base.colorScheme.copyWith(
       onPrimary: _pastelPlum,
+      onSurfaceVariant: _pastelMutedInk,
       surfaceContainer: _pastelClay,
     ),
     textTheme: fonts.copyWith(
@@ -77,6 +96,7 @@ ThemeData _buildPastelFinish(ThemeData base, double radius) {
       border: field,
       enabledBorder: field,
       focusedBorder: field,
+      hintStyle: const TextStyle(color: _pastelMutedInk),
     ),
     filledButtonTheme: FilledButtonThemeData(
         style: bevel(base.filledButtonTheme.style, filled: true)),
@@ -369,8 +389,8 @@ Widget _sidebarEntry(ThemeData theme, Widget child, {required bool hasNext}) {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0x3576658B),
-                    Color(0x0F76658B),
+                    Color(0x55776689),
+                    Color(0x18776689),
                     Color(0x91FFFFFF)
                   ],
                   stops: [0, .52, 1],
@@ -431,7 +451,7 @@ void _paintPastelRelief(Canvas canvas, Rect bounds, BorderRadius radius,
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawRRect(
       contour.shift(Offset(3 * height, 4 * height)),
-      haze..color = dark.withValues(alpha: .34 * height),
+      haze..color = dark.withValues(alpha: .42 * height),
     );
     canvas.drawRRect(
       contour.shift(Offset(-3 * height, -4 * height)),
@@ -449,7 +469,7 @@ void _paintPastelRelief(Canvas canvas, Rect bounds, BorderRadius radius,
   final shift = ui.lerpDouble(-1.8, 2.5, depth)!;
   canvas.drawRRect(
     contour.shift(Offset(shift, shift)),
-    rim..color = dark.withValues(alpha: .19 + depth * .18),
+    rim..color = dark.withValues(alpha: .26 + depth * .20),
   );
   canvas.drawRRect(
     contour.shift(Offset(-shift, -shift)),

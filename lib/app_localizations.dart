@@ -21,6 +21,8 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Improved Pastel contrast and updated the 0.5.7 app icon.":
+      "Javult a Pastel téma kontrasztja, és frissült a 0.5.7-es alkalmazásikon.",
   "Refined sidebar Settings and added roomier Pastel calendar and priority controls.":
       "Finomodott az oldalsáv beállításainak megjelenése, a Pastel naptára és prioritásgombjai pedig több helyet kaptak.",
   "Pastel progress has a recessed track and a raised green fill.":

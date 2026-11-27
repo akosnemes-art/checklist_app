@@ -371,7 +371,7 @@ void main() {
       of: _key('task-row-linked'),
       matching: _key('pastel-beveled-surface'),
     );
-    expect(face(fill).color, const Color(0xFFE5F4EB));
+    expect(face(fill).color, const Color(0xFFCFE8DA));
     expect(face(fill).color, face(row).color);
     expect(tester.getSize(fill).width,
         closeTo(tester.getSize(track).width / 2, 1));
@@ -389,6 +389,58 @@ void main() {
       matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
     );
     expect(tester.getSize(option).height, 54);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets(
+      'Pastel uses readable ink on light surfaces and priority controls',
+      (tester) async {
+    const yellow = Color(0xFFF3ED23);
+    await _load(tester, 'pastel', saved: {
+      'checklist.notes.v1':
+          '[{"id":"note","name":"My note","createdAt":"2026-11-11T10:00:00.000Z","content":"Note body","categoryId":"bright"}]',
+      'checklist.noteCategories.v1': jsonEncode([
+        {'id': 'bright', 'name': 'Sunshine', 'colorValue': yellow.toARGB32()},
+      ]),
+    });
+    const muted = Color(0xFF5E5267);
+    final composer = tester.widget<TextField>(find.byType(TextField));
+    expect(composer.decoration!.hintStyle!.color, muted);
+    final dots = find.descendant(
+        of: _menu(0), matching: find.byIcon(Icons.more_vert_rounded));
+    expect(tester.widget<Icon>(dots).color, muted);
+
+    Color textColour(Finder target) =>
+        tester.widget<Text>(target).style!.color!;
+    double contrast(Color ink, Color surface) =>
+        (surface.computeLuminance() + .05) / (ink.computeLuminance() + .05);
+    final priority = _key('priority-chip-normal');
+    final tint =
+        (tester.widget<Container>(priority).decoration as BoxDecoration).color!;
+    final priorityText =
+        find.descendant(of: priority, matching: find.text('medium'));
+    const clay = Color(0xFFEBE7F1);
+    expect(contrast(textColour(priorityText), Color.alphaBlend(tint, clay)),
+        greaterThanOrEqualTo(4.5));
+
+    await _tap(tester, find.byTooltip('open menu'));
+    expect(textColour(_key('sidebar-item-count')), muted);
+    await _tap(tester, find.bySemanticsLabel('NOTES'));
+    final row = find.widgetWithText(ListTile, 'My note');
+    final title = find.descendant(of: row, matching: find.text('My note'));
+    expect(contrast(textColour(title), clay), greaterThanOrEqualTo(4.5));
+    final dot = (tester.widget<ListTile>(row).leading! as dynamic);
+    expect(dot.color, yellow);
+    await tester.tapAt(const Offset(375, 120));
+    await tester.pumpAndSettle();
+    expect(contrast(textColour(find.text('Sunshine')), clay),
+        greaterThanOrEqualTo(4.5));
+    expect(
+        tester
+            .widget<TextField>(find.byType(TextField))
+            .decoration!
+            .hintStyle!
+            .color,
+        muted);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   for (final appearance in ['pixel', 'pastel', 'cyberpunk']) {

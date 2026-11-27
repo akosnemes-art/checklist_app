@@ -52,6 +52,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('roomier Pastel calendar'), findsOneWidget);
+      expect(find.textContaining('Improved Pastel contrast'), findsOneWidget);
       expect(find.textContaining('raised green fill'), findsOneWidget);
       expect(find.textContaining('sideways photos'), findsOneWidget);
       expect(find.textContaining('pixel-art formatting'), findsOneWidget);

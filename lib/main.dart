@@ -80,6 +80,7 @@ const _coverAspectRatio = 16 / 9;
 const _sidebarEntryInset = 10.0;
 const _sidebarEntryMenuSize = 36.0;
 const _buildChanges = <String>[
+  'Improved Pastel contrast and updated the 0.5.7 app icon.',
   'Refined sidebar Settings and added roomier Pastel calendar and priority controls.',
   'Pastel progress has a recessed track and a raised green fill.',
   'Aligned task checkboxes and refined the Pastel, Pixel and Cyberpunk controls.',
@@ -2531,6 +2532,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
         palette?.ink ??
         modern?.ink ??
         (widget.isDark ? _borderWhite : _lightText);
+    final sidebarMetadata = widget.isPastel
+        ? _pastelSecondaryInk(theme)
+        : sidebarForeground.withValues(alpha: .58);
     final buttonOverride = theme.custom(_ThemeColour.buttons);
     final cyberpunkCreate = widget.appTheme == AppTheme.cyberpunk;
     final buttonColour = buttonOverride ??
@@ -2759,7 +2763,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           '${_showNotes ? notes.length : projects.length}',
                           key: const ValueKey('sidebar-item-count'),
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: sidebarForeground.withValues(alpha: 0.58),
+                            color: sidebarMetadata,
                           ),
                         ),
                       ],
@@ -2806,7 +2810,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            color: noteColor,
+                                            color: widget.isPastel
+                                                ? _pastelAccentInk(noteColor)
+                                                : noteColor,
                                             fontSize: 13,
                                             fontWeight: selected
                                                 ? FontWeight.w700
@@ -2817,8 +2823,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                           _formatDate(context, note.createdAt),
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                            color: sidebarForeground.withValues(
-                                                alpha: 0.58),
+                                            color: sidebarMetadata,
                                           ),
                                         ),
                                         onTap: () => _selectNote(note),
@@ -2946,8 +2951,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                           },
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                            color: sidebarForeground.withValues(
-                                                alpha: 0.58),
+                                            color: sidebarMetadata,
                                           ),
                                         ),
                                         onTap: () => _selectProject(project),
@@ -3081,7 +3085,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final modern = _modernPalette;
     final note = _selectedNote;
     final category = note == null ? null : _categoryFor(note);
-    final noteColour = _noteColour(category);
+    final categoryColour = _noteColour(category);
+    final noteColour = widget.isPastel && category != null
+        ? _pastelAccentInk(categoryColour)
+        : categoryColour;
     final bodyColour = theme.custom(_ThemeColour.text) ??
         palette?.ink ??
         modern?.ink ??
@@ -3251,7 +3258,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 AppText(
                   _formatDate(context, note.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                    color: widget.isPastel
+                        ? _pastelSecondaryInk(theme)
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.55),
                   ),
                 ),
                 Row(
@@ -3331,7 +3340,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             onChanged: _updateNoteContent,
                             decoration: InputDecoration(
                               hintText: localizeText(context, 'start writing…'),
-                              hintStyle: const TextStyle(color: _switchGrey),
+                              hintStyle:
+                                  TextStyle(color: _editorHintInk(theme)),
                               filled: true,
                               fillColor: panel ??
                                   modern?.panel.withValues(alpha: 1) ??
@@ -3473,8 +3483,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                     'done': done
                                   },
                                   style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.58),
+                                    color: widget.isPastel
+                                        ? _pastelSecondaryInk(theme)
+                                        : theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.58),
                                   ),
                                 ),
                               ),
@@ -3731,7 +3743,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               ? 'add a task…'
                               : 'add a task…  (enter to add · shift+enter for a new line)',
                         ),
-                        hintStyle: const TextStyle(color: _switchGrey),
+                        hintStyle: TextStyle(color: _editorHintInk(theme)),
                         filled: true,
                         fillColor: theme.colorScheme.surface,
                         contentPadding: const EdgeInsets.symmetric(
@@ -4434,10 +4446,12 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
       inputDecorationTheme: base.inputDecorationTheme.copyWith(
         fillColor: dialogSurface,
         hintStyle: TextStyle(
-          color: palette?.muted ??
-              (widget.usePaleBackground || lightCreate
-                  ? _lightControl
-                  : _switchGrey),
+          color: pastel
+              ? _pastelSecondaryInk(base)
+              : palette?.muted ??
+                  (widget.usePaleBackground || lightCreate
+                      ? _lightControl
+                      : _switchGrey),
         ),
         labelStyle: TextStyle(color: dialogForeground),
         enabledBorder: pastel
@@ -5598,7 +5612,7 @@ class _NewProjectDialogState extends State<_NewProjectDialog> {
         maxLength: 48,
         decoration: InputDecoration(
           hintText: localizeText(context, 'checklist name'),
-          hintStyle: const TextStyle(color: _switchGrey),
+          hintStyle: TextStyle(color: _editorHintInk(Theme.of(context))),
           counterText: '',
         ),
         onSubmitted: (_) => _submit(),
@@ -6355,8 +6369,9 @@ class _TaskRow extends StatelessWidget {
     final taskStyle = theme.textTheme.bodyLarge!.copyWith(
       height: 1.45,
       color: task.isDone
-          ? theme.colorScheme.onSurface.withValues(
-              alpha: theme.appearance == AppTheme.pastel ? .63 : .44)
+          ? theme.appearance == AppTheme.pastel
+              ? _pastelSecondaryInk(theme)
+              : theme.colorScheme.onSurface.withValues(alpha: .44)
           : null,
       decoration: task.isDone ? TextDecoration.lineThrough : null,
       decorationColor: theme.colorScheme.onSurface.withValues(alpha: 0.45),
@@ -6536,7 +6551,11 @@ class _ImportanceChip extends StatelessWidget {
                     ? theme.textTheme.labelLarge
                     : theme.textTheme.labelMedium)
                 ?.copyWith(
-                    color: mediumRim != null ? _blackMetalMediumLabel : color),
+                    color: isPastel
+                        ? _pastelAccentInk(color)
+                        : mediumRim != null
+                            ? _blackMetalMediumLabel
+                            : color),
           ),
         ],
       ),
@@ -6581,7 +6600,11 @@ class _ImportanceMenuLabel extends StatelessWidget {
         AppText(
           _importanceLabel(importance),
           style: theme.textTheme.bodyMedium?.copyWith(
-              color: mediumRim != null ? _blackMetalMediumLabel : color),
+              color: isPastel
+                  ? _pastelAccentInk(color)
+                  : mediumRim != null
+                      ? _blackMetalMediumLabel
+                      : color),
         ),
       ],
     );
