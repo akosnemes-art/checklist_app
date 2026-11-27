@@ -64,10 +64,17 @@ ThemeData _applyThemeColours(
   final scheme = base.colorScheme;
   final input = base.inputDecorationTheme;
 
-  OutlinedBorder? framed(ShapeBorder? shape) =>
-      shape is OutlinedBorder && border != null
-          ? shape.copyWith(side: shape.side.copyWith(color: border))
-          : null;
+  OutlinedBorder? framed(ShapeBorder? shape) {
+    if (shape is _CyberpunkPopupFrame) {
+      return shape.copyWith(
+        side: shape.side.copyWith(color: border),
+        accent: accent,
+      );
+    }
+    return shape is OutlinedBorder && border != null
+        ? shape.copyWith(side: shape.side.copyWith(color: border))
+        : null;
+  }
 
   InputBorder? field(InputBorder? original) =>
       original == null || border == null
@@ -347,7 +354,7 @@ Color _createButtonColour(AppTheme appearance, bool notes) {
   return switch (appearance) {
     AppTheme.boi => notes ? _deepBlueButton : _darkPurpleButton,
     AppTheme.pencil => _lightControl,
-    AppTheme.pastel => _pastelYellow,
+    AppTheme.pastel => notes ? _pastelBlueButton : _pastelRoseButton,
     AppTheme.copper ||
     AppTheme.blackMetal =>
       appearance._metalPalette!.button(notes),
@@ -373,7 +380,7 @@ Map<_ThemeColour, Color> _themeColourDefaults(AppTheme appearance, bool notes) {
       (pencil
           ? _lightControl
           : pastel
-              ? _deepBlueButton
+              ? _pastelPlum
               : _defaultNoteBlue);
   Color priority(ProjectImportance importance) {
     if (modern != null) return modern.priorities[importance.index];

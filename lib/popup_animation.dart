@@ -10,16 +10,32 @@ Widget _animatedTimePicker(
 }) {
   final animation = ModalRoute.of(context)!.animation!;
   final base = Theme.of(context);
+  final cyberpunk = base.appearance == AppTheme.cyberpunk;
   final surface = base.dialogTheme.backgroundColor ?? base.colorScheme.surface;
-  final side = (base.dialogTheme.shape! as RoundedRectangleBorder).side;
+  final frame = base.dialogTheme.shape! as RoundedRectangleBorder;
   return AnimatedBuilder(
     animation: animation,
     child: TimePickerDialog(initialTime: initialTime, helpText: helpText),
     builder: (context, child) => Theme(
       data: base.copyWith(
+        dialogTheme: cyberpunk
+            ? base.dialogTheme.copyWith(clipBehavior: Clip.antiAlias)
+            : null,
         timePickerTheme: base.timePickerTheme.copyWith(
           backgroundColor: surface,
-          shape: _DrawnPopupFrame(side, animation.value, surface: surface),
+          shape: cyberpunk
+              ? _CyberpunkPopupFrame(
+                  side: frame.side,
+                  accent: base.colorScheme.primary,
+                  progress: animation.value,
+                  surface: surface,
+                )
+              : _DrawnPopupFrame(
+                  frame.side,
+                  animation.value,
+                  surface: surface,
+                  borderRadius: frame.borderRadius,
+                ),
         ),
       ),
       child: child!,
@@ -38,11 +54,14 @@ Widget _popupAlert(
   EdgeInsetsGeometry? actionsPadding,
 }) {
   final theme = Theme.of(context);
+  final cyberpunk = theme.appearance == AppTheme.cyberpunk;
   final frame = shape ?? theme.dialogTheme.shape! as RoundedRectangleBorder;
   final animation = ModalRoute.of(context)?.animation ??
       const AlwaysStoppedAnimation<double>(1);
   final contents = animation.drive(CurveTween(
-    curve: const Interval(_popupContentsStart, 1, curve: Curves.easeOut),
+    curve: cyberpunk
+        ? const Interval(_cyberpunkContentStart, 1, curve: Curves.easeOut)
+        : const Interval(_popupContentsStart, 1, curve: Curves.easeOut),
   ));
 
   Widget? fade(Widget? child) =>
@@ -53,7 +72,20 @@ Widget _popupAlert(
     builder: (context, _) => AlertDialog(
       key: key,
       backgroundColor: backgroundColor,
-      shape: _DrawnPopupFrame(frame.side, animation.value),
+      clipBehavior: cyberpunk ? Clip.antiAlias : null,
+      shape: cyberpunk
+          ? _CyberpunkPopupFrame(
+              side: frame.side,
+              accent: theme.colorScheme.primary,
+              progress: animation.value,
+            )
+          : _DrawnPopupFrame(
+              theme.appearance == AppTheme.pastel
+                  ? BorderSide.none
+                  : frame.side,
+              animation.value,
+              borderRadius: frame.borderRadius,
+            ),
       title: fade(title),
       content: fade(content),
       // Keep each action's normal layout and overflow behaviour.
@@ -64,7 +96,8 @@ Widget _popupAlert(
 }
 
 class _DrawnPopupFrame extends RoundedRectangleBorder {
-  const _DrawnPopupFrame(BorderSide side, this.progress, {this.surface})
+  const _DrawnPopupFrame(BorderSide side, this.progress,
+      {this.surface, super.borderRadius})
       : super(side: side);
 
   final double progress;
@@ -82,22 +115,27 @@ class _DrawnPopupFrame extends RoundedRectangleBorder {
       final reveal =
           const Interval(_popupContentsStart, 1, curve: Curves.easeOut)
               .transform(progress);
-      canvas.drawRect(
-          rect, Paint()..color = colour.withValues(alpha: 1 - reveal));
+      canvas.drawRRect(
+        borderRadius.resolve(textDirection).toRRect(rect),
+        Paint()..color = colour.withValues(alpha: 1 - reveal),
+      );
     }
-    if (frameProgress == 0) return;
+    if (frameProgress == 0 || side.style == BorderStyle.none) return;
     if (frameProgress == 1) {
       super.paint(canvas, rect, textDirection: textDirection);
       return;
     }
 
     final inset = rect.deflate(side.width / 2);
-    final outline = (Path()
-          ..moveTo(inset.left, inset.bottom)
-          ..lineTo(inset.left, inset.top)
-          ..lineTo(inset.right, inset.top)
-          ..lineTo(inset.right, inset.bottom)
-          ..close())
+    final corners = borderRadius.resolve(textDirection);
+    final outline = (corners == BorderRadius.zero
+            ? (Path()
+              ..moveTo(inset.left, inset.bottom)
+              ..lineTo(inset.left, inset.top)
+              ..lineTo(inset.right, inset.top)
+              ..lineTo(inset.right, inset.bottom)
+              ..close())
+            : (Path()..addRRect(corners.toRRect(inset))))
         .computeMetrics()
         .single;
     canvas.drawPath(
@@ -112,9 +150,10 @@ class _DrawnPopupFrame extends RoundedRectangleBorder {
   bool operator ==(Object other) =>
       other is _DrawnPopupFrame &&
       other.side == side &&
+      other.borderRadius == borderRadius &&
       other.progress == progress &&
       other.surface == surface;
 
   @override
-  int get hashCode => Object.hash(side, progress, surface);
+  int get hashCode => Object.hash(side, borderRadius, progress, surface);
 }

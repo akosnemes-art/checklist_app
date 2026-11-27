@@ -724,12 +724,7 @@ void main() {
       const Color(0xFF858C94),
       const Color(0xFF5A9BFF)
     ),
-    (
-      'pastel',
-      const Color(0xFF5A9BFF),
-      const Color(0xFFF8F2C8),
-      const Color(0xFF1553A3)
-    ),
+    ('pastel', const Color(0xFF5A9BFF), null, const Color(0xFF1553A3)),
   ]) {
     testWidgets('linked note formatting and colours in $theme', (tester) async {
       SharedPreferences.setMockInitialValues({
@@ -766,8 +761,14 @@ void main() {
       final dialog = find.byKey(const ValueKey('task-linked-note-dialog'));
       final shape =
           tester.widget<AlertDialog>(dialog).shape! as RoundedRectangleBorder;
-      expect(shape.side, BorderSide(color: frameColour, width: 2));
-      expect(shape.borderRadius, BorderRadius.zero);
+      expect(
+        shape.side,
+        frameColour == null
+            ? BorderSide.none
+            : BorderSide(color: frameColour, width: 2),
+      );
+      expect(shape.borderRadius,
+          theme == 'pastel' ? BorderRadius.circular(18) : BorderRadius.zero);
 
       final noteBody = find.descendant(
         of: dialog,
@@ -983,9 +984,11 @@ void main() {
     final mediumChip = tester.widget<Container>(
       find.byKey(const ValueKey('priority-chip-normal')),
     );
+    final mediumSurface = mediumChip.decoration! as BoxDecoration;
+    expect(mediumSurface.border!.top, BorderSide.none);
     expect(
-      (mediumChip.decoration! as BoxDecoration).border!.top.color,
-      const Color(0xFF00978D),
+      mediumSurface.color,
+      const Color(0xFF00978D).withValues(alpha: .12),
     );
     await tester.tap(find.byKey(const ValueKey('priority-chip-normal')));
     await tester.pumpAndSettle();

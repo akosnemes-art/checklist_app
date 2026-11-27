@@ -133,6 +133,24 @@ class _CreditsDialogState extends State<_CreditsDialog> {
                     Uri.parse(_photographerPortfolio),
                   ),
                 ),
+                _credit(
+                  _pastelDisplayFont,
+                  'Marcelo Magalhães',
+                  link: _link(
+                    const ValueKey('credits-coiny'),
+                    'view portfolio',
+                    Uri.https('fonts.google.com', '/specimen/Coiny'),
+                  ),
+                ),
+                _credit(
+                  _pastelReadingFont,
+                  'Vernon Adams, Cyreal, Jacques Le Bailly',
+                  link: _link(
+                    const ValueKey('credits-nunito'),
+                    'view portfolio',
+                    Uri.https('fonts.google.com', '/specimen/Nunito'),
+                  ),
+                ),
               ],
             ),
           ),

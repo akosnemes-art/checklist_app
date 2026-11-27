@@ -57,27 +57,44 @@ class _CyberpunkBackdropState extends State<_CyberpunkBackdrop> {
   }
 
   @override
-  Widget build(BuildContext context) => IgnorePointer(
-        child: CustomPaint(
-          key: const ValueKey('cyberpunk-circuit-background'),
-          painter: _CircuitBoard(
-            Theme.of(context).scaffoldBackgroundColor,
-            sidebar: widget.sidebar,
-          ),
-          child: RepaintBoundary(
-            child: CustomPaint(
-              painter: _CircuitSignals(_frame, sidebar: widget.sidebar),
-              child: const SizedBox.expand(),
-            ),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final background = theme.custom(_ThemeColour.background);
+    Color signal(_ThemeColour role, Color fallback) =>
+        theme.custom(role) ??
+        (background == null
+            ? fallback
+            : Color.lerp(fallback, background, .45)!);
+    final warm = signal(_ThemeColour.checklistAccent, _cyberpunkRed);
+    final cool = signal(_ThemeColour.notesAccent, _cyberpunkCyan);
+    return IgnorePointer(
+      child: CustomPaint(
+        key: const ValueKey('cyberpunk-circuit-background'),
+        painter: _CircuitBoard(
+          theme.scaffoldBackgroundColor,
+          warm,
+          cool,
+          sidebar: widget.sidebar,
+        ),
+        child: RepaintBoundary(
+          child: CustomPaint(
+            painter:
+                _CircuitSignals(_frame, warm, cool, sidebar: widget.sidebar),
+            child: const SizedBox.expand(),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _CircuitBoard extends CustomPainter {
-  const _CircuitBoard(this.background, {required this.sidebar});
+  const _CircuitBoard(this.background, this.warm, this.cool,
+      {required this.sidebar});
 
   final Color background;
+  final Color warm;
+  final Color cool;
   final bool sidebar;
 
   @override
@@ -117,7 +134,7 @@ class _CircuitBoard extends CustomPainter {
         ..relativeLineTo(length * 0.48, 0)
         ..relativeLineTo(angle.abs(), angle)
         ..relativeLineTo(length * 0.28, 0);
-      final hue = line % 4 == 0 ? _cyberpunkRed : _cyberpunkCyan;
+      final hue = line % 4 == 0 ? warm : cool;
       ink
         ..style = PaintingStyle.stroke
         ..color = hue.withValues(alpha: 0.11 + random.nextDouble() * 0.15);
@@ -127,11 +144,11 @@ class _CircuitBoard extends CustomPainter {
     }
 
     final span = width + height * 0.2;
-    _lightRail(canvas, span, height * 0.24, _cyberpunkRed, strength: 0.68);
-    _lightRail(canvas, span, height * 0.47, _cyberpunkCyan, strength: 0.80);
-    _lightRail(canvas, span, height * 0.498, _cyberpunkCyan, strength: 0.42);
-    _lightRail(canvas, span, height * 0.68, _cyberpunkRed, strength: 0.53);
-    _lightRail(canvas, span, height * 0.88, _cyberpunkCyan, strength: 0.30);
+    _lightRail(canvas, span, height * 0.24, warm, strength: 0.68);
+    _lightRail(canvas, span, height * 0.47, cool, strength: 0.80);
+    _lightRail(canvas, span, height * 0.498, cool, strength: 0.42);
+    _lightRail(canvas, span, height * 0.68, warm, strength: 0.53);
+    _lightRail(canvas, span, height * 0.88, cool, strength: 0.30);
     canvas.restore();
 
     canvas.drawRect(
@@ -182,13 +199,19 @@ class _CircuitBoard extends CustomPainter {
 
   @override
   bool shouldRepaint(_CircuitBoard oldDelegate) =>
-      oldDelegate.background != background || oldDelegate.sidebar != sidebar;
+      oldDelegate.background != background ||
+      oldDelegate.warm != warm ||
+      oldDelegate.cool != cool ||
+      oldDelegate.sidebar != sidebar;
 }
 
 class _CircuitSignals extends CustomPainter {
-  _CircuitSignals(this.frame, {required this.sidebar}) : super(repaint: frame);
+  _CircuitSignals(this.frame, this.warm, this.cool, {required this.sidebar})
+      : super(repaint: frame);
 
   final ValueNotifier<int> frame;
+  final Color warm;
+  final Color cool;
   final bool sidebar;
 
   @override
@@ -202,7 +225,7 @@ class _CircuitSignals extends CustomPainter {
       final distance = (frame.value * (3 + i % 3) + i * 29) % 120 / 120;
       final x = size.width * (distance * 1.4 - 0.20);
       final y = size.height * tracks[i];
-      final colour = i == 0 || i == 3 ? _cyberpunkRed : _cyberpunkCyan;
+      final colour = i == 0 || i == 3 ? warm : cool;
       final alpha = sidebar ? 0.18 : 0.39;
       final tail = Rect.fromLTWH(x - 44, y - 1, 49, 4);
       canvas.drawRect(
@@ -221,5 +244,8 @@ class _CircuitSignals extends CustomPainter {
 
   @override
   bool shouldRepaint(_CircuitSignals oldDelegate) =>
-      oldDelegate.frame != frame || oldDelegate.sidebar != sidebar;
+      oldDelegate.frame != frame ||
+      oldDelegate.warm != warm ||
+      oldDelegate.cool != cool ||
+      oldDelegate.sidebar != sidebar;
 }

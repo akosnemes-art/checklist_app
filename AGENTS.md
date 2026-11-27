@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current source version: **0.5.5**. The Flutter build number may increase for
+- Current source version: **0.5.6**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -35,8 +35,12 @@ regression test for every approved visual or interaction change.
 These details have already been approved and must not change incidentally:
 
 - Square corners are used throughout buttons, fields, dialogs, menus, chips,
-  drawers, snackbars, and window chrome. The Cyberpunk new-checklist, new-note,
-  and reminder buttons have the same bevel at the lower-right corner.
+  drawers, snackbars, and window chrome except in Pastel. Pastel uses rounded
+  corners and smooth bevels in place of decorative borders. Its mobile drawer
+  opener has a gently glowing white ring. The radius follows Android's
+  reported display corners within safe layout bounds and defaults to 18 dp.
+  Cyberpunk new-checklist, new-note, reminder, and task checkbox controls
+  have a bevel at the lower-right corner.
 - `CHECKLIST` and `NOTES` form one wordmark in the same font. There is no
   chromatic-aberration text effect. A checkmark appears immediately beside the
   selected mode, is visually aligned with the surrounding text, glitches when
@@ -61,17 +65,19 @@ These details have already been approved and must not change incidentally:
 - Note-category colour affects the note title, category label, list indicator,
   and selected-row treatment. It does not recolour the note body text.
 - White frames are intentional around the create-note button, filter/sort
-  button, and category selector. The Cyberpunk sidebar create buttons use
-  colour-matched borders.
-- Every three-dot settings button is intentionally unframed and uses a vertical
-  ellipsis. Do not restore horizontal dots or frames around these buttons.
+  button, and category selector outside Pastel. Cyberpunk's general UI borders, including
+  the sidebar create buttons, use brand yellow with a faint glow by default.
+- Three-dot settings buttons are intentionally unframed and vertical. Pixel
+  draws the dots and Settings navigation glyphs as square pixels with a soft
+  glow that brightens on activation.
+  Cyberpunk menu dots and task checkboxes use red and briefly glitch through
+  bright yellow on activation, then settle with a red glow while active.
 - The Notes filter button and `new note` button have exactly the same height.
 - There are no static decorative hearts in the sidebar.
 - Popup dialogs have a two-pixel default-note-blue frame. The linked-note and
-  create-note popups use light line grey in Pencil and pale yellow in Pastel.
-  Dropdown menu frames
-  are two pixels wide and use default note blue in Boi, light line grey in
-  Pencil, and pale yellow in Pastel.
+  create-note popups use light line grey in Pencil. Dropdown menus use
+  two-pixel default-note-blue frames in Boi and light grey in Pencil. Pastel
+  dialogs and menus use raised borderless surfaces.
 - Save and create buttons brighten for 60 milliseconds before completing the
   action. Dialog frames draw first and the contents then fade in. The complete
   transition takes 280 milliseconds and respects reduced-motion settings.
@@ -153,9 +159,10 @@ rely on the palette positions.
   written links and QR links offline.
 - The cover-image remove X is shown for two seconds, then fades out. Tapping
   the cover reveals it again for another two seconds before the next fade.
-- Task-entry settings use an unframed vertical ellipsis. The menu labels
+- Task-entry settings use an unframed vertical ellipsis centred vertically
+  within each row. The menu labels
   `edit` and `delete` are lowercase, and `+ note` links an existing note to the
-  task.
+  task. A linked task also offers `- note`, which clears that task's link.
 - Holding only the task-text area for at least 140 milliseconds starts
   reordering. The checkmark retains only its completion toggle and the
   three-dot button retains only its settings menu; neither starts a reorder.
@@ -163,7 +170,8 @@ rely on the palette positions.
   There is no six-dot drag handle.
 - A linked task shows the Material `sticky_note_2` icon directly below its
   left-aligned checkbox. Linked and unlinked task checkboxes use the same fixed
-  leading-column width and horizontal alignment. The icon is yellow in Boi and
+  leading-column width and align with the first line of task text. Cyberpunk
+  uses a thin stroke for task ticks and the wordmark checkmark. The icon is yellow in Boi and
   blue in Pencil and Pastel. Tapping it changes it to purple before opening
   the linked note in a scrollable popup that renders the note's formatting.
   Links in the popup are clickable. The `+ note` chooser shows formatted
@@ -177,6 +185,8 @@ rely on the palette positions.
 - The selected checklist header includes its creation date and task counts.
 - Progress changes animate smoothly rather than jumping to the new value.
   Cyberpunk priority buttons and menu markers glow in their priority colours.
+  Pixel's progress fill and task and workspace checkmarks glow. Cyberpunk
+  task dividers use the current border colour at 50% opacity.
 - The Checklist header uses 11 px of top padding inside the safe area. Its
   vertical gaps to the date, reminder, progress, and cover use compact spacing.
 - New checklist and note rows fade into the sidebar. Confirmed deletion fades
@@ -231,11 +241,11 @@ rely on the palette positions.
   state.
 - The create-note dialog uses the dark-blue Notes theme in Boi and the note
   editor's writing surface in Pencil and Pastel. The rename-note dialog uses a
-  pale pastel-blue `#D9EAF7` background with a blue frame. Both retain the
+  pale pastel-blue `#D9EAF7` background with a blue frame outside Pastel. Both retain the
   category selector.
 - The note-header category button opens category assignment. The adjacent
   unframed vertical-ellipsis menu offers rename, delete, and category settings.
-- On Android, a square white-framed `+` button sits between the note category
+- On Android, a `+` button sits between the note category
   and three-dot buttons. Its menu offers `add picture` and `take a photo`.
   PaddleOCR turns the selected image into editable note text in English or
   Hungarian entirely offline and inserts it at the current editor selection.
@@ -283,8 +293,13 @@ rely on the palette positions.
 - The Themes page replaces the main option text with a fade and offers `Boi`,
   `Pencil`, `Pastel`, `Copper`, `Black Metal`, `Pixel`, and `Cyberpunk`.
   Boi is the established dark appearance,
-  Pencil is the established light appearance, and Pastel uses the five
-  canonical pastel colours. Copper uses charcoal surfaces, wine and plum
+  Pencil is the established light appearance, and Pastel combines the
+  canonical pastel colours with a lilac, blue, and blush background. Rounded
+  material cards and controls have bevels, directional shadows and layered
+  pastel fills. Pink and blue sidebar create controls distinguish Checklist
+  and Notes. Pastel headings use Coiny by Marcelo Magalhães and body text
+  uses Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly. Copper uses
+  charcoal surfaces, wine and plum
   sidebars, antique-gold progress and popup frames, dusty-rose note links,
   and serif headings. Copper keeps the previous Goth preference value and
   uses a plain gradient backdrop. Black Metal uses distressed black panels,
@@ -293,7 +308,7 @@ rely on the palette positions.
   and workspace have staggered 640 ms metallic glints that pause between
   passes and are disabled under reduced motion. Pixel uses black and neon
   green, 1980s-style Pixelify Sans typography, softly glowing priority controls,
-  and occasional travelling CRT noise across its scanlines. Saved Newsprint
+  and occasional slow grainy CRT distortion across its scanlines. Saved Newsprint
   selections migrate to Pixel and saved Glass selections migrate to Pencil.
   Cyberpunk uses coral Checklist and cyan
   Notes accents, Rajdhani headings, and a text-free circuit-board backdrop with
@@ -302,6 +317,12 @@ rely on the palette positions.
   seconds while visible. The other
   Cyberpunk buttons have a 280 ms glitch on touch or hover. Cyberpunk loads
   directly, and all themes use the shared bottom-to-top reveal on selection.
+  Cyberpunk signals and circuitry respond to saved HSV theme colours.
+  Cyberpunk uses stationary fine grain across the workspace, sidebar, and
+  popup surfaces, with soft accent-coloured illumination. Its 280 ms dialog
+  transition opens a narrow illuminated frame, expands the layered panel, and
+  fades in the contents. Menus open with eased expansion and staggered items.
+  Cyberpunk popups and menus are instant under reduced motion.
   Backdrop movement, button glitches, and the reveal respect reduced motion.
   The selected theme is saved locally.
 - A `customise` action appears beneath the selected theme. Its labelled
@@ -321,7 +342,8 @@ rely on the palette positions.
 - The About page reads `designed by Ákos Nemes` above a theme-coloured
   `credits` button. The button is brand yellow in Boi. The popup scrolls the
   credits upwards and includes Ákos Nemes and his email, Codex AI, and Allan
-  Ferreira with a link to his portfolio. It can be scrolled manually and
+  Ferreira with a link to his portfolio, plus the Pastel font designers.
+  It can be scrolled manually and
   disables automatic movement under reduced motion.
 - Both the main workspace and sidebar respond to theme changes.
 - Seven taps on the empty middle area of the Settings row toggle
@@ -386,8 +408,11 @@ deletion must remain restricted to the app-owned support directory.
   Black Metal palettes, surface texture, and panel sheen.
 - `lib/modern_themes.dart`: Pixel palette, scanlines, and shared theme backdrop.
 - `lib/appearance_motion.dart`: bottom-to-top theme reveal and Pixel CRT noise.
+- `lib/interaction_finish.dart`: task checkboxes and themed settings menus.
+- `lib/pastel_finish.dart`: Pastel typography, rounded shapes, and bevels.
 - `lib/cyberpunk_theme.dart` and `lib/cyberpunk_backdrop.dart`: Cyberpunk
   palette, button glitches, and animated circuitry.
+- `lib/cyberpunk_finish.dart`: Cyberpunk grain, soft lighting, and popup frame motion.
 - `lib/credits.dart`: scrolling credits and external links.
 - `lib/theme_colours.dart`: role colours, theme overrides, and the HSV editor.
 - `lib/app_localizations.dart` and `lib/app_translations.dart`: interface
@@ -438,8 +463,8 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Verified Android APK: version 0.5.5 internal build `50`.
-- Current source baseline: 85 passing Flutter tests, clean static analysis,
+- Verified Android APK: version 0.5.6 internal build `54`.
+- Current source baseline: 103 passing Flutter tests, clean static analysis,
   and a successful Android release build. The two JVM typography tests last
   passed for build 45. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,

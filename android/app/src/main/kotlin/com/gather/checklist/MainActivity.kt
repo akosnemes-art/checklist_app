@@ -15,6 +15,7 @@ import android.graphics.Rect
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.Build
+import android.view.RoundedCorner
 import android.os.Bundle
 import android.content.pm.PackageManager
 import android.util.Log
@@ -98,6 +99,27 @@ class MainActivity : FlutterActivity(), SensorEventListener {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "checklist/reminders")
             .setMethodCallHandler(::handleReminderCall)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "checklist/display")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "roundedCornerRadius") {
+                    result.notImplemented()
+                } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                    result.success(null)
+                } else {
+                    val view = window.decorView
+                    view.post {
+                        val insets = view.rootWindowInsets
+                        val radii = listOf(
+                            RoundedCorner.POSITION_TOP_LEFT,
+                            RoundedCorner.POSITION_TOP_RIGHT,
+                            RoundedCorner.POSITION_BOTTOM_LEFT,
+                            RoundedCorner.POSITION_BOTTOM_RIGHT,
+                        ).mapNotNull { insets?.getRoundedCorner(it)?.radius }
+                        result.success(radii.maxOrNull()?.toDouble()?.div(resources.displayMetrics.density))
+                    }
+                }
+            }
 
         val previews = WebsitePreviewCapture(this)
         websitePreviews = previews

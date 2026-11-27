@@ -69,7 +69,7 @@ class _ThemeBuildTrace extends CustomPainter {
       oldDelegate.progress != progress || oldDelegate.colour != colour;
 }
 
-/// Schedules a short sweep without keeping a ticker active while the CRT is idle.
+/// Schedules a slow crawl without keeping a ticker active while the CRT is idle.
 class _PixelNoise extends StatefulWidget {
   const _PixelNoise();
 
@@ -82,7 +82,7 @@ class _PixelNoiseState extends State<_PixelNoise>
   final _random = math.Random();
   late final _sweep = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 560),
+    duration: const Duration(milliseconds: 4200),
   )..addStatusListener(_onSweep);
   Timer? _idle;
   bool _running = false;
@@ -126,7 +126,8 @@ class _PixelNoiseState extends State<_PixelNoise>
   @override
   Widget build(BuildContext context) => CustomPaint(
         key: const ValueKey('pixel-noise-band'),
-        painter: _PixelNoisePainter(_sweep, _pattern),
+        painter: _PixelNoisePainter(
+            _sweep, _pattern, Theme.of(context).scaffoldBackgroundColor),
       );
 }
 
@@ -134,19 +135,25 @@ class _PixelNoisePattern {
   _PixelNoisePattern(math.Random random)
       : down = random.nextBool(),
         streaks = [
-          for (var i = 0; i < 48; i++)
-            (random.nextDouble(), 2 + random.nextDouble() * 18),
+          for (var i = 0; i < 144; i++)
+            (
+              random.nextDouble(),
+              random.nextDouble(),
+              1 + random.nextDouble() * 6
+            ),
         ];
 
   final bool down;
-  final List<(double, double)> streaks;
+  final List<(double, double, double)> streaks;
 }
 
 class _PixelNoisePainter extends CustomPainter {
-  _PixelNoisePainter(this.sweep, this.pattern) : super(repaint: sweep);
+  _PixelNoisePainter(this.sweep, this.pattern, this.background)
+      : super(repaint: sweep);
 
   final Animation<double> sweep;
   final _PixelNoisePattern? pattern;
+  final Color background;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -154,21 +161,44 @@ class _PixelNoisePainter extends CustomPainter {
     final phase = sweep.value;
     if (pass == null || phase <= 0 || phase >= 1 || size.isEmpty) return;
     final travel = pass.down ? phase : 1 - phase;
-    final y = (travel * (size.height + 8) - 4).roundToDouble();
-    final flicker = (phase * 25).floor();
-    final backing = Paint()..color = const Color(0x24171919);
-    final glow = Paint()..color = const Color(0x2A8CFF9D);
-    canvas.drawRect(Rect.fromLTWH(0, y, size.width, 2), backing);
-    for (var i = 0; i < pass.streaks.length; i++) {
-      if ((i + flicker) % 4 == 0) continue;
-      final (position, length) = pass.streaks[i];
-      final x = position * size.width;
-      final width = math.min(length, size.width - x);
-      canvas.drawRect(Rect.fromLTWH(x, y + (i.isEven ? 0 : 2), width, 1), glow);
+    const bandHeight = 26.0;
+    final y = travel * (size.height + bandHeight) - bandHeight;
+    final band = Rect.fromLTWH(0, y, size.width, bandHeight)
+        .intersect(Offset.zero & size);
+    if (band.isEmpty) return;
+    final power = math.sin(math.pi * phase);
+    final step = (phase * 56).floor();
+    final ink = Paint();
+    canvas.save();
+    canvas.clipRect(band);
+    // Cover the straight scanlines only within the moving strip, then redraw
+    // their broken, vertically displaced segments through the noise.
+    ink.color = background.withValues(alpha: 0.78 * power);
+    canvas.drawRect(band, ink);
+    for (var row = (y / 5).floor(); row * 5.0 < band.bottom; row++) {
+      for (var segment = 0; segment < 9; segment++) {
+        final shift = (row * 7 + segment * 3 + step) % 5 - 2;
+        final x = segment * size.width / 9;
+        final line = row * 5.0 + 1 + shift;
+        ink.color = const Color(0xFF72FFA0)
+            .withValues(alpha: (0.03 + shift.abs() * 0.012) * power);
+        canvas.drawRect(Rect.fromLTWH(x, line, size.width / 9 - 2, 1), ink);
+      }
     }
+    for (var i = 0; i < pass.streaks.length; i++) {
+      final (left, row, width) = pass.streaks[i];
+      final x = ((left + step * (i.isEven ? 0.009 : 0.021)) % 1) * size.width;
+      final grainY = y + row * bandHeight;
+      ink.color = (i.isEven ? const Color(0xFFB7FFCD) : Colors.black)
+          .withValues(alpha: (0.04 + ((i + step) % 5) * 0.015) * power);
+      canvas.drawRect(Rect.fromLTWH(x, grainY, width, 1), ink);
+    }
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(_PixelNoisePainter oldDelegate) =>
-      oldDelegate.sweep != sweep || oldDelegate.pattern != pattern;
+      oldDelegate.sweep != sweep ||
+      oldDelegate.pattern != pattern ||
+      oldDelegate.background != background;
 }

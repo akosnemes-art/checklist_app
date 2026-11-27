@@ -24,8 +24,12 @@ Future<void> _openNotes(WidgetTester tester) async {
 
 void main() {
   for (final (theme, frame, surface) in [
-    ('pencil', const Color(0xFF858C94), const Color(0xFFE7E6E3)),
-    ('pastel', const Color(0xFFF8F2C8), const Color(0xFFFFFFFF)),
+    (
+      'pencil',
+      const BorderSide(color: Color(0xFF858C94), width: 2),
+      const Color(0xFFE7E6E3)
+    ),
+    ('pastel', BorderSide.none, const Color(0xFFFFFFFF)),
   ]) {
     testWidgets(
         'create-note popup follows $theme and reveals content after the frame',
@@ -53,8 +57,7 @@ void main() {
       expect(titleOpacity(), 0);
       await tester.pump(const Duration(milliseconds: 100));
       final dialog = tester.widget<AlertDialog>(finder);
-      expect((dialog.shape! as RoundedRectangleBorder).side,
-          BorderSide(color: frame, width: 2));
+      expect((dialog.shape! as RoundedRectangleBorder).side, frame);
       expect(dialog.backgroundColor, surface);
       expect(titleOpacity(), 0);
       await tester.pump(const Duration(milliseconds: 100));

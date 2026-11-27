@@ -13,7 +13,7 @@ const _cyberpunkPalette = _ModernPalette(
   checklistSidebar: Color(0xE81C101C),
   notesSidebar: Color(0xE8131A27),
   ink: Color(0xFFFFECE7),
-  border: Color(0xFFAB5D78),
+  border: _brandYellow,
   checklistAccent: Color(0xFFFF7881),
   notesAccent: Color(0xFF6EE5EB),
   buttonInk: Color(0xFF200F20),
@@ -25,6 +25,8 @@ ThemeData _buildCyberpunkTheme(ThemeData dark, {required bool notes}) {
       _buildModernTheme(dark, _cyberpunkPalette, notes: notes, pixel: false);
   final accent = _cyberpunkPalette.accent(notes);
   final text = base.textTheme;
+  final fields = base.inputDecorationTheme;
+  final outline = fields.border! as OutlineInputBorder;
   TextStyle? technical(TextStyle? style, {double tracking = 0.6}) =>
       style?.copyWith(
         fontFamily: _cyberpunkFont,
@@ -32,13 +34,23 @@ ThemeData _buildCyberpunkTheme(ThemeData dark, {required bool notes}) {
         fontWeight: FontWeight.w700,
         letterSpacing: tracking,
       );
-  final style = ButtonStyle(
-    shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
-    side: WidgetStatePropertyAll(
-        BorderSide(color: accent.withValues(alpha: 0.78))),
+  const style = ButtonStyle(
+    shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
+    side: WidgetStatePropertyAll(BorderSide(color: _brandYellow)),
     backgroundBuilder: _cyberpunkButtonLayer,
   );
   return base.copyWith(
+    inputDecorationTheme: fields.copyWith(
+      focusedBorder: outline.copyWith(
+        borderSide: outline.borderSide.copyWith(width: 2),
+      ),
+    ),
+    popupMenuTheme: base.popupMenuTheme.copyWith(
+      shape: _CyberpunkPopupFrame(
+        side: BorderSide(color: _cyberpunkPalette.border, width: 2),
+        accent: accent,
+      ),
+    ),
     textTheme: text.copyWith(
       headlineMedium: technical(text.headlineMedium, tracking: 0.25),
       headlineSmall: technical(text.headlineSmall, tracking: 0.25),
@@ -65,7 +77,10 @@ Widget _cyberpunkButtonLayer(
   return _CyberpunkButtonGlitch(
     enabled: !states.contains(WidgetState.disabled),
     hovered: states.contains(WidgetState.hovered),
-    child: child ?? const SizedBox.shrink(),
+    child: _cyberpunkOutline(
+      Theme.of(context),
+      child ?? const SizedBox.shrink(),
+    ),
   );
 }
 

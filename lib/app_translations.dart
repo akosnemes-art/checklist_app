@@ -1,6 +1,37 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Task controls align with their rows, with refined Cyberpunk, Pixel and Pastel styling.":
+      (
+    "Les commandes de tâche sont alignées sur leurs lignes et les thèmes Cyberpunk, Pixel et Pastel ont été affinés.",
+    "Ovládací prvky úkolů jsou zarovnané s řádky a motivy Cyberpunk, Pixel a Pastel mají upravený vzhled."
+  ),
+  "Updated the launcher icon to show version 0.5.6.": (
+    "L’icône de l’application affiche la version 0.5.6.",
+    "Ikona aplikace zobrazuje verzi 0.5.6."
+  ),
+  "- note": ("- note", "- poznámka"),
+  "Added a task menu action to unlink notes.": (
+    "Le menu des tâches permet de dissocier une note.",
+    "Nabídka úkolu nyní umožňuje odpojit poznámku."
+  ),
+  "Pixel and Cyberpunk have new control and background effects.": (
+    "Pixel et Cyberpunk ont de nouveaux effets sur les commandes et en arrière-plan.",
+    "Pixel a Cyberpunk mají nové efekty ovládacích prvků a pozadí."
+  ),
+  "Pastel has rounded, softly raised surfaces and new fonts.": (
+    "Pastel a des surfaces arrondies légèrement en relief et de nouvelles polices.",
+    "Pastel má zaoblené, jemně vystouplé plochy a nová písma."
+  ),
+  "Cyberpunk has layered popups, fine grain and softly glowing edges.": (
+    "Cyberpunk affiche des fenêtres en plusieurs étapes, un grain fin et des bords légèrement lumineux.",
+    "Cyberpunk má vrstvená vyskakovací okna, jemné zrno a lehce zářící okraje."
+  ),
+  "Cyberpunk has glowing yellow borders and Pastel has raised panels and Nunito text.":
+      (
+    "Cyberpunk a des bordures jaunes lumineuses et Pastel des panneaux en relief et la police Nunito.",
+    "Cyberpunk má zářící žluté okraje a Pastel vystouplé panely a písmo Nunito."
+  ),
   "Cyberpunk adds a blue cut-corner new-note button.": (
     "Dans Cyberpunk, le bouton de nouvelle note est bleu et son coin est coupé.",
     "Cyberpunk má modré tlačítko nové poznámky se zkoseným rohem."

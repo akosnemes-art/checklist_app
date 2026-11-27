@@ -109,7 +109,7 @@ void main() {
     expect(mainSource, contains("key: ValueKey('task-checkbox-\${task.id}')"));
     expect(mainSource, contains('dimension: 32'));
     expect(
-      mainSource,
+      File('lib/interaction_finish.dart').readAsStringSync(),
       contains('materialTapTargetSize: MaterialTapTargetSize.padded'),
     );
   });

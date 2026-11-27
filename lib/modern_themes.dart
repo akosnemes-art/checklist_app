@@ -118,6 +118,11 @@ class _AppearanceBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.passthrough,
       children: [
+        if (appearance == AppTheme.pastel && !sidebar)
+          Positioned.fill(
+            key: const ValueKey('pastel-workspace-backdrop'),
+            child: _PastelBackdrop(theme.scaffoldBackgroundColor),
+          ),
         if (appearance == AppTheme.cyberpunk)
           Positioned.fill(
             child: RepaintBoundary(child: _CyberpunkBackdrop(sidebar: sidebar)),
@@ -136,6 +141,21 @@ class _AppearanceBackdrop extends StatelessWidget {
           ),
         KeyedSubtree(
             key: const ValueKey('appearance-panel-child'), child: child),
+        if (appearance == AppTheme.cyberpunk)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: RepaintBoundary(
+                key: const ValueKey('cyberpunk-surface-finish'),
+                child: CustomPaint(
+                  painter: _CyberpunkFinish(
+                    theme.colorScheme.primary,
+                    sidebarBorder: sidebar ? theme.colorScheme.outline : null,
+                  ),
+                  isComplex: true,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

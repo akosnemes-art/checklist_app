@@ -1,6 +1,37 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Task controls align with their rows, with refined Cyberpunk, Pixel and Pastel styling.":
+      (
+    "Aufgabensteuerelemente sind an ihren Zeilen ausgerichtet. Cyberpunk, Pixel und Pastel wurden optisch verfeinert.",
+    "任务控件与各行对齐，Cyberpunk、Pixel 和 Pastel 主题的样式也有所改进。"
+  ),
+  "Updated the launcher icon to show version 0.5.6.": (
+    "Das App-Symbol zeigt die Version 0.5.6.",
+    "启动图标现已显示 0.5.6 版本。"
+  ),
+  "- note": ("- Notiz", "- 笔记"),
+  "Added a task menu action to unlink notes.": (
+    "Im Aufgabenmenü lassen sich Notizen jetzt trennen.",
+    "任务菜单新增解除笔记关联的操作。"
+  ),
+  "Pixel and Cyberpunk have new control and background effects.": (
+    "Pixel und Cyberpunk haben neue Effekte für Steuerelemente und Hintergrund.",
+    "Pixel 和 Cyberpunk 新增控件和背景特效。"
+  ),
+  "Pastel has rounded, softly raised surfaces and new fonts.": (
+    "Pastel hat abgerundete, sanft erhöhte Flächen und neue Schriften.",
+    "Pastel 采用圆角、柔和浮雕效果和新字体。"
+  ),
+  "Cyberpunk has layered popups, fine grain and softly glowing edges.": (
+    "Cyberpunk bietet sich stufenweise öffnende Fenster, eine feine Körnung und sanft leuchtende Kanten.",
+    "Cyberpunk 主题新增分层弹窗动画、细腻颗粒纹理和微光边缘。"
+  ),
+  "Cyberpunk has glowing yellow borders and Pastel has raised panels and Nunito text.":
+      (
+    "Cyberpunk hat leuchtende gelbe Rahmen und Pastel erhabene Flächen und die Schrift Nunito.",
+    "Cyberpunk 使用微光黄色边框，Pastel 使用立体面板和 Nunito 字体。"
+  ),
   "Cyberpunk adds a blue cut-corner new-note button.": (
     "In Cyberpunk hat die Schaltfläche für neue Notizen eine blaue Farbe und eine abgeschrägte Ecke.",
     "Cyberpunk 主题的新增笔记按钮改为带切角的蓝色。"

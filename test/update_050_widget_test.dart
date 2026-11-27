@@ -96,16 +96,17 @@ void main() {
     final top = field.topLeft + const Offset(10, 20);
     final bottom = field.bottomLeft + const Offset(10, -20);
     expect(await _pixel(tester, top), const Color(0xFFFFFFFF));
-    expect(await _pixel(tester, bottom), const Color(0xFFFBDCC4));
+    expect(_key('pastel-workspace-backdrop'), findsOneWidget);
+    expect(await _pixel(tester, bottom), isNot(const Color(0xFFFFFFFF)));
     await tester.pumpAndSettle();
     expect(await _pixel(tester, bottom), const Color(0xFFFFFFFF));
   });
 
   testWidgets(
-      'dropdown frames follow the theme and the Pastel note highlight is warm grey',
+      'dropdown edges follow the theme and the Pastel note highlight is warm grey',
       (tester) async {
     await _pumpApp(tester);
-    Future<void> expectMenuFrame(Color color) async {
+    Future<void> expectMenuFrame(BorderSide side, {double radius = 0}) async {
       await tester.tap(find.byTooltip('sort checklists'));
       await tester.pumpAndSettle();
       final menu = tester.widgetList<Material>(find.byType(Material)).where(
@@ -113,24 +114,25 @@ void main() {
                 material.type == MaterialType.card &&
                 material.shape ==
                     RoundedRectangleBorder(
-                        side: BorderSide(color: color, width: 2)),
+                        borderRadius: BorderRadius.circular(radius),
+                        side: side),
           );
       expect(menu, hasLength(1));
       Navigator.of(tester.element(find.text('date · newest'))).pop();
       await tester.pumpAndSettle();
     }
 
-    await expectMenuFrame(const Color(0xFF5A9BFF));
+    await expectMenuFrame(const BorderSide(color: Color(0xFF5A9BFF), width: 2));
     await tester.tap(_key('settings-toggle'));
     await tester.pumpAndSettle();
     await tester.tap(_key('settings-themes'));
     await tester.pumpAndSettle();
     await tester.tap(_key('theme-pencil'));
     await tester.pumpAndSettle();
-    await expectMenuFrame(const Color(0xFF858C94));
+    await expectMenuFrame(const BorderSide(color: Color(0xFF858C94), width: 2));
     await tester.tap(_key('theme-pastel'));
     await tester.pumpAndSettle();
-    await expectMenuFrame(const Color(0xFFF8F2C8));
+    await expectMenuFrame(BorderSide.none, radius: 18);
     await _selectNotes(tester);
     await tester.tap(_key('sidebar-note-second'));
     await tester.pumpAndSettle();

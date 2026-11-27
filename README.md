@@ -1,4 +1,4 @@
-# Checklist 0.5.5
+# Checklist 0.5.6
 
 CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
 
@@ -15,9 +15,10 @@ The approved product behaviour and visual invariants are recorded in
 ## What it includes
 
 - Boi, Pencil, Pastel, Copper, Black Metal, Pixel, and Cyberpunk themes.
-  Pixel has arcade lettering and subtle CRT noise. Cyberpunk has neon
-  circuitry, a glowing yellow progress fill, glowing priority controls,
-  and cut-corner checklist, note, and reminder buttons. Each theme can be
+  Pastel has softly beveled surfaces, Coiny headings, and Nunito body text.
+  Pixel has arcade lettering, glowing pixel settings controls, and subtle
+  CRT noise. Cyberpunk has neon circuitry, glowing yellow borders, thin
+  checkmarks, and cut-corner checklist, note, and reminder buttons. Each theme can be
   customised with colour swatches and hue, saturation, and value sliders.
   Saved Glass selections move to Pencil.
 - Persistent English, Hungarian, French, Czech, German, and Simplified Chinese
@@ -42,7 +43,8 @@ The approved product behaviour and visual invariants are recorded in
   checkmark and three-dot settings control kept independent and no drag handle.
 - Linked-note icons below task checkboxes are yellow in Boi and blue in Pencil
   and Pastel. They flash purple before opening the attached note.
-  All task checkboxes share the same alignment.
+  Task checkboxes align to the first line of text, and each task menu is
+  centred vertically on its row.
 - Dedicated red, teal, and lavender priority controls in the Pastel theme.
 - An optional 16:9 cover image for every checklist, captured through a
   blue-framed camera preview or selected and positioned in a purple-framed crop
@@ -64,8 +66,8 @@ The approved product behaviour and visual invariants are recorded in
   composer and drawer settings above gesture and three-button navigation.
 - The Android launcher uses the updated safe CHECKLIST logo from
   `Checklist_app_icon_safe.png` for legacy and adaptive icons.
-- Create-note windows follow the writing surface and frame of the current
-  theme. Dialog frames draw before their contents fade in.
+- Create-note windows follow the writing surface of the current theme.
+  Dialogs fade their contents in after the surface appears.
 - Offline Android photo-to-text for English and Hungarian notes using
   PaddleOCR, from either an existing picture or the device camera. Imported
   text retains detected bold, italic, and underline as editable formatting. The camera

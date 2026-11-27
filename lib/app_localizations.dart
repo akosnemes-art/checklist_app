@@ -21,6 +21,21 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Task controls align with their rows, with refined Cyberpunk, Pixel and Pastel styling.":
+      "A feladatok vezérlői a sorokhoz igazodnak, a Cyberpunk, Pixel és Pastel megjelenése finomodott.",
+  "Updated the launcher icon to show version 0.5.6.":
+      "Az alkalmazásikonon most a 0.5.6-os verzió látható.",
+  "- note": "- jegyzet",
+  "Added a task menu action to unlink notes.":
+      "A feladatmenüből leválaszthatók a jegyzetek.",
+  "Pixel and Cyberpunk have new control and background effects.":
+      "A Pixel és a Cyberpunk új gomb- és háttéreffekteket kapott.",
+  "Pastel has rounded, softly raised surfaces and new fonts.":
+      "A Pastel lekerekített, finoman kiemelt felületeket és új betűtípusokat kapott.",
+  "Cyberpunk has layered popups, fine grain and softly glowing edges.":
+      "A Cyberpunk felugró ablakai rétegenként nyílnak meg, a felületek finoman szemcsézettek, a szélek pedig lágyan világítanak.",
+  "Cyberpunk has glowing yellow borders and Pastel has raised panels and Nunito text.":
+      "A Cyberpunk keretei sárgán világítanak, a Pastel kiemelt paneleket és Nunito betűtípust kapott.",
   "Cyberpunk adds a blue cut-corner new-note button.":
       "A Cyberpunk új jegyzet gombja kék színt és levágott sarkot kapott.",
   "Cyberpunk progress glows on the yellow fill.":

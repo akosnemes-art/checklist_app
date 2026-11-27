@@ -5,6 +5,12 @@
 The Pixel theme includes Pixelify Sans by Stefie Justprince.
 The [SIL Open Font License 1.1](assets/fonts/PixelifySans-OFL.txt) ships with the font.
 
+## Pastel fonts
+
+Pastel uses Coiny by Marcelo Magalhães and Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly. Nunito's bundled styles are static instances of the upstream variable fonts.
+Both ship with their SIL Open Font License 1.1 notices.
+[Coiny licence](assets/fonts/Coiny-OFL.txt) · [Nunito licence](assets/fonts/Nunito-OFL.txt) · [Nunito source](https://github.com/googlefonts/nunito)
+
 ## Cyberpunk theme
 
 Rajdhani is by the Indian Type Foundry. The [SIL Open Font License 1.1](assets/fonts/Rajdhani-OFL.txt)

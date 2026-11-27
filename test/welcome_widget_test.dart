@@ -51,9 +51,10 @@ void main() {
         find.byKey(const ValueKey('implemented-changes-title')),
         findsOneWidget,
       );
-      expect(find.textContaining('blue cut-corner new-note'), findsOneWidget);
-      expect(find.textContaining('glows on the yellow fill'), findsOneWidget);
-      expect(find.textContaining('Theme backgrounds reach'), findsOneWidget);
+      expect(find.textContaining('unlink notes'), findsOneWidget);
+      expect(find.textContaining('new control and background'), findsOneWidget);
+      expect(find.textContaining('softly raised surfaces'), findsOneWidget);
+      expect(find.textContaining('layered popups'), findsOneWidget);
       expect(find.text('read less'), findsOneWidget);
       expect(
         tester.getSize(expandingContent).height,

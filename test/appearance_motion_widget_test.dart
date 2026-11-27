@@ -47,7 +47,7 @@ Future<int> _noiseRow(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('themes build upwards and Pixel sweeps a short CRT noise band',
+  testWidgets('themes build upwards and Pixel crawls a grainy CRT strip',
       (tester) async {
     await _pumpApp(tester);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
@@ -73,14 +73,14 @@ void main() {
 
     expect(await _noiseRow(tester), -1);
     await tester.pump(const Duration(seconds: 7));
-    await tester.pump(const Duration(milliseconds: 130));
+    await tester.pump(const Duration(milliseconds: 700));
     final first = await _noiseRow(tester);
-    await tester.pump(const Duration(milliseconds: 170));
+    await tester.pump(const Duration(milliseconds: 780));
     final second = await _noiseRow(tester);
     expect(first, greaterThan(0));
     expect(second, greaterThan(0));
     expect((second - first).abs(), greaterThan(100));
-    await tester.pump(const Duration(milliseconds: 270));
+    await tester.pump(const Duration(seconds: 3));
     expect(await _noiseRow(tester), -1);
 
     tester.platformDispatcher.accessibilityFeaturesTestValue =
