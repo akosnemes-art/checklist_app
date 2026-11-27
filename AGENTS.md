@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current source version: **0.5.7**. The Flutter build number may increase for
+- Current source version: **0.5.8**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -35,10 +35,12 @@ regression test for every approved visual or interaction change.
 These details have already been approved and must not change incidentally:
 
 - Square corners are used throughout buttons, fields, dialogs, menus, chips,
-  drawers, snackbars, and window chrome except in Pastel. Pastel uses rounded
+  drawers, snackbars, and window chrome except in Milk. Milk uses rounded
   corners and neumorphic raised and recessed surfaces with opposing soft
   shadows. Its mobile drawer opener is a raised circular menu icon seated in
-  a recessed rim. Pressing controls transitions the relief inwards with up to
+  a recessed rim. Its three white lines glow. Selected Milk formatting icons
+  have a lavender glow. Other Milk controls use matte relief and directional
+  shadows. Pressing controls transitions the relief inwards with up to
   1.2 dp of travel over 120 ms. Reduced motion removes the travel and shows
   the pressed relief immediately. The radius follows Android's
   reported display corners within safe layout bounds and defaults to 18 dp.
@@ -54,7 +56,7 @@ These details have already been approved and must not change incidentally:
   all affected UI except the drawer/sidebar opening animation itself.
 - Boi Checklist mode uses purple; Boi Notes mode uses blue. Pencil mode uses
   only the approved neutral greys except for explicitly retained blue dialog
-  frames, blue note links, and blue/yellow Notes formatting controls. Pastel uses its approved
+  frames, blue note links, and blue/yellow Notes formatting controls. Milk uses its approved
   palette with blue Notes hyperlinks.
 - Boi checklist completion progress is brand yellow (`#F3ED23`). Pencil
   progress is black on a light-grey track. Cyberpunk uses a glowing brand
@@ -64,14 +66,14 @@ These details have already been approved and must not change incidentally:
   (`#922FD0`), and high yellow (`#F3ED23`).
 - The task-composer placeholder beginning `add a task…` and the note-editor
   placeholder `start writing…` are grey (`#9AA0AA`), with deeper grey-purple
-  ink (`#5E5267`) in Pastel for readability. Typed note
+  ink (`#5E5267`) in Milk for readability. Typed note
   body text is white (`#F8F7FF`) in dark mode and black in light mode.
 - Note-category colour affects the note title, category label, list indicator,
-  and selected-row treatment. In Pastel, bright category ink is darkened for
+  and selected-row treatment. In Milk, bright category ink is darkened for
   readability while the category indicator retains the saved colour.
   Category colour does not recolour the note body text.
 - White frames are intentional around the create-note button, filter/sort
-  button, and category selector outside Pastel. Cyberpunk's general UI borders, including
+  button, and category selector outside Milk. Cyberpunk's general UI borders, including
   the sidebar create buttons, use electric blue (`#379BFF`) with a faint
   glow by default.
 - Three-dot settings buttons are intentionally unframed and vertical. Pixel
@@ -84,8 +86,9 @@ These details have already been approved and must not change incidentally:
 - There are no static decorative hearts in the sidebar.
 - Popup dialogs have a two-pixel default-note-blue frame. The linked-note and
   create-note popups use light line grey in Pencil. Dropdown menus use
-  two-pixel default-note-blue frames in Boi and light grey in Pencil. Pastel
-  dialogs and menus use raised borderless surfaces.
+  two-pixel default-note-blue frames in Boi and light grey in Pencil. Milk
+  dialogs and menus use raised borderless surfaces. Milk dialog content can
+  scroll separately from its actions and has space around labels and controls.
 - Save and create buttons brighten for 60 milliseconds before completing the
   action. Dialog frames draw first and the contents then fade in. The complete
   transition takes 280 milliseconds and respects reduced-motion settings.
@@ -116,14 +119,14 @@ These details have already been approved and must not change incidentally:
 | Pencil high priority | `#0E2F44` |
 | Pencil medium priority | `#64696A` |
 | Pencil low priority | `#999999` |
-| Pastel peach background | `#FBDCC4` |
-| Pastel white surface | `#FFFFFF` |
-| Pastel pale-yellow accent | `#F8F2C8` |
-| Pastel green checklist sidebar | `#BED4C7` |
-| Pastel mauve Notes sidebar / line | `#C7B0B8` |
-| Pastel high priority | `#E31F26` |
-| Pastel medium priority | `#00978D` |
-| Pastel low priority | `#B5B1D8` |
+| Milk cool background | `#EAF0F6` |
+| Milk writing surface | `#F7FAFC` |
+| Milk lavender accent | `#D8C6EF` |
+| Milk checklist sidebar | `#E5ECF2` |
+| Milk Notes sidebar | `#E8ECF4` |
+| Milk high priority | `#E31F26` |
+| Milk medium priority | `#00978D` |
+| Milk low priority | `#B5B1D8` |
 
 The 18 category colours are defined once in `_noteColours` in
 `lib/main.dart`. Preserve their order because tests and saved user choices may
@@ -145,12 +148,16 @@ rely on the palette positions.
   cancel/create actions. It has no `name it` heading or priority control, and
   new checklists default to medium priority. Priority can still be changed from
   the selected checklist header.
-- The selected checklist shows a calendar reminder button. In Pastel the
-  reminder button, calendar and time picker use sculpted surfaces. Pastel's
+- The selected checklist shows a calendar reminder button. In Milk the
+  reminder button, calendar and time picker use sculpted surfaces. Milk's
   calendar has extra margins and a scrollable body on shorter screens. It
   opens a calendar and time picker; a saved reminder stays attached to that
   checklist and can be changed or removed. The checklist sidebar three-dot
   menu includes the lowercase `reminder` action.
+- Cyberpunk's reminder picker has a red cut-corner frame with a brief glitch
+  as it opens. Calendar days use thin cut-corner square outlines. A selected
+  day fills, flashes yellow briefly, then settles into a red glow. Reduced
+  motion shows the selected state immediately.
 - On Android, a saved future reminder is scheduled as an exact system alarm.
   It sounds the device alarm tone even when the Flutter UI is not open, shows
   an ongoing alarm notification with a stop action, and is restored after a
@@ -182,13 +189,13 @@ rely on the palette positions.
   left-aligned checkbox. Linked and unlinked task checkboxes use the same fixed
   leading-column width and align with the top of the task text. Cyberpunk
   uses a thin stroke for task ticks and the wordmark checkmark. The icon is yellow in Boi and
-  blue in Pencil and Pastel. Tapping it changes it to purple before opening
+  blue in Pencil and Milk. Tapping it changes it to purple before opening
   the linked note in a scrollable popup that renders the note's formatting.
   Links in the popup are clickable. The `+ note` chooser shows formatted
   previews of the existing notes.
   The task text wraps within the remaining row width and also
   retains its established note-opening tap.
-- In Pastel, priority controls use red `#E31F26` for high, teal `#00978D` for
+- In Milk, priority controls use red `#E31F26` for high, teal `#00978D` for
   medium, and lavender `#B5B1D8` for low. Its header priority control is
   at least 44 dp tall and its menu entries are 54 dp tall. In Pencil,
   priority controls use navy
@@ -196,7 +203,7 @@ rely on the palette positions.
   low. Boi priority colours do not change.
 - The selected checklist header includes its creation date and task counts.
 - Progress changes animate smoothly rather than jumping to the new value.
-  Pastel uses an uncoloured recessed track, including in empty checklists,
+  Milk uses an uncoloured recessed track, including in empty checklists,
   with a raised fill matching completed task panels (`#CFE8DA` by default).
   Cyberpunk priority buttons and menu markers glow in their priority colours.
   Pixel's progress fill and task and workspace checkmarks glow. Cyberpunk
@@ -210,6 +217,7 @@ rely on the palette positions.
   and writing area from top to bottom.
 - The Android soft-keyboard Done action adds the task. The placeholder is only
   `add a task…`, without a parenthetical Done instruction.
+- Cyberpunk's task-composer frame glows brighter blue while the field has focus.
 - The empty checklist message is `your list starts here`.
 
 ## Notes mode
@@ -224,7 +232,7 @@ rely on the palette positions.
 - Note sorting supports newest, oldest, A–Z, and category A–Z.
 - A note list entry uses its category colour (or default note colour), shows its
   creation date, and receives a category-coloured selected treatment outside
-  Pastel. Pastel's checklist and note sidebar entries are flat with circular
+  Milk. Milk's checklist and note sidebar entries are flat with circular
   colour markers, recessed three-dot menus and a small recessed divider
   between rows. Selected entries use heavier text.
 - The sidebar note-row menu uses an unframed vertical ellipsis and offers
@@ -241,8 +249,9 @@ rely on the palette positions.
 - Note content autosaves locally after a short debounce.
 - Links in note text are underlined and open in the system browser or registered
   app when tapped outside edit mode. Boi uses brand yellow `#F3ED23`, Pencil
-  uses default note blue `#5A9BFF`, and Pastel uses deep blue `#1553A3`.
-  Links glow briefly when tapped, and Pastel links brighten to `#5A9BFF`.
+  uses default note blue `#5A9BFF`, and Milk uses deep blue `#1553A3`.
+  Links glow briefly when tapped in other themes. Milk links brighten to
+  `#5A9BFF` with a colour change.
   While editing, taps position the cursor.
 - The note editor has unframed bold, italic, and underline controls. Inactive
   controls are default-note-blue; active controls are brand yellow. Formatting
@@ -255,9 +264,11 @@ rely on the palette positions.
 - Tapping outside the note editor exits edit mode. The formatting toolbar is
   part of the editor tap region, so its buttons preserve focus and formatting
   state.
+- SV uses full wood-framed controls for `B`, `i`, and `U`, with Press Start 2P
+  letters. Its category and photo buttons use the same finish and pixel glyphs.
 - The create-note dialog uses the dark-blue Notes theme in Boi and the note
-  editor's writing surface in Pencil and Pastel. The rename-note dialog uses a
-  pale pastel-blue `#D9EAF7` background with a blue frame outside Pastel. Both retain the
+  editor's writing surface in Pencil and Milk. The rename-note dialog uses a
+  pale pastel-blue `#D9EAF7` background with a blue frame outside Milk. Both retain the
   category selector.
 - The note-header category button opens category assignment. The adjacent
   unframed vertical-ellipsis menu offers rename, delete, and category settings.
@@ -305,25 +316,25 @@ rely on the palette positions.
   collapses when Settings opens, and the menu sits close to the Settings label.
   The line stays the same length whether Settings is open or closed.
 - Opening Settings fades and expands the option content. Closing it collapses
-  the content and returns to the main Settings page.
+  the content and returns to the main Settings page. Closing the mobile
+  sidebar also closes Settings and resets its page.
 - The Settings arrow points down when open and up when closed. Pressing a
   Settings row briefly brightens its text.
   The arrow aligns horizontally with the sidebar three-dot menus. It is the
-  only beveled control in Pastel's sidebar Settings. Cyberpunk Settings icons
+  only beveled control in Milk's sidebar Settings. Cyberpunk Settings icons
   are red and glow only while Settings is open.
 - The main Settings page contains `themes`, `language`, `import / export`, and
   `about`.
 - The Themes page replaces the main option text with a fade and offers `Boi`,
-  `Pencil`, `Pastel`, `Copper`, `Black Metal`, `Pixel`, and `Cyberpunk`.
+  `Pencil`, `Milk`, `Copper`, `Black Metal`, `Pixel`, `Cyberpunk`, and `SV`.
   Boi is the established dark appearance,
-  Pencil is the established light appearance, and Pastel combines the
-  canonical pastel colours with a lilac, blue, and blush background. Rounded
-  material cards and controls have bevels, directional shadows and layered
-  pastel fills. Metadata, menu dots, and placeholders use deeper ink,
-  and priority labels use darker shades of their indicator colours. Pink and
-  blue sidebar create controls distinguish Checklist
-  and Notes. Pastel headings use Coiny by Marcelo Magalhães and body text
-  uses Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly. Copper uses
+  Pencil is the established light appearance, and Milk uses matte blue-white
+  surfaces with soft raised and recessed relief. It keeps the stored `pastel`
+  preference and colour overrides.
+  Metadata, menu dots, and placeholders use deeper ink. Lavender and
+  powder-blue create controls distinguish Checklist and Notes. Milk headings
+  use Coiny by Marcelo Magalhães and body text uses Nunito by Vernon Adams,
+  Cyreal, and Jacques Le Bailly. Copper uses
   charcoal surfaces, wine and plum
   sidebars, antique-gold progress and popup frames, dusty-rose note links,
   and serif headings. Copper keeps the previous Goth preference value and
@@ -333,7 +344,10 @@ rely on the palette positions.
   and workspace have staggered 640 ms metallic glints that pause between
   passes and are disabled under reduced motion. Pixel uses black and neon
   green, 1980s-style Pixelify Sans typography, softly glowing priority controls,
-  and occasional slow grainy CRT distortion across its scanlines. Saved Newsprint
+  and occasional slow grainy CRT distortion across its scanlines. SV uses
+  original stepped landscape art, warm parchment, wooden panel edges, and
+  VT323 text with Press Start 2P on the wordmark and formatting buttons.
+  Saved Newsprint
   selections migrate to Pixel and saved Glass selections migrate to Pencil.
   Cyberpunk uses coral Checklist and cyan
   Notes accents, Rajdhani headings, and a text-free circuit-board backdrop with
@@ -343,8 +357,10 @@ rely on the palette positions.
   Cyberpunk buttons have a 280 ms glitch on touch or hover. Cyberpunk loads
   directly, and all themes use the shared bottom-to-top reveal on selection.
   Cyberpunk signals and circuitry respond to saved HSV theme colours.
-  Cyberpunk uses stationary fine grain across the workspace, sidebar, and
-  popup surfaces, with soft accent-coloured illumination. Its 280 ms dialog
+  Cyberpunk refreshes low-opacity grain in the workspace and sidebar backgrounds
+  and occasionally sweeps a faint horizontal tracking band across them.
+  Popup surfaces retain stationary grain and soft accent-coloured illumination.
+  Its 280 ms dialog
   transition opens a narrow illuminated frame, expands the layered panel, and
   fades in the contents. Menus open with eased expansion and staggered items.
   Cyberpunk popups and menus are instant under reduced motion.
@@ -366,8 +382,8 @@ rely on the palette positions.
   portable between installations.
 - The About page reads `designed by Ákos Nemes` above a theme-coloured
   `credits` button. The button is brand yellow in Boi. The popup scrolls the
-  credits upwards and includes Ákos Nemes and his email, Codex AI, and Allan
-  Ferreira with a link to his portfolio, plus the Pastel font designers.
+  credits upwards and includes Ákos Nemes and his email, Codex AI, and the
+  font designers with the font, theme, and a labelled source link.
   It can be scrolled manually and
   disables automatic movement under reduced motion.
 - Both the main workspace and sidebar respond to theme changes.
@@ -434,7 +450,8 @@ deletion must remain restricted to the app-owned support directory.
 - `lib/modern_themes.dart`: Pixel palette, scanlines, and shared theme backdrop.
 - `lib/appearance_motion.dart`: bottom-to-top theme reveal and Pixel CRT noise.
 - `lib/interaction_finish.dart`: task checkboxes and themed settings menus.
-- `lib/pastel_finish.dart`: Pastel typography, rounded shapes, and bevels.
+- `lib/pastel_finish.dart`: Milk typography, rounded shapes, and relief.
+- `lib/sv_theme.dart`: SV palette, parchment frames, and backdrop.
 - `lib/cyberpunk_theme.dart` and `lib/cyberpunk_backdrop.dart`: Cyberpunk
   palette, button glitches, and animated circuitry.
 - `lib/cyberpunk_finish.dart`: Cyberpunk grain, soft lighting, and popup frame motion.
@@ -488,8 +505,8 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Verified Android APK: version 0.5.7 internal build `58`.
-- Current source baseline: 110 passing Flutter tests, clean static analysis,
+- Verified Android APK: version 0.5.8 internal build `61`.
+- Current source baseline: 117 passing Flutter tests, clean static analysis,
   and a successful Android release build. The two JVM typography tests last
   passed for build 45. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,

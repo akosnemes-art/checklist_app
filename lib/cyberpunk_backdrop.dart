@@ -39,8 +39,8 @@ class _CyberpunkBackdropState extends State<_CyberpunkBackdrop> {
 
   void _updateClock() {
     if (_visible && _motion) {
-      _clock ??= Timer.periodic(const Duration(milliseconds: 160), (_) {
-        _frame.value = (_frame.value + 1) % 360;
+      _clock ??= Timer.periodic(const Duration(milliseconds: 40), (_) {
+        _frame.value = (_frame.value + 1) % 1440;
       });
     } else {
       _clock?.cancel();
@@ -76,16 +76,95 @@ class _CyberpunkBackdropState extends State<_CyberpunkBackdrop> {
           cool,
           sidebar: widget.sidebar,
         ),
-        child: RepaintBoundary(
-          child: CustomPaint(
-            painter:
-                _CircuitSignals(_frame, warm, cool, sidebar: widget.sidebar),
-            child: const SizedBox.expand(),
-          ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RepaintBoundary(
+              child: CustomPaint(
+                painter: _CircuitSignals(_frame, warm, cool,
+                    sidebar: widget.sidebar),
+              ),
+            ),
+            RepaintBoundary(
+              key: const ValueKey('cyberpunk-background-grain'),
+              child: CustomPaint(painter: _CyberpunkBackgroundGrain(_frame)),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _CyberpunkBackgroundGrain extends CustomPainter {
+  _CyberpunkBackgroundGrain(this.frame) : super(repaint: frame);
+
+  final ValueListenable<int> frame;
+  static const _stepsPerBlend = 3;
+  static final _textures = [8107, 5231, 9619, 4517, 5833, 2939].map((seed) {
+    final picture = _CyberpunkFinish.makeGrain(seed);
+    final tileSize = _CyberpunkFinish._tileSize.toInt();
+    final image = picture.toImageSync(tileSize, tileSize);
+    picture.dispose();
+    return ui.ImageShader(
+      image,
+      TileMode.repeated,
+      TileMode.repeated,
+      Matrix4.identity().storage,
+    );
+  }).toList(growable: false);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final tick = frame.value;
+    final index = (tick ~/ _stepsPerBlend) % _textures.length;
+    final blend = (tick % _stepsPerBlend) / _stepsPerBlend;
+    final bounds = Offset.zero & size;
+    final paint = Paint()
+      ..shader = _textures[index]
+      ..color = Colors.white.withValues(alpha: .68 * (1 - blend));
+    canvas.drawRect(bounds, paint);
+    if (blend > 0) {
+      canvas.drawRect(
+        bounds,
+        paint
+          ..shader = _textures[(index + 1) % _textures.length]
+          ..color = Colors.white.withValues(alpha: .68 * blend),
+      );
+    }
+
+    final sweep = ((tick + 188) % 240) / 36;
+    if (sweep < 1 && size.height > 0) {
+      final strength = math.sin(math.pi * sweep);
+      final y = size.height * sweep;
+      final band = Rect.fromCenter(
+        center: Offset(size.width / 2, y),
+        width: size.width,
+        height: 18,
+      );
+      canvas.save();
+      canvas.clipRect(band);
+      final shift = (tick % 5 - 2) * 2.0;
+      canvas.translate(shift, -2);
+      canvas.drawRect(
+        band.inflate(6),
+        paint
+          ..shader = _textures[(index + 2) % _textures.length]
+          ..color = Colors.white.withValues(alpha: .42 * strength),
+      );
+      canvas.restore();
+      canvas.drawRect(
+        Rect.fromLTWH(0, y.floorToDouble(), size.width, 1),
+        paint
+          ..shader = null
+          ..color = Colors.white.withValues(alpha: .023 * strength),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CyberpunkBackgroundGrain oldDelegate) =>
+      oldDelegate.frame != frame;
 }
 
 class _CircuitBoard extends CustomPainter {
@@ -222,7 +301,7 @@ class _CircuitSignals extends CustomPainter {
     canvas.rotate(0.165);
     final tracks = [0.24, 0.47, 0.498, 0.68, 0.88];
     for (var i = 0; i < tracks.length; i++) {
-      final distance = (frame.value * (3 + i % 3) + i * 29) % 120 / 120;
+      final distance = (frame.value ~/ 4 * (3 + i % 3) + i * 29) % 120 / 120;
       final x = size.width * (distance * 1.4 - 0.20);
       final y = size.height * tracks[i];
       final colour = i == 0 || i == 3 ? warm : cool;

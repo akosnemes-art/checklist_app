@@ -21,6 +21,25 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Added new fonts and pixel buttons to SV.":
+      "Az SV új betűtípusokat és pixelgombokat kapott.",
+  "Refined Cyberpunk’s TV noise.": "Finomodott a Cyberpunk tévézaja.",
+  "Added Milk formatting glow and spaced out its popups.":
+      "A Milk aktív formázógombjai világítanak, az ablakok pedig tágasabbak.",
+  "Renamed Pastel to Milk and softened its surfaces.":
+      "A Pastel új neve Milk, lágyabb felületekkel.",
+  "Added the SV theme.": "Új SV téma.",
+  "Updated the font credits and added sources.":
+      "Frissültek a betűtípusok kreditjei és forrásai.",
+  "font source · Google Fonts": "betűtípus forrása · Google Fonts",
+  "Added a blue focus glow and animated grain to Cyberpunk.":
+      "Kék fókuszfény és mozgó szemcsézettség a Cyberpunk témában.",
+  "Updated the Cyberpunk reminder calendar.":
+      "Frissült a Cyberpunk emlékeztetőnaptára.",
+  "Settings now closes with the sidebar.":
+      "Az oldalsáv bezárásakor a Beállítások is bezárul.",
+  "{font} font design for {theme}":
+      "{font} betűtípus tervezése a(z) {theme} témához",
   "Improved Pastel contrast and updated the 0.5.7 app icon.":
       "Javult a Pastel téma kontrasztja, és frissült a 0.5.7-es alkalmazásikon.",
   "Refined sidebar Settings and added roomier Pastel calendar and priority controls.":
@@ -62,16 +81,13 @@ const _hungarian = <String, String>{
       "Csökkent a felső térköz, a Glass téma megszűnt.",
   "Moved the website globe beside the Notes formatting controls.":
       "A webhelyek földgömbje a jegyzetformázó gombok mellé került.",
-  "Added the Cyberpunk theme with photography by Allan Ferreira.":
-      "Új Cyberpunk téma Allan Ferreira fényképével.",
+  "Added the Cyberpunk theme.": "Új Cyberpunk téma.",
   "Added rolling credits in About and updated the launcher icon.":
       "A Névjegy gördülő stáblistát kapott, és megújult az alkalmazásikon.",
   "designed by {name}": "tervezte: {name}",
   "credits": "stáblista",
   "design": "tervezés",
   "development": "fejlesztés",
-  "original Cyberpunk photography": "A Cyberpunk eredeti háttérfotója",
-  "view portfolio": "portfólió megtekintése",
   "Notes extend to the status bar and use a solid writing surface.":
       "A Jegyzetek háttere az állapotsávig ér, az írófelület pedig egyszínű.",
   "Pixel has CRT noise and theme changes draw from bottom to top.":

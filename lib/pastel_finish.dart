@@ -3,17 +3,17 @@ part of 'main.dart';
 const _pastelDisplayFont = 'Coiny';
 const _pastelReadingFont = 'Nunito';
 const _defaultPastelCorner = 18.0;
-const _pastelRoseButton = Color(0xFFECD2E1);
-const _pastelBlueButton = Color(0xFFD5DFF3);
-const _pastelLavender = Color(0xFFE7E0F0);
-const _pastelPorcelain = Color(0xFFF2EEF5);
-const _pastelRose = Color(0xFFF1E2E9);
-const _pastelClay = Color(0xFFEBE7F1);
+const _pastelRoseButton = Color(0xFFE5E0F2);
+const _pastelBlueButton = Color(0xFFE0EBF2);
+const _pastelLavender = Color(0xFFDDD1ED);
+const _pastelPorcelain = Color(0xFFF0F4F8);
+const _pastelRose = Color(0xFFEDF1F7);
+const _pastelClay = Color(0xFFE8EFF5);
 const _pastelCompletedTaskSurface = Color(0xFFCFE8DA);
-const _pastelPlateShadow = Color(0x54776689);
+const _pastelPlateShadow = Color(0x3D51677B);
 const _pastelPlum = Color(0xFF75445F);
 const _pastelMutedInk = Color(0xFF5E5267);
-const _pastelCheckboxFace = Color(0xFFDCD3E5);
+const _pastelCheckboxFace = Color(0xFFD8E2EC);
 
 Color _pastelSecondaryInk(ThemeData theme) =>
     theme.custom(_ThemeColour.text) ?? _pastelMutedInk;
@@ -61,6 +61,7 @@ Widget _pastelDrawerButton(ThemeData theme, IconButton button) {
     ),
     round: true,
     seatWidth: 4,
+    colour: theme.custom(_ThemeColour.panel) ?? const Color(0xFFB2C0CF),
   );
 }
 
@@ -97,6 +98,7 @@ ThemeData _buildPastelFinish(ThemeData base, double radius) {
       enabledBorder: field,
       focusedBorder: field,
       hintStyle: const TextStyle(color: _pastelMutedInk),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
     filledButtonTheme: FilledButtonThemeData(
         style: bevel(base.filledButtonTheme.style, filled: true)),
@@ -120,6 +122,7 @@ ThemeData _buildPastelFinish(ThemeData base, double radius) {
     popupMenuTheme: base.popupMenuTheme.copyWith(
       color: _pastelPorcelain,
       shape: _PastelSoftBorder(borderRadius: corners),
+      menuPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
       elevation: 5,
       shadowColor: _pastelPlateShadow,
       surfaceTintColor: Colors.transparent,
@@ -164,7 +167,7 @@ ThemeData _buildPastelFinish(ThemeData base, double radius) {
           const TextStyle(color: _lightText, fontFamily: _pastelReadingFont),
     ),
     tooltipTheme: base.tooltipTheme.copyWith(
-      decoration: BoxDecoration(color: _pastelMauve, borderRadius: corners),
+      decoration: BoxDecoration(color: _milkLine, borderRadius: corners),
     ),
   );
 }
@@ -217,9 +220,9 @@ Widget _pastelLift(
                 offset: const Offset(4, 5),
               ),
               const BoxShadow(
-                  color: Color(0xC4FFFFFF),
-                  blurRadius: 9,
-                  offset: Offset(-4, -4)),
+                  color: Color(0x65F7FAFC),
+                  blurRadius: 6,
+                  offset: Offset(-3, -3)),
             ],
     ),
     child: inset
@@ -389,9 +392,9 @@ Widget _sidebarEntry(ThemeData theme, Widget child, {required bool hasNext}) {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0x55776689),
-                    Color(0x18776689),
-                    Color(0x91FFFFFF)
+                    Color(0x5551677B),
+                    Color(0x1851677B),
+                    Color(0x65F7FAFC)
                   ],
                   stops: [0, .52, 1],
                 ),
@@ -451,11 +454,7 @@ void _paintPastelRelief(Canvas canvas, Rect bounds, BorderRadius radius,
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawRRect(
       contour.shift(Offset(3 * height, 4 * height)),
-      haze..color = dark.withValues(alpha: .42 * height),
-    );
-    canvas.drawRRect(
-      contour.shift(Offset(-3 * height, -4 * height)),
-      haze..color = Colors.white.withValues(alpha: .88 * height),
+      haze..color = dark.withValues(alpha: .30 * height),
     );
     canvas.restore();
   }
@@ -469,11 +468,11 @@ void _paintPastelRelief(Canvas canvas, Rect bounds, BorderRadius radius,
   final shift = ui.lerpDouble(-1.8, 2.5, depth)!;
   canvas.drawRRect(
     contour.shift(Offset(shift, shift)),
-    rim..color = dark.withValues(alpha: .26 + depth * .20),
+    rim..color = dark.withValues(alpha: .20 + depth * .19),
   );
   canvas.drawRRect(
     contour.shift(Offset(-shift, -shift)),
-    rim..color = Colors.white.withValues(alpha: .64),
+    rim..color = const Color(0xFFF7FAFC).withValues(alpha: .52),
   );
   canvas.restore();
 }

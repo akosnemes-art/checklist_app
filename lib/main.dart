@@ -6,7 +6,8 @@ import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, defaultTargetPlatform;
 import 'package:flutter/gestures.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ part 'appearance_motion.dart';
 part 'credits.dart';
 part 'interaction_finish.dart';
 part 'pastel_finish.dart';
+part 'sv_theme.dart';
 part 'cyberpunk_backdrop.dart';
 part 'cyberpunk_finish.dart';
 part 'cyberpunk_theme.dart';
@@ -61,11 +63,12 @@ const _lightSidebar = Color(0xFFD5D4D1);
 const _lightLine = Color(0xFF858C94);
 const _lightControl = Color(0xFF666B70);
 const _lightText = Color(0xFF101010);
-const _pastelPeach = Color(0xFFFBDCC4);
-const _pastelWhite = Color(0xFFFFFFFF);
-const _pastelYellow = Color(0xFFF8F2C8);
-const _pastelGreen = Color(0xFFBED4C7);
-const _pastelMauve = Color(0xFFC7B0B8);
+const _milkBackground = Color(0xFFEAF0F6);
+const _pastelWhite = Color(0xFFF7FAFC);
+const _milkAccent = Color(0xFFD8C6EF);
+const _milkChecklistSidebar = Color(0xFFE5ECF2);
+const _milkNotesSidebar = Color(0xFFE8ECF4);
+const _milkLine = Color(0xFFBAC8D4);
 const _pastelPriorityHigh = Color(0xFFE31F26);
 const _pastelPriorityMedium = Color(0xFF00978D);
 const _pastelPriorityLow = Color(0xFFB5B1D8);
@@ -80,6 +83,18 @@ const _coverAspectRatio = 16 / 9;
 const _sidebarEntryInset = 10.0;
 const _sidebarEntryMenuSize = 36.0;
 const _buildChanges = <String>[
+  'Added new fonts and pixel buttons to SV.',
+  'Refined Cyberpunk’s TV noise.',
+  'Added Milk formatting glow and spaced out its popups.',
+];
+const _implementedChanges = <String>[
+  ..._buildChanges,
+  'Renamed Pastel to Milk and softened its surfaces.',
+  'Added the SV theme.',
+  'Added a blue focus glow and animated grain to Cyberpunk.',
+  'Updated the Cyberpunk reminder calendar.',
+  'Settings now closes with the sidebar.',
+  'Updated the font credits and added sources.',
   'Improved Pastel contrast and updated the 0.5.7 app icon.',
   'Refined sidebar Settings and added roomier Pastel calendar and priority controls.',
   'Pastel progress has a recessed track and a raised green fill.',
@@ -87,9 +102,6 @@ const _buildChanges = <String>[
   'Pastel uses soft raised and recessed surfaces with inward button motion.',
   'The Notes camera orients sideways photos for text recognition.',
   'Pixel adds pixel-art formatting, category and photo icons.',
-];
-const _implementedChanges = <String>[
-  ..._buildChanges,
   'Added a task menu action to unlink notes.',
   'Pixel and Cyberpunk have new control and background effects.',
   'Pastel has rounded, softly raised surfaces and new fonts.',
@@ -104,7 +116,7 @@ const _implementedChanges = <String>[
   'Reduced top spacing and removed the Glass theme.',
   'Moved the website globe beside the Notes formatting controls.',
   'Added rolling credits in About and updated the launcher icon.',
-  'Added the Cyberpunk theme with photography by Allan Ferreira.',
+  'Added the Cyberpunk theme.',
   'Notes extend to the status bar and use a solid writing surface.',
   'Pixel has CRT noise and theme changes draw from bottom to top.',
   'The version fades out when Settings opens.',
@@ -184,7 +196,8 @@ enum AppTheme {
   copper,
   blackMetal,
   pixel,
-  cyberpunk;
+  cyberpunk,
+  sv;
 
   bool get isDark =>
       this == boi ||
@@ -204,6 +217,7 @@ enum AppTheme {
   _ModernPalette? get _modernPalette => switch (this) {
         pixel => _pixelPalette,
         cyberpunk => _cyberpunkPalette,
+        sv => _svPalette,
         _ => null,
       };
 }
@@ -516,17 +530,17 @@ class _ChecklistAppState extends State<ChecklistApp> {
       ),
       useMaterial3: true,
     );
-    final pastelAccent = _notesActive ? _pastelMauve : _pastelGreen;
+    final pastelAccent = _milkAccent;
     final pastel = ThemeData(
       brightness: Brightness.light,
-      scaffoldBackgroundColor: _pastelPeach,
+      scaffoldBackgroundColor: _milkBackground,
       colorScheme: ColorScheme.light(
         primary: pastelAccent,
-        secondary: _pastelYellow,
+        secondary: _milkAccent,
         surface: _pastelWhite,
         onSurface: _lightText,
       ),
-      dividerColor: _pastelMauve,
+      dividerColor: _milkLine,
       fontFamily: 'Roboto',
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
@@ -534,7 +548,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
         hintStyle: TextStyle(color: _lightControl),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: _pastelMauve),
+          borderSide: BorderSide(color: _milkLine),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -578,12 +592,12 @@ class _ChecklistAppState extends State<ChecklistApp> {
       popupMenuTheme: const PopupMenuThemeData(
         color: _pastelWhite,
         shape: RoundedRectangleBorder(
-          side: BorderSide(color: _pastelYellow, width: 2),
+          side: BorderSide(color: _milkAccent, width: 2),
         ),
       ),
       chipTheme: const ChipThemeData(
         shape: squareShape,
-        side: BorderSide(color: _pastelMauve, width: 2),
+        side: BorderSide(color: _milkLine, width: 2),
       ),
       drawerTheme: const DrawerThemeData(
         shape: squareShape,
@@ -596,7 +610,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
       tooltipTheme: TooltipThemeData(
         waitDuration: const Duration(milliseconds: 450),
         decoration: const BoxDecoration(
-          color: _pastelMauve,
+          color: _milkLine,
           borderRadius: BorderRadius.zero,
         ),
       ),
@@ -614,6 +628,7 @@ class _ChecklistAppState extends State<ChecklistApp> {
       AppTheme.pixel => _buildModernTheme(dark, _pixelPalette,
           notes: _notesActive, pixel: true),
       AppTheme.cyberpunk => _buildCyberpunkTheme(dark, notes: _notesActive),
+      AppTheme.sv => _buildSvTheme(light, notes: _notesActive),
     };
     final colours =
         _themeColours[_appTheme._preferenceValue] ?? const <String, int>{};
@@ -1219,6 +1234,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final theme = Theme.of(context);
     final pastel = theme.appearance == AppTheme.pastel;
     final active = (_activeNoteFormats & format.bit) != 0;
+    final sv = theme.appearance == AppTheme.sv;
     final palette = _metalPalette;
     final accent = theme.custom(
           active ? _ThemeColour.checklistAccent : _ThemeColour.notesAccent,
@@ -1233,15 +1249,31 @@ class _ChecklistHomeState extends State<ChecklistHome>
     return IconButton(
       key: ValueKey('note-format-${format.name}'),
       tooltip: localizeText(context, tooltip),
+      isSelected: sv || pastel ? active : null,
       onPressed: () => _toggleNoteFormat(format),
-      style: IconButton.styleFrom(
-        foregroundColor: ink,
-        side: BorderSide.none,
-        shape: pastel ? null : const RoundedRectangleBorder(),
-      ),
-      icon: _noteGlyph(context, icon,
-          colour: theme.appearance == AppTheme.pixel ? ink : null,
-          active: active),
+      style: sv
+          ? _svNoteButtonStyle(theme, selected: active)
+          : IconButton.styleFrom(
+              foregroundColor: ink,
+              side: BorderSide.none,
+              shape: pastel ? null : const RoundedRectangleBorder(),
+            ),
+      icon: sv
+          ? Text(
+              switch (format) {
+                _NoteFormat.bold => 'B',
+                _NoteFormat.italic => 'i',
+                _NoteFormat.underline => 'U',
+              },
+              style: const TextStyle(fontFamily: _svButtonFont, fontSize: 12),
+            )
+          : pastel && active
+              ? Icon(icon, shadows: const [
+                  Shadow(color: Color(0xD89E70D4), blurRadius: 6),
+                ])
+              : _noteGlyph(context, icon,
+                  colour: theme.appearance == AppTheme.pixel ? ink : null,
+                  active: active),
     );
   }
 
@@ -1680,11 +1712,12 @@ class _ChecklistHomeState extends State<ChecklistHome>
               switch (widget.appTheme) {
                 AppTheme.boi => _defaultNoteBlue,
                 AppTheme.pencil => _lightLine,
-                AppTheme.pastel => _pastelYellow,
+                AppTheme.pastel => _milkAccent,
                 AppTheme.copper => _copperPalette.checklistAccent,
                 AppTheme.blackMetal => _blackMetalPalette.checklistAccent,
                 AppTheme.pixel => _pixelPalette.border,
                 AppTheme.cyberpunk => _cyberpunkPalette.border,
+                AppTheme.sv => _svPalette.border,
               },
         ),
       );
@@ -1964,9 +1997,14 @@ class _ChecklistHomeState extends State<ChecklistHome>
           onDrawerChanged: wide
               ? null
               : (isOpen) {
-                  if (_mobileDrawerActive != isOpen) {
-                    setState(() => _mobileDrawerActive = isOpen);
-                  }
+                  if (_mobileDrawerActive == isOpen && isOpen) return;
+                  setState(() {
+                    _mobileDrawerActive = isOpen;
+                    if (!isOpen) {
+                      _settingsOpen = false;
+                      _settingsPage = _SettingsPage.main;
+                    }
+                  });
                 },
           body: SafeArea(
             top: false,
@@ -2124,7 +2162,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
               Expanded(
                 child: AppText(
                   label,
-                  style: _settingsTextStyle(foreground, pressed).copyWith(
+                  style: _settingsTextStyle(foreground, pressed,
+                          glow: !widget.isPastel)
+                      .copyWith(
                     fontSize: 13,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
@@ -2134,7 +2174,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 AppText(
                   trailing,
                   style: _settingsTextStyle(
-                          foreground.withValues(alpha: 0.62), pressed)
+                          foreground.withValues(alpha: 0.62), pressed,
+                          glow: !widget.isPastel)
                       .copyWith(fontSize: 11),
                 ),
               const SizedBox(width: 8),
@@ -2166,7 +2207,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 maxLines: 1,
                 overflow: TextOverflow.fade,
                 softWrap: false,
-                style: _settingsTextStyle(foreground, pressed).copyWith(
+                style: _settingsTextStyle(foreground, pressed,
+                        glow: !widget.isPastel)
+                    .copyWith(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -2182,7 +2225,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final (key, label, icon) = switch (appearance) {
       AppTheme.boi => ('boi', 'Boi', Icons.dark_mode_outlined),
       AppTheme.pencil => ('pencil', 'Pencil', Icons.edit_outlined),
-      AppTheme.pastel => ('pastel', 'Pastel', Icons.color_lens_outlined),
+      AppTheme.pastel => ('pastel', 'Milk', Icons.color_lens_outlined),
       AppTheme.copper => ('copper', 'Copper', Icons.nights_stay_outlined),
       AppTheme.blackMetal => (
           'black-metal',
@@ -2191,6 +2234,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
         ),
       AppTheme.pixel => ('pixel', 'Pixel', Icons.videogame_asset_outlined),
       AppTheme.cyberpunk => ('cyberpunk', 'Cyberpunk', Icons.memory_rounded),
+      AppTheme.sv => ('sv', 'SV', Icons.grass_rounded),
     };
     return _settingsOption(
       key: ValueKey('theme-$key'),
@@ -2412,7 +2456,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           maxLines: 1,
                           overflow: TextOverflow.fade,
                           softWrap: false,
-                          style: _settingsTextStyle(foreground, pressed)
+                          style: _settingsTextStyle(foreground, pressed,
+                                  glow: !widget.isPastel)
                               .copyWith(fontSize: settingsFontSize),
                         ),
                       ),
@@ -3075,7 +3120,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
           AppTheme.boi => _defaultNoteBlue,
           AppTheme.pastel => _pastelPlum,
           AppTheme.copper || AppTheme.blackMetal => _metalPalette!.notesAccent,
-          AppTheme.pixel || AppTheme.cyberpunk => _modernPalette!.notesAccent,
+          AppTheme.pixel ||
+          AppTheme.cyberpunk ||
+          AppTheme.sv =>
+            _modernPalette!.notesAccent,
         });
   }
 
@@ -3094,6 +3142,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
         modern?.ink ??
         (widget.isDark ? _borderWhite : _lightText);
     final cyberpunk = widget.appTheme == AppTheme.cyberpunk;
+    final sv = widget.appTheme == AppTheme.sv;
     final border = theme.custom(_ThemeColour.borders) ??
         (cyberpunk ? theme.colorScheme.outline : null);
     final photoFrame = cyberpunk ? theme.colorScheme.outline : _borderWhite;
@@ -3101,6 +3150,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
       AppTheme.pixel => noteColour,
       AppTheme.cyberpunk => _cyberpunkRed,
       AppTheme.pastel => _deepBlueButton,
+      AppTheme.sv => _svControlInk(theme),
       _ => palette?.notesAccent ?? _defaultNoteBlue,
     };
     final panel = theme.custom(_ThemeColour.panel);
@@ -3157,10 +3207,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
                     IconButton(
                       tooltip: localizeText(context, 'change category'),
                       onPressed: () => _chooseNoteCategory(note),
+                      style: sv ? _svNoteButtonStyle(theme) : null,
                       icon: _noteGlyph(
                         context,
                         Icons.label_outline_rounded,
-                        colour: noteColour,
+                        colour: sv ? _svControlInk(theme) : noteColour,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -3203,28 +3254,44 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               child: AppText('take a photo'),
                             ),
                           ],
-                          child: _cyberpunkOutline(
-                            theme,
-                            _pastelPressable(
-                                theme,
-                                Container(
+                          child: sv
+                              ? SizedBox.square(
                                   key: const ValueKey('note-ocr-button'),
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    borderRadius: _pastelRadius(theme),
-                                    border: Border.fromBorderSide(
-                                        _surfaceSide(theme, photoFrame)),
-                                  ),
-                                  child: Center(
-                                    child: _noteGlyph(
-                                      context,
-                                      Icons.add_rounded,
-                                      colour: photoIconColour,
+                                  dimension: 40,
+                                  child: DecoratedBox(
+                                    decoration: ShapeDecoration(
+                                      color: _svControlFace(theme),
+                                      shape: _svControlFrame(theme),
+                                    ),
+                                    child: Center(
+                                      child: _noteGlyph(
+                                          context, Icons.add_rounded,
+                                          colour: photoIconColour),
                                     ),
                                   ),
-                                )),
-                          ),
+                                )
+                              : _cyberpunkOutline(
+                                  theme,
+                                  _pastelPressable(
+                                      theme,
+                                      Container(
+                                        key: const ValueKey('note-ocr-button'),
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          borderRadius: _pastelRadius(theme),
+                                          border: Border.fromBorderSide(
+                                              _surfaceSide(theme, photoFrame)),
+                                        ),
+                                        child: Center(
+                                          child: _noteGlyph(
+                                            context,
+                                            Icons.add_rounded,
+                                            colour: photoIconColour,
+                                          ),
+                                        ),
+                                      )),
+                                ),
                         ),
                       const SizedBox(width: 8),
                     ],
@@ -3361,7 +3428,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                       (widget.isDark
                                           ? noteColour.withValues(alpha: 0.55)
                                           : widget.isPastel
-                                              ? _pastelMauve
+                                              ? _milkLine
                                               : _lightLine),
                                 ),
                               ),
@@ -3374,7 +3441,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                       (widget.isDark
                                           ? noteColour
                                           : widget.isPastel
-                                              ? _pastelMauve
+                                              ? _milkLine
                                               : _lightLine),
                                 ),
                               ),
@@ -3439,11 +3506,25 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                       onPressed: () =>
                                           Scaffold.of(scaffoldContext)
                                               .openDrawer(),
-                                      icon: _settingsGlyph(
-                                        context,
-                                        Icons.menu_rounded,
-                                        size: 24,
-                                      ),
+                                      icon: widget.isPastel
+                                          ? const Icon(
+                                              Icons.menu_rounded,
+                                              size: 24,
+                                              color: Colors.white,
+                                              shadows: [
+                                                Shadow(
+                                                    color: Colors.white,
+                                                    blurRadius: 5),
+                                                Shadow(
+                                                    color: Color(0xFF657384),
+                                                    offset: Offset(0, 1)),
+                                              ],
+                                            )
+                                          : _settingsGlyph(
+                                              context,
+                                              Icons.menu_rounded,
+                                              size: 24,
+                                            ),
                                     ),
                                   ),
                                 ),
@@ -3550,7 +3631,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                       : widget.isDark || _modernPalette != null
                                           ? reminderColor
                                           : widget.isPastel
-                                              ? _pastelMauve
+                                              ? _milkLine
                                               : _lightLine,
                                 ),
                                 padding: const EdgeInsets.symmetric(
@@ -3579,6 +3660,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             ),
                           ),
                           if (widget.isPastel ||
+                              widget.appTheme == AppTheme.sv ||
                               cyberpunk ||
                               project.tasks.isNotEmpty) ...[
                             const SizedBox(height: 8),
@@ -3669,7 +3751,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      _pastelLift(
+                                      _taskSurface(
                                         theme,
                                         _TaskRow(
                                           task: task,
@@ -3688,14 +3770,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                               : () => _showTaskNote(linkedNote),
                                           onDelete: () => _deleteTask(task),
                                         ),
-                                        colour: theme
-                                                .custom(_ThemeColour.panel) ??
-                                            (task.isDone
-                                                ? _pastelCompletedTaskSurface
-                                                : _pastelPorcelain),
+                                        completed: task.isDone,
                                       ),
                                       if (index < project.tasks.length - 1 &&
-                                          widget.isPastel)
+                                          (widget.isPastel ||
+                                              widget.appTheme == AppTheme.sv))
                                         const SizedBox(height: 9)
                                       else if (index < project.tasks.length - 1)
                                         Divider(
@@ -3723,6 +3802,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 onKeyEvent: _handleTaskKey,
                 child: _cyberpunkOutline(
                   theme,
+                  focus: _taskFocusNode,
                   _pastelLift(
                     theme,
                     TextField(
@@ -3760,7 +3840,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: _pastelRadius(theme),
-                          borderSide: _surfaceSide(theme, composerFrameColor),
+                          borderSide: _surfaceSide(theme, composerFrameColor,
+                              width: cyberpunk ? 2.5 : 2),
                         ),
                       ),
                     ),
@@ -3842,10 +3923,12 @@ class _RenderNoteBodyReveal extends RenderProxyBox {
   }
 }
 
-TextStyle _settingsTextStyle(Color color, bool pressed) => TextStyle(
+TextStyle _settingsTextStyle(Color color, bool pressed, {bool glow = true}) =>
+    TextStyle(
       color: pressed ? Color.lerp(color, Colors.white, 0.32) : color,
-      shadows:
-          pressed ? const [Shadow(color: Colors.white70, blurRadius: 4)] : null,
+      shadows: pressed && glow
+          ? const [Shadow(color: Colors.white70, blurRadius: 4)]
+          : null,
     );
 
 class _SettingsPress extends StatefulWidget {
@@ -3900,6 +3983,7 @@ class _BrandWordmark extends StatelessWidget {
     final metal = theme.metalPalette;
     final modern = theme.appearance?._modernPalette;
     final pixel = theme.appearance == AppTheme.pixel;
+    final sv = theme.appearance == AppTheme.sv;
     final cyberpunk = theme.appearance == AppTheme.cyberpunk;
     final pastel = theme.appearance == AppTheme.pastel;
     final ink = theme.custom(_ThemeColour.text);
@@ -3913,18 +3997,24 @@ class _BrandWordmark extends StatelessWidget {
         (pastel ? const Color(0xFF675E72) : const Color(0xFF8C8791));
     final style = TextStyle(
       color: active ? activeColor : inactiveColor,
-      fontFamily: pixel
-          ? _pixelFont
-          : cyberpunk
-              ? _cyberpunkFont
-              : metal != null
-                  ? _metalSerif
-                  : pastel
-                      ? _pastelReadingFont
-                      : null,
-      fontSize: metal != null || pixel ? 14 : 15,
+      fontFamily: sv
+          ? _svButtonFont
+          : pixel
+              ? _pixelFont
+              : cyberpunk
+                  ? _cyberpunkFont
+                  : metal != null
+                      ? _metalSerif
+                      : pastel
+                          ? _pastelReadingFont
+                          : null,
+      fontSize: sv
+          ? 10
+          : metal != null || pixel
+              ? 14
+              : 15,
       height: 1,
-      fontWeight: metal != null || pixel || cyberpunk || pastel
+      fontWeight: metal != null || pixel || sv || cyberpunk || pastel
           ? FontWeight.w700
           : FontWeight.w900,
       letterSpacing: cyberpunk || metal != null ? 0.75 : -0.4,
@@ -4185,7 +4275,10 @@ class _BrightActionButtonState extends State<_BrightActionButton> {
 
   @override
   Widget build(BuildContext context) {
-    final normal = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final normal = theme.appearance == AppTheme.sv
+        ? theme.custom(_ThemeColour.buttons) ?? _svOchre
+        : theme.colorScheme.primary;
     final bright = Color.lerp(normal, Colors.white, 0.32)!;
     return FilledButton(
       onPressed: widget.onPressed == null ? null : _activate,
@@ -4502,7 +4595,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
                 borderRadius: _pastelRadius(base),
                 side: BorderSide(
                     color: base.custom(_ThemeColour.borders) ??
-                        (pastel ? _pastelYellow : _lightLine),
+                        (pastel ? _milkAccent : _lightLine),
                     width: 2),
               )
             : null,
@@ -4727,50 +4820,47 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
       title: AppText(_removeMode ? 'remove category' : 'change category'),
       content: SizedBox(
         width: 320,
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            if (!_removeMode)
-              ListTile(
-                leading: const Icon(Icons.block_rounded),
-                title: const AppText('no category'),
-                onTap: () => Navigator.pop(context, ''),
+        child: _categoryDialogRows(theme, [
+          if (!_removeMode)
+            ListTile(
+              leading: const Icon(Icons.block_rounded),
+              title: const AppText('no category'),
+              onTap: () => Navigator.pop(context, ''),
+            ),
+          if (_categories.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: AppText(
+                'no categories yet',
+                textAlign: TextAlign.center,
               ),
-            if (_categories.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
-                child: AppText(
-                  'no categories yet',
-                  textAlign: TextAlign.center,
-                ),
+            ),
+          for (final category in _categories)
+            ListTile(
+              leading: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: _indicator(category),
               ),
-            for (final category in _categories)
-              ListTile(
-                leading: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: _indicator(category),
-                ),
-                title: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 180),
-                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                        decoration: category.id == _removingId
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                      ),
-                  child: Text(category.name),
-                ),
-                onTap: _removingId != null
-                    ? null
-                    : () {
-                        if (_removeMode) {
-                          _remove(category);
-                        } else {
-                          Navigator.pop(context, category.id);
-                        }
-                      },
+              title: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 180),
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      decoration: category.id == _removingId
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                child: Text(category.name),
               ),
-          ],
-        ),
+              onTap: _removingId != null
+                  ? null
+                  : () {
+                      if (_removeMode) {
+                        _remove(category);
+                      } else {
+                        Navigator.pop(context, category.id);
+                      }
+                    },
+            ),
+        ]),
       ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
@@ -4875,20 +4965,17 @@ class _CategorySettingsDialog extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               )
-            : ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final category in categories)
-                    ListTile(
-                      leading: _NoteColourDot(
-                        color: Color(category.colorValue),
-                      ),
-                      title: Text(category.name),
-                      trailing: const Icon(Icons.edit_rounded),
-                      onTap: () => Navigator.pop(context, category.id),
+            : _categoryDialogRows(Theme.of(context), [
+                for (final category in categories)
+                  ListTile(
+                    leading: _NoteColourDot(
+                      color: Color(category.colorValue),
                     ),
-                ],
-              ),
+                    title: Text(category.name),
+                    trailing: const Icon(Icons.edit_rounded),
+                    onTap: () => Navigator.pop(context, category.id),
+                  ),
+              ]),
       ),
       actions: [
         TextButton(
@@ -4899,6 +4986,11 @@ class _CategorySettingsDialog extends StatelessWidget {
     );
   }
 }
+
+Widget _categoryDialogRows(ThemeData theme, List<Widget> rows) =>
+    theme.appearance == AppTheme.pastel
+        ? Column(mainAxisSize: MainAxisSize.min, children: rows)
+        : ListView(shrinkWrap: true, children: rows);
 
 class _NewNoteCategoryDialog extends StatefulWidget {
   const _NewNoteCategoryDialog({this.category});
@@ -5430,9 +5522,21 @@ class _ChecklistReminderDialog extends StatefulWidget {
       _ChecklistReminderDialogState();
 }
 
-class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
+class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog>
+    with SingleTickerProviderStateMixin {
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
+  late final _datePulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 450),
+    value: 1,
+  );
+
+  @override
+  void dispose() {
+    _datePulse.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -5476,15 +5580,29 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final pastel = theme.appearance == AppTheme.pastel;
+    final cyberpunk = theme.appearance == AppTheme.cyberpunk;
+    final calendar = CalendarDatePicker(
+      key: const ValueKey('checklist-reminder-calendar'),
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      onDateChanged: (value) {
+        setState(() => _selectedDate = DateUtils.dateOnly(value));
+        if (cyberpunk && !MediaQuery.disableAnimationsOf(context)) {
+          _datePulse.forward(from: 0);
+        }
+      },
+    );
     return _popupAlert(
       context,
       key: const ValueKey('checklist-reminder-dialog'),
-      insetPadding: pastel
+      shape: cyberpunk ? _cyberpunkReminderFrame : null,
+      insetPadding: pastel || cyberpunk
           ? const EdgeInsets.symmetric(horizontal: 18, vertical: 24)
           : null,
       contentPadding: pastel ? const EdgeInsets.fromLTRB(22, 16, 22, 20) : null,
       actionsPadding: pastel ? const EdgeInsets.fromLTRB(22, 0, 22, 24) : null,
-      scrollable: pastel,
+      scrollable: pastel || cyberpunk,
       title: const AppText(
         'reminder',
         style: TextStyle(fontWeight: FontWeight.w700),
@@ -5508,14 +5626,23 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
                 padding: pastel
                     ? const EdgeInsets.fromLTRB(10, 10, 10, 12)
                     : EdgeInsets.zero,
-                child: CalendarDatePicker(
-                  key: const ValueKey('checklist-reminder-calendar'),
-                  initialDate: _selectedDate,
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                  onDateChanged: (value) =>
-                      setState(() => _selectedDate = DateUtils.dateOnly(value)),
-                ),
+                child: cyberpunk
+                    ? AnimatedBuilder(
+                        animation: _datePulse,
+                        child: calendar,
+                        builder: (context, child) {
+                          final phase = _datePulse.value;
+                          final flash = phase < .38
+                              ? math.sin(math.pi * phase / .38)
+                              : .56 * math.sin(math.pi * (phase - .38) / .62);
+                          return DatePickerTheme(
+                            data: _cyberpunkCalendarTheme(
+                                theme.datePickerTheme, flash),
+                            child: child!,
+                          );
+                        },
+                      )
+                    : calendar,
               ),
               colour: theme.colorScheme.surfaceContainer,
               inset: true,

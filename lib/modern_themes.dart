@@ -123,6 +123,15 @@ class _AppearanceBackdrop extends StatelessWidget {
             key: const ValueKey('pastel-workspace-backdrop'),
             child: _PastelBackdrop(theme.scaffoldBackgroundColor),
           ),
+        if (appearance == AppTheme.sv && !sidebar)
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                key: const ValueKey('sv-landscape'),
+                painter: _SvLandscape(theme.scaffoldBackgroundColor),
+              ),
+            ),
+          ),
         if (appearance == AppTheme.cyberpunk)
           Positioned.fill(
             child: RepaintBoundary(child: _CyberpunkBackdrop(sidebar: sidebar)),

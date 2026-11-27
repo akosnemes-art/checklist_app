@@ -1,4 +1,4 @@
-# Checklist 0.5.7
+# Checklist 0.5.8
 
 CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
 
@@ -14,12 +14,13 @@ The approved product behaviour and visual invariants are recorded in
 
 ## What it includes
 
-- Boi, Pencil, Pastel, Copper, Black Metal, Pixel, and Cyberpunk themes.
-  Pastel has neumorphic surfaces, a raised green progress fill, a roomier
-  reminder calendar, Coiny headings, and Nunito body text.
+- Boi, Pencil, Milk, Copper, Black Metal, Pixel, Cyberpunk, and SV themes.
+  Milk has matte neumorphic surfaces, glowing active formatting controls,
+  Coiny headings, and Nunito body text. SV has parchment, wood-toned frames,
+  and pixel controls with Press Start 2P and VT323.
   Pixel has arcade lettering, glowing pixel settings controls, and subtle
-  CRT noise. Cyberpunk has neon circuitry, glowing blue borders, thin
-  checkmarks, and cut-corner checklist, note, and reminder buttons. Each theme can be
+  CRT noise. Cyberpunk has neon circuitry, faint TV-style noise, glowing
+  blue borders, thin checkmarks, and cut-corner buttons. Each theme can be
   customised with colour swatches and hue, saturation, and value sliders.
   Saved Glass selections move to Pencil.
 - Persistent English, Hungarian, French, Czech, German, and Simplified Chinese
@@ -33,7 +34,7 @@ The approved product behaviour and visual invariants are recorded in
 - A responsive sidebar with saved checklists and completion counts.
 - Project sorting by newest date, oldest date, A–Z, or priority.
 - Theme-specific priority colours, including dedicated Pencil greys/navy and
-  Pastel red/teal/lavender controls.
+  Milk red/teal/lavender controls.
 - Creation dates in both the project list and selected-checklist header.
 - The soft keyboard’s **Done** action adds the task.
 - Task completion, editing, and deletion, with project progress at a glance.
@@ -43,10 +44,10 @@ The approved product behaviour and visual invariants are recorded in
 - Task reprioritisation after a 140 ms hold on the text area only, with the
   checkmark and three-dot settings control kept independent and no drag handle.
 - Linked-note icons below task checkboxes are yellow in Boi and blue in Pencil
-  and Pastel. They flash purple before opening the attached note.
+  and Milk. They flash purple before opening the attached note.
   Task checkboxes align to the top of the text, and each task menu is
   centred vertically on its row.
-- Dedicated red, teal, and lavender priority controls in the Pastel theme.
+- Dedicated red, teal, and lavender priority controls in the Milk theme.
 - An optional 16:9 cover image for every checklist, captured through a
   blue-framed camera preview or selected and positioned in a purple-framed crop
   window.
@@ -61,7 +62,7 @@ The approved product behaviour and visual invariants are recorded in
   exits note edit mode while formatting buttons keep the editor active.
 - Tap an underlined link outside note edit mode to open it in the default
   browser or the app registered for the link. Links are yellow in Boi,
-  light blue in Pencil, and deep blue in Pastel.
+  light blue in Pencil, and deep blue in Milk.
 - Android edge-to-edge rendering extends each active theme behind the gesture
   indicator without a white strip, while safe-area handling keeps the checklist
   composer and drawer settings above gesture and three-button navigation.

@@ -617,10 +617,10 @@ void main() {
       expect(tester.getBottomLeft(settings).dy, lessThanOrEqualTo(776));
     }
 
-    expectDrawer(const Color(0xFFBED4C7));
+    expectDrawer(const Color(0xFFE5ECF2));
     await tester.tap(find.bySemanticsLabel('NOTES'));
     await tester.pumpAndSettle();
-    expectDrawer(const Color(0xFFC7B0B8));
+    expectDrawer(const Color(0xFFE8ECF4));
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('tasks link to notes and open a scrollable note popup', (
@@ -922,7 +922,7 @@ void main() {
     );
     expect(find.text('Boi'), findsOneWidget);
     expect(find.text('Pencil'), findsOneWidget);
-    expect(find.text('Pastel'), findsOneWidget);
+    expect(find.text('Milk'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('theme-pencil')));
     await tester.pumpAndSettle();
@@ -965,16 +965,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('theme-pastel')));
     await tester.pumpAndSettle();
     modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
-    expect(modeTheme.scaffoldBackgroundColor, const Color(0xFFFBDCC4));
-    expect(modeTheme.colorScheme.surface, const Color(0xFFFFFFFF));
-    expect(modeTheme.colorScheme.secondary, const Color(0xFFF8F2C8));
-    expect(modeTheme.dividerColor, const Color(0xFFC7B0B8));
+    expect(modeTheme.scaffoldBackgroundColor, const Color(0xFFEAF0F6));
+    expect(modeTheme.colorScheme.surface, const Color(0xFFF7FAFC));
+    expect(modeTheme.colorScheme.secondary, const Color(0xFFD8C6EF));
+    expect(modeTheme.dividerColor, const Color(0xFFBAC8D4));
     final pastelSidebar = tester.widget<AnimatedContainer>(
       find.byKey(const ValueKey('sidebar-surface')),
     );
     expect(
       (pastelSidebar.decoration! as BoxDecoration).color,
-      const Color(0xFFC7B0B8),
+      const Color(0xFFE8ECF4),
     );
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString('checklist.theme.v1'), 'pastel');
@@ -1402,6 +1402,39 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('closing the mobile drawer resets Settings to its main page',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'checklist.welcome.v1': true});
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Future<void> tap(Finder finder) async {
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.pumpWidget(const ChecklistApp());
+    await tester.pumpAndSettle();
+    final opener = find.byTooltip('open menu');
+    final settings = find.byKey(const ValueKey('settings-toggle'));
+    final themes = find.byKey(const ValueKey('settings-themes'));
+    await tap(opener);
+    await tap(settings);
+    await tap(themes);
+    expect(find.text('Milk'), findsOneWidget);
+
+    await tester.tapAt(const Offset(360, 385));
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsNothing);
+    await tap(opener);
+    expect(find.text('Milk'), findsNothing);
+    expect(themes, findsNothing);
+    await tap(settings);
+    expect(themes, findsOneWidget);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('mobile drawer stays open across modes and opens by edge swipe', (
     tester,

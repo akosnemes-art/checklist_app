@@ -167,7 +167,8 @@ Widget _noteGlyph(
   Color? colour,
   bool active = false,
 }) {
-  if (Theme.of(context).appearance != AppTheme.pixel) {
+  final appearance = Theme.of(context).appearance;
+  if (appearance != AppTheme.pixel && appearance != AppTheme.sv) {
     return Icon(icon, color: colour);
   }
   final pixels = switch (icon) {
@@ -179,8 +180,9 @@ Widget _noteGlyph(
     _ => null,
   };
   if (pixels == null) return Icon(icon, color: colour);
+  final prefix = appearance == AppTheme.sv ? 'sv' : 'pixel';
   return CustomPaint(
-    key: ValueKey('pixel-note-glyph-${icon.codePoint}'),
+    key: ValueKey('$prefix-note-glyph-${icon.codePoint}'),
     size: const Size.square(24),
     painter: _PixelSettingsGlyph(
       pixels,
@@ -188,16 +190,19 @@ Widget _noteGlyph(
           IconTheme.of(context).color ??
           Theme.of(context).colorScheme.primary,
       active,
+      glow: appearance == AppTheme.pixel,
     ),
   );
 }
 
 class _PixelSettingsGlyph extends CustomPainter {
-  const _PixelSettingsGlyph(this.rows, this.colour, this.active);
+  const _PixelSettingsGlyph(this.rows, this.colour, this.active,
+      {this.glow = true});
 
   final List<int> rows;
   final Color colour;
   final bool active;
+  final bool glow;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -212,16 +217,18 @@ class _PixelSettingsGlyph extends CustomPainter {
             origin.translate(x * pixel, y * pixel) & Size.square(pixel));
       }
     }
+    if (glow) {
+      canvas.drawPath(
+        pattern,
+        Paint()
+          ..color = colour.withValues(alpha: active ? .56 : .32)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5),
+      );
+    }
     canvas.drawPath(
       pattern,
       Paint()
-        ..color = colour.withValues(alpha: active ? .56 : .32)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5),
-    );
-    canvas.drawPath(
-      pattern,
-      Paint()
-        ..color = colour.withValues(alpha: active ? 1 : .86)
+        ..color = colour.withValues(alpha: active || !glow ? 1 : .86)
         ..isAntiAlias = false,
     );
   }
@@ -230,7 +237,8 @@ class _PixelSettingsGlyph extends CustomPainter {
   bool shouldRepaint(_PixelSettingsGlyph oldDelegate) =>
       oldDelegate.rows != rows ||
       oldDelegate.colour != colour ||
-      oldDelegate.active != active;
+      oldDelegate.active != active ||
+      oldDelegate.glow != glow;
 }
 
 class _TaskCheckbox extends StatelessWidget {

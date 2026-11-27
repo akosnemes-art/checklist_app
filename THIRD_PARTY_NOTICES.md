@@ -5,9 +5,16 @@
 The Pixel theme includes Pixelify Sans by Stefie Justprince.
 The [SIL Open Font License 1.1](assets/fonts/PixelifySans-OFL.txt) ships with the font.
 
-## Pastel fonts
+## SV fonts
 
-Pastel uses Coiny by Marcelo Magalhães and Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly. Nunito's bundled styles are static instances of the upstream variable fonts.
+SV uses Press Start 2P by CodeMan38 and VT323 by Peter Hull. Both fonts ship
+with their SIL Open Font License 1.1 notices.
+[Press Start 2P source](https://github.com/google/fonts/tree/main/ofl/pressstart2p) · [Press Start 2P license](assets/fonts/PressStart2P-OFL.txt)
+[VT323 source](https://github.com/google/fonts/tree/main/ofl/vt323) · [VT323 license](assets/fonts/VT323-OFL.txt)
+
+## Milk fonts
+
+Milk uses Coiny by Marcelo Magalhães and Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly. Nunito's bundled styles are static instances of the upstream variable fonts.
 Both ship with their SIL Open Font License 1.1 notices.
 [Coiny licence](assets/fonts/Coiny-OFL.txt) · [Nunito licence](assets/fonts/Nunito-OFL.txt) · [Nunito source](https://github.com/googlefonts/nunito)
 
@@ -15,10 +22,6 @@ Both ship with their SIL Open Font License 1.1 notices.
 
 Rajdhani is by the Indian Type Foundry. The [SIL Open Font License 1.1](assets/fonts/Rajdhani-OFL.txt)
 ships with the font.
-
-Build 46 used [Wet city street at night](https://unsplash.com/photos/wet-city-street-at-night-IqkTY2vSNYc)
-by [Allan Ferreira](https://unsplash.com/@allnferreira), used under the
-[Unsplash License](https://unsplash.com/license).
 
 ## PaddleOCR Android SDK and PP-OCRv6 models
 

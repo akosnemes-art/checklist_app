@@ -340,12 +340,13 @@ Color _sidebarColour(AppTheme appearance, bool notes) {
   return switch (appearance) {
     AppTheme.boi => notes ? _notesSidebar : _checklistSidebar,
     AppTheme.pencil => _lightSidebar,
-    AppTheme.pastel => notes ? _pastelMauve : _pastelGreen,
+    AppTheme.pastel => notes ? _milkNotesSidebar : _milkChecklistSidebar,
     AppTheme.copper ||
     AppTheme.blackMetal =>
       appearance._metalPalette!.sidebar(notes),
     AppTheme.pixel ||
-    AppTheme.cyberpunk =>
+    AppTheme.cyberpunk ||
+    AppTheme.sv =>
       appearance._modernPalette!.sidebar(notes),
   };
 }
@@ -360,6 +361,7 @@ Color _createButtonColour(AppTheme appearance, bool notes) {
       appearance._metalPalette!.button(notes),
     AppTheme.pixel => appearance._modernPalette!.accent(notes),
     AppTheme.cyberpunk => notes ? _cyberpunkCreateBlue : _cyberpunkCreateRed,
+    AppTheme.sv => notes ? _svPaper : _svOchre,
   };
 }
 
@@ -373,7 +375,7 @@ Map<_ThemeColour, Color> _themeColourDefaults(AppTheme appearance, bool notes) {
       (pencil
           ? _lightControl
           : pastel
-              ? _pastelMauve
+              ? _milkLine
               : _brandPurple);
   final note = metal?.notesAccent ??
       modern?.notesAccent ??
@@ -403,7 +405,7 @@ Map<_ThemeColour, Color> _themeColourDefaults(AppTheme appearance, bool notes) {
         (pencil
             ? _lightBackground
             : pastel
-                ? _pastelPeach
+                ? _milkBackground
                 : _backgroundDark),
     _ThemeColour.panel: metal?.surface ??
         modern?.panel ??
@@ -422,7 +424,7 @@ Map<_ThemeColour, Color> _themeColourDefaults(AppTheme appearance, bool notes) {
         (pencil
             ? _lightLine
             : pastel
-                ? _pastelYellow
+                ? _milkAccent
                 : _defaultNoteBlue),
     _ThemeColour.checklistAccent: checklist,
     _ThemeColour.notesAccent: note,

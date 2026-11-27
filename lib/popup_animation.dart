@@ -25,12 +25,15 @@ Widget _animatedTimePicker(
           backgroundColor: surface,
           shape: cyberpunk
               ? _CyberpunkPopupFrame(
-                  side: frame.side,
-                  accent: base.colorScheme.primary,
+                  side: _cyberpunkReminderFrame.side,
+                  accent: _cyberpunkReminderFrame.accent,
                   progress: animation.value,
                   surface: surface,
+                  reminder: true,
                 )
-              : base.appearance == AppTheme.pastel && animation.isCompleted
+              : (base.appearance == AppTheme.pastel ||
+                          base.appearance == AppTheme.sv) &&
+                      animation.isCompleted
                   ? frame
                   : _DrawnPopupFrame(
                       frame.side,
@@ -60,6 +63,7 @@ Widget _popupAlert(
 }) {
   final theme = Theme.of(context);
   final cyberpunk = theme.appearance == AppTheme.cyberpunk;
+  final milk = theme.appearance == AppTheme.pastel;
   final frame = shape ?? theme.dialogTheme.shape! as RoundedRectangleBorder;
   final animation = ModalRoute.of(context)?.animation ??
       const AlwaysStoppedAnimation<double>(1);
@@ -77,28 +81,37 @@ Widget _popupAlert(
     builder: (context, _) => AlertDialog(
       key: key,
       backgroundColor: backgroundColor,
-      contentPadding: contentPadding,
-      insetPadding: insetPadding,
-      scrollable: scrollable,
-      clipBehavior: cyberpunk ? Clip.antiAlias : null,
+      titlePadding: milk ? const EdgeInsets.fromLTRB(22, 20, 22, 0) : null,
+      contentPadding: contentPadding ??
+          (milk ? const EdgeInsets.fromLTRB(22, 16, 22, 18) : null),
+      insetPadding: insetPadding ??
+          (milk
+              ? const EdgeInsets.symmetric(horizontal: 20, vertical: 20)
+              : null),
+      scrollable: scrollable || milk,
+      clipBehavior: cyberpunk || milk ? Clip.antiAlias : null,
       shape: cyberpunk
-          ? _CyberpunkPopupFrame(
-              side: frame.side,
-              accent: theme.colorScheme.primary,
-              progress: animation.value,
-            )
-          : theme.appearance == AppTheme.pastel
+          ? (frame is _CyberpunkPopupFrame
+                  ? frame
+                  : _CyberpunkPopupFrame(
+                      side: frame.side, accent: theme.colorScheme.primary))
+              .copyWith(progress: animation.value)
+          : milk
               ? _PastelSoftBorder(borderRadius: frame.borderRadius)
-              : _DrawnPopupFrame(
-                  frame.side,
-                  animation.value,
-                  borderRadius: frame.borderRadius,
-                ),
+              : theme.appearance == AppTheme.sv && animation.isCompleted
+                  ? frame
+                  : _DrawnPopupFrame(
+                      frame.side,
+                      animation.value,
+                      borderRadius: frame.borderRadius,
+                    ),
       title: fade(title),
       content: fade(content),
       // Keep each action's normal layout and overflow behaviour.
       actions: actions?.map((child) => fade(child)!).toList(),
-      actionsPadding: actionsPadding,
+      actionsPadding: actionsPadding ??
+          (milk ? const EdgeInsets.fromLTRB(16, 2, 16, 16) : null),
+      actionsOverflowButtonSpacing: milk ? 8 : null,
     ),
   );
 }

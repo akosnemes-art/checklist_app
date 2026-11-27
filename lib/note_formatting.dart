@@ -196,7 +196,7 @@ class _NoteFormatting {
           decoration: link != null || (flags & _NoteFormat.underline.bit) != 0
               ? TextDecoration.underline
               : base.decoration,
-          shadows: highlighted
+          shadows: highlighted && theme.appearance != AppTheme.pastel
               ? [Shadow(color: color ?? _defaultNoteBlue, blurRadius: 4)]
               : base.shadows,
         ),

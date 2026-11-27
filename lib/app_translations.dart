@@ -1,6 +1,47 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Added new fonts and pixel buttons to SV.": (
+    "Nouvelles polices et nouveaux boutons pixel pour SV.",
+    "Nová písma a pixelová tlačítka pro SV."
+  ),
+  "Refined Cyberpunk’s TV noise.": (
+    "Le bruit TV de Cyberpunk a été affiné.",
+    "Jemnější televizní šum v motivu Cyberpunk."
+  ),
+  "Added Milk formatting glow and spaced out its popups.": (
+    "Les boutons de mise en forme de Milk brillent lorsqu’ils sont actifs et ses fenêtres sont mieux espacées.",
+    "Aktivní formátovací tlačítka Milk svítí a dialogy mají lepší rozestupy."
+  ),
+  "Renamed Pastel to Milk and softened its surfaces.": (
+    "Pastel devient Milk avec des surfaces plus douces.",
+    "Motiv Pastel se jmenuje Milk a má jemnější povrchy."
+  ),
+  "Added the SV theme.": ("Ajout du thème SV.", "Přidán motiv SV."),
+  "Updated the font credits and added sources.": (
+    "Crédits et sources des polices mis à jour.",
+    "Aktualizovány údaje o autorech a zdrojích písem."
+  ),
+  "font source · Google Fonts": (
+    "source de la police · Google Fonts",
+    "zdroj písma · Google Fonts"
+  ),
+  "Added a blue focus glow and animated grain to Cyberpunk.": (
+    "Ajout d’une lueur bleue au champ de tâche actif et d’un grain animé dans Cyberpunk.",
+    "Cyberpunk má modré zvýraznění aktivního pole úkolu a animované zrno."
+  ),
+  "Updated the Cyberpunk reminder calendar.": (
+    "Calendrier des rappels de Cyberpunk mis à jour.",
+    "Kalendář připomínek v motivu Cyberpunk byl upraven."
+  ),
+  "Settings now closes with the sidebar.": (
+    "Les réglages se ferment avec la barre latérale.",
+    "Nastavení se zavírá spolu s postranním panelem."
+  ),
+  "{font} font design for {theme}": (
+    "Création de la police {font} pour {theme}",
+    "Návrh písma {font} pro motiv {theme}"
+  ),
   "Improved Pastel contrast and updated the 0.5.7 app icon.": (
     "Le contraste du thème Pastel a été amélioré et l’icône de la version 0.5.7 a été mise à jour.",
     "Motiv Pastel má lepší kontrast a ikona aplikace pro verzi 0.5.7 byla aktualizována."
@@ -87,9 +128,9 @@ const _frenchAndCzech = <String, (String, String)>{
     "Le globe des liens se trouve à côté des outils de mise en forme.",
     "Ikona webových odkazů je vedle ovládacích prvků formátování poznámek."
   ),
-  "Added the Cyberpunk theme with photography by Allan Ferreira.": (
-    "Ajout du thème Cyberpunk avec une photo d’Allan Ferreira.",
-    "Přidán motiv Cyberpunk s fotografií od Allana Ferreiry."
+  "Added the Cyberpunk theme.": (
+    "Ajout du thème Cyberpunk.",
+    "Přidán motiv Cyberpunk."
   ),
   "Added rolling credits in About and updated the launcher icon.": (
     "Le générique défile dans À propos et l’icône de l’application a été mise à jour.",
@@ -99,11 +140,6 @@ const _frenchAndCzech = <String, (String, String)>{
   "credits": ("générique", "titulky"),
   "design": ("conception", "návrh"),
   "development": ("développement", "vývoj"),
-  "original Cyberpunk photography": (
-    "photographie originale de Cyberpunk",
-    "původní fotografie pro Cyberpunk"
-  ),
-  "view portfolio": ("voir le portfolio", "zobrazit portfolio"),
   "Notes extend to the status bar and use a solid writing surface.": (
     "Le fond des notes atteint la barre d’état et la zone de saisie est opaque.",
     "Pozadí poznámek sahá ke stavovému řádku a plocha pro psaní je neprůhledná."

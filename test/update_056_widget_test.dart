@@ -158,7 +158,8 @@ void main() {
     CustomPainter signals() {
       final boundary = tester.widget<RepaintBoundary>(find.descendant(
         of: background,
-        matching: find.byType(RepaintBoundary),
+        matching: find
+            .byWidgetPredicate((w) => w is RepaintBoundary && w.key == null),
       ));
       return (boundary.child! as CustomPaint).painter!;
     }
@@ -240,9 +241,12 @@ void main() {
     expect(theme.iconButtonTheme.style!.backgroundBuilder, isNotNull);
     expect(theme.filledButtonTheme.style!.side!.resolve({}), BorderSide.none);
     final drawer = _key('pastel-drawer-button');
-    expect(
-        find.descendant(of: drawer, matching: find.byIcon(Icons.menu_rounded)),
-        findsOneWidget);
+    final drawerGlyph =
+        find.descendant(of: drawer, matching: find.byIcon(Icons.menu_rounded));
+    final icon = tester.widget<Icon>(drawerGlyph);
+    expect(icon.color, Colors.white);
+    expect(icon.shadows!.first.color, Colors.white);
+    expect(icon.shadows!.first.blurRadius, greaterThan(0));
     final travel =
         find.ancestor(of: drawer, matching: _key('pastel-press-travel'));
     double depth() =>
@@ -278,7 +282,7 @@ void main() {
 
     await _tap(tester, find.byTooltip('open menu'));
     final create = tester.widget<FilledButton>(_key('sidebar-create-button'));
-    expect(create.style!.backgroundColor!.resolve({}), const Color(0xFFECD2E1));
+    expect(create.style!.backgroundColor!.resolve({}), const Color(0xFFE5E0F2));
     await _tap(tester, _key('settings-toggle'));
     await _tap(tester, _key('settings-about'));
     await _tap(tester, _key('about-credits'));
@@ -310,7 +314,10 @@ void main() {
     expect(x(chevron), closeTo(x(_key('sidebar-checklist-settings')), .001));
     final bevel = _key('pastel-press-depth');
     expect(find.descendant(of: chevron, matching: bevel), findsOneWidget);
-    await _tap(tester, _key('settings-toggle'));
+    await tester.tap(_key('settings-toggle'));
+    await tester.pump();
+    expect(tester.widget<Text>(find.text('settings')).style!.shadows, isNull);
+    await tester.pumpAndSettle();
     expect(find.descendant(of: _key('settings-panel'), matching: bevel),
         findsOneWidget);
     await _tap(tester, _key('settings-about'));
@@ -318,6 +325,87 @@ void main() {
         findsOneWidget);
     await _tap(tester, find.bySemanticsLabel('NOTES'));
     expect(x(chevron), closeTo(x(_key('sidebar-note-settings')), .001));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('Milk retains the saved preference and SV has its own finish',
+      (tester) async {
+    await _load(tester, 'pastel');
+    expect(_key('pastel-workspace-backdrop'), findsOneWidget);
+    expect(_key('sv-landscape'), findsNothing);
+    await _tap(tester, find.byTooltip('open menu'));
+    await _tap(tester, _key('settings-toggle'));
+    await _tap(tester, _key('settings-themes'));
+    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Pastel'), findsNothing);
+    await tester.ensureVisible(_key('theme-sv'));
+    await _tap(tester, _key('theme-sv'));
+    expect(_key('sv-landscape'), findsOneWidget);
+    expect(_key('pastel-workspace-backdrop'), findsNothing);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('checklist.theme.v1'), 'sv');
+    final theme = Theme.of(tester.element(_key('workspace-surface')));
+    expect(theme.brightness, Brightness.light);
+    expect(theme.textTheme.headlineMedium!.fontFamily, 'VT323');
+    expect(theme.textTheme.bodyMedium!.fontFamily, 'VT323');
+    expect(
+        tester
+            .widget<AnimatedDefaultTextStyle>(_key('checklist-word-style'))
+            .style
+            .fontFamily,
+        'Press Start 2P');
+    await tester.tapAt(const Offset(375, 130));
+    await tester.pumpAndSettle();
+    final cards = _key('sv-task-card');
+    expect(cards, findsNWidgets(2));
+    final face =
+        tester.widget<DecoratedBox>(cards.first).decoration as ShapeDecoration;
+    expect(face.color, const Color(0xFFFFECC8));
+    expect((face.shape as OutlinedBorder).side.color, const Color(0xFF764330));
+    await _tap(tester, _key('checklist-reminder-button'));
+    final popup = tester.widget<AlertDialog>(_key('checklist-reminder-dialog'));
+    expect(popup.shape, theme.dialogTheme.shape);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('Milk category popup keeps labels and actions apart on mobile',
+      (tester) async {
+    await _load(tester, 'pastel', saved: {
+      'checklist.noteCategories.v1': jsonEncode([
+        for (var index = 0; index < 12; index++)
+          {
+            'id': 'category-$index',
+            'name': 'An unusually long category name $index',
+            'colorValue': 0xFF3977E3,
+          }
+      ]),
+    });
+    await _tap(tester, find.byTooltip('open menu'));
+    await _tap(tester, find.bySemanticsLabel('NOTES'));
+    await tester.tapAt(const Offset(375, 135));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(320, 540);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.35;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await tester.pumpAndSettle();
+    await _tap(tester, find.byTooltip('change category'));
+    final popup = _key('category-picker-dialog');
+    final dialog = tester.widget<AlertDialog>(popup);
+    expect(dialog.scrollable, isTrue);
+    expect(dialog.clipBehavior, Clip.antiAlias);
+    expect(Theme.of(tester.element(popup)).popupMenuTheme.menuPadding,
+        const EdgeInsets.symmetric(horizontal: 5, vertical: 8));
+    final title =
+        find.descendant(of: popup, matching: find.text('change category'));
+    final first = find.text('An unusually long category name 0');
+    expect(tester.getRect(title).bottom, lessThan(tester.getRect(first).top));
+    final buttons = [
+      for (final label in ['cancel', 'new', 'remove'])
+        tester.getRect(find.text(label)),
+    ];
+    expect(buttons[0].right, lessThan(buttons[1].left));
+    expect(buttons[1].right, lessThan(buttons[2].left));
+    await _tap(tester, _key('category-cancel-button'));
+    expect(popup, findsNothing);
+    expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('Cyberpunk Settings icons are red and glow while open',
@@ -418,7 +506,7 @@ void main() {
         (tester.widget<Container>(priority).decoration as BoxDecoration).color!;
     final priorityText =
         find.descendant(of: priority, matching: find.text('medium'));
-    const clay = Color(0xFFEBE7F1);
+    const clay = Color(0xFFE8EFF5);
     expect(contrast(textColour(priorityText), Color.alphaBlend(tint, clay)),
         greaterThanOrEqualTo(4.5));
 
@@ -443,7 +531,7 @@ void main() {
         muted);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  for (final appearance in ['pixel', 'pastel', 'cyberpunk']) {
+  for (final appearance in ['pixel', 'pastel', 'cyberpunk', 'sv']) {
     testWidgets(
         'Notes formatting, category and camera controls use $appearance',
         (tester) async {
@@ -506,6 +594,53 @@ void main() {
                       .isNotEmpty,
               isTrue);
         }
+        final bold = _key('note-format-bold');
+        Icon glyph() => tester.widget<Icon>(find.descendant(
+            of: bold, matching: find.byIcon(Icons.format_bold_rounded)));
+        expect(glyph().shadows, isNull);
+        await _tap(tester, bold);
+        expect(glyph().shadows!.single.blurRadius, greaterThan(0));
+        await _tap(tester, bold);
+        expect(glyph().shadows, isNull);
+      } else if (appearance == 'sv') {
+        const edge = Color(0xFF764330);
+        for (final (format, letter) in [
+          ('bold', 'B'),
+          ('italic', 'i'),
+          ('underline', 'U'),
+        ]) {
+          final button = _key('note-format-$format');
+          final label =
+              find.descendant(of: button, matching: find.text(letter));
+          expect(
+              tester.widget<Text>(label).style!.fontFamily, 'Press Start 2P');
+          final style = tester.widget<IconButton>(button).style!;
+          expect(style.side!.resolve({})!.color, edge);
+          expect(style.backgroundColor!.resolve({}), const Color(0xFFE5A867));
+        }
+        final bold = _key('note-format-bold');
+        await _tap(tester, bold);
+        expect(tester.widget<IconButton>(bold).isSelected, isTrue);
+        expect(
+            tester.widget<IconButton>(bold).style!.backgroundColor!.resolve({}),
+            const Color(0xFFE7EDBA));
+        final category = find.byWidgetPredicate((widget) =>
+            widget is IconButton && widget.tooltip == 'change category');
+        expect(
+            tester.widget<IconButton>(category).style!.side!.resolve({})!.color,
+            edge);
+        final plus = _key('note-ocr-button');
+        expect(
+            find.descendant(
+                of: plus,
+                matching: _key('sv-note-glyph-${Icons.add_rounded.codePoint}')),
+            findsOneWidget);
+        expect(
+            find.descendant(
+                of: category,
+                matching: _key(
+                    'sv-note-glyph-${Icons.label_outline_rounded.codePoint}')),
+            findsOneWidget);
       } else {
         final plus = _key('note-ocr-button');
         final field = tester.widget<Container>(plus);

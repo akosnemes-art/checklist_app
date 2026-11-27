@@ -95,11 +95,11 @@ void main() {
     final field = tester.getRect(_key('note-content-field'));
     final top = field.topLeft + const Offset(10, 20);
     final bottom = field.bottomLeft + const Offset(10, -20);
-    expect(await _pixel(tester, top), const Color(0xFFFFFFFF));
+    expect(await _pixel(tester, top), const Color(0xFFF7FAFC));
     expect(_key('pastel-workspace-backdrop'), findsOneWidget);
-    expect(await _pixel(tester, bottom), isNot(const Color(0xFFFFFFFF)));
+    expect(await _pixel(tester, bottom), isNot(const Color(0xFFF7FAFC)));
     await tester.pumpAndSettle();
-    expect(await _pixel(tester, bottom), const Color(0xFFFFFFFF));
+    expect(await _pixel(tester, bottom), const Color(0xFFF7FAFC));
   });
 
   testWidgets(
@@ -285,7 +285,7 @@ void main() {
     await tester.tapAt(editor.localToGlobal(box.toRect().center));
     await tester.pump();
     expect(spans().last.style!.color, const Color(0xFF5A9BFF));
-    expect(spans().last.style!.shadows, isNotEmpty);
+    expect(spans().last.style!.shadows, isNull);
     expect(calls, isEmpty);
     await tester.pump(const Duration(milliseconds: 100));
     expect(calls.single.arguments['url'], url);

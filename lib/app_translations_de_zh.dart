@@ -1,6 +1,47 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Added new fonts and pixel buttons to SV.": (
+    "Neue Schriften und Pixeltasten für SV.",
+    "SV 新增字体和像素按钮。"
+  ),
+  "Refined Cyberpunk’s TV noise.": (
+    "Das TV-Rauschen in Cyberpunk wurde verfeinert.",
+    "优化了 Cyberpunk 的电视噪点。"
+  ),
+  "Added Milk formatting glow and spaced out its popups.": (
+    "Milk zeigt leuchtende aktive Formattasten und mehr Platz in Dialogen.",
+    "Milk 的格式按钮在选中时发光，并优化了弹窗间距。"
+  ),
+  "Renamed Pastel to Milk and softened its surfaces.": (
+    "Pastel heißt jetzt Milk und hat weichere Oberflächen.",
+    "Pastel 已更名为 Milk，界面表面更柔和。"
+  ),
+  "Added the SV theme.": ("Das Design SV wurde hinzugefügt.", "新增 SV 主题。"),
+  "Updated the font credits and added sources.": (
+    "Schrift-Credits und Quellen wurden aktualisiert.",
+    "已更新字体署名和来源。"
+  ),
+  "font source · Google Fonts": (
+    "Schriftquelle · Google Fonts",
+    "字体来源 · Google Fonts"
+  ),
+  "Added a blue focus glow and animated grain to Cyberpunk.": (
+    "Cyberpunk hat ein blau leuchtendes Aufgabenfeld und animierte Körnung.",
+    "Cyberpunk 已加入蓝色任务输入框焦点光效和动态颗粒。"
+  ),
+  "Updated the Cyberpunk reminder calendar.": (
+    "Der Cyberpunk-Erinnerungskalender wurde aktualisiert.",
+    "已更新 Cyberpunk 的提醒日历。"
+  ),
+  "Settings now closes with the sidebar.": (
+    "Die Einstellungen schließen jetzt mit der Seitenleiste.",
+    "设置现在会随侧栏一起关闭。"
+  ),
+  "{font} font design for {theme}": (
+    "Schriftdesign {font} für {theme}",
+    "{theme} 主题的 {font} 字体设计"
+  ),
   "Improved Pastel contrast and updated the 0.5.7 app icon.": (
     "Der Kontrast im Pastel-Design wurde verbessert und das App-Symbol für 0.5.7 aktualisiert.",
     "提高了 Pastel 主题的对比度，并更新了 0.5.7 版的应用图标。"
@@ -87,9 +128,9 @@ const _germanAndChinese = <String, (String, String)>{
     "Der Globus für Webseiten steht neben den Formatierungswerkzeugen der Notizen.",
     "网站链接的地球图标已移到笔记格式按钮旁。"
   ),
-  "Added the Cyberpunk theme with photography by Allan Ferreira.": (
-    "Das Design Cyberpunk mit einem Foto von Allan Ferreira wurde hinzugefügt.",
-    "新增 Cyberpunk 主题，背景照片由 Allan Ferreira 拍摄。"
+  "Added the Cyberpunk theme.": (
+    "Das Design Cyberpunk wurde hinzugefügt.",
+    "新增 Cyberpunk 主题。"
   ),
   "Added rolling credits in About and updated the launcher icon.": (
     "Unter „Über“ läuft ein Abspann. Das App-Symbol wurde aktualisiert.",
@@ -99,11 +140,6 @@ const _germanAndChinese = <String, (String, String)>{
   "credits": ("mitwirkende", "制作人员"),
   "design": ("gestaltung", "设计"),
   "development": ("entwicklung", "开发"),
-  "original Cyberpunk photography": (
-    "ursprüngliche Cyberpunk-Fotografie",
-    "Cyberpunk 原背景摄影"
-  ),
-  "view portfolio": ("Portfolio ansehen", "查看作品集"),
   "Notes extend to the status bar and use a solid writing surface.": (
     "Der Notizhintergrund reicht bis zur Statusleiste. Das Schreibfeld ist deckend.",
     "笔记背景延伸至状态栏，书写区域采用不透明底色。"

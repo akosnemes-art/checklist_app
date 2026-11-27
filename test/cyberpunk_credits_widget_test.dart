@@ -69,7 +69,8 @@ void main() {
         findsNothing);
     final signals = find.descendant(
       of: find.descendant(of: workspace, matching: circuits),
-      matching: find.byType(RepaintBoundary),
+      matching:
+          find.byWidgetPredicate((w) => w is RepaintBoundary && w.key == null),
     );
     Future<Uint8List> pixels() async {
       final boundary = tester.renderObject<RenderRepaintBoundary>(signals);
@@ -292,7 +293,7 @@ void main() {
     expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('About credits roll upwards and link to the photographer',
+  testWidgets('About credits roll and identify the fonts and their themes',
       (tester) async {
     const launcher = MethodChannel('plugins.flutter.io/url_launcher');
     final opened = <String>[];
@@ -323,12 +324,26 @@ void main() {
     expect(scroll.offset, greaterThan(10));
     expect(find.text('Codex AI'), findsOneWidget);
     expect(find.text('akosnemes@proton.me'), findsOneWidget);
-    expect(find.text('Allan Ferreira'), findsOneWidget);
+    expect(find.text('Allan Ferreira'), findsNothing);
+    expect(find.text('Coiny font design for Milk'), findsOneWidget);
+    expect(find.text('Nunito font design for Milk'), findsOneWidget);
+    expect(find.text('Pixelify Sans font design for Pixel'), findsOneWidget);
+    expect(find.text('Stefie Justprince'), findsOneWidget);
+    expect(find.text('Press Start 2P font design for SV'), findsOneWidget);
+    expect(find.text('CodeMan38'), findsOneWidget);
+    expect(find.text('VT323 font design for SV'), findsOneWidget);
+    expect(find.text('Peter Hull'), findsOneWidget);
+    expect(find.text('Rajdhani font design for Cyberpunk'), findsOneWidget);
+    expect(find.text('Indian Type Foundry'), findsOneWidget);
 
-    final portfolio = _key('credits-portfolio');
-    await tester.ensureVisible(portfolio);
-    await _tap(tester, portfolio);
-    expect(opened, ['https://unsplash.com/@allnferreira']);
+    final font = _key('credits-font-Rajdhani');
+    expect(
+        find.descendant(
+            of: font, matching: find.text('font source · Google Fonts')),
+        findsOneWidget);
+    await tester.ensureVisible(font);
+    await _tap(tester, font);
+    expect(opened, ['https://fonts.google.com/specimen/Rajdhani']);
     await _tap(tester, find.widgetWithText(TextButton, 'close'));
     expect(tester.takeException(), isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));

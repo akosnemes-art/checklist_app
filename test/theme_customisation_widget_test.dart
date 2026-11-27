@@ -228,6 +228,7 @@ void main() {
         expect(tester.getTopLeft(editor).dy, 32);
         expect(tester.getBottomLeft(editor).dy, 756);
         expect(tester.takeException(), isNull, reason: 'wide Cyberpunk');
+        tester.view.physicalSize = screenBounds.size;
       }
 
       await tester.pumpWidget(const SizedBox.shrink());

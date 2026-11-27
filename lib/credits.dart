@@ -2,8 +2,6 @@ part of 'main.dart';
 
 const _designerName = 'Ákos Nemes';
 const _designerEmail = 'akosnemes@proton.me';
-const _photographerName = 'Allan Ferreira';
-const _photographerPortfolio = 'https://unsplash.com/@allnferreira';
 
 class _CreditsDialog extends StatefulWidget {
   const _CreditsDialog({required this.onOpenLink});
@@ -61,14 +59,17 @@ class _CreditsDialogState extends State<_CreditsDialog> {
     super.dispose();
   }
 
-  Widget _credit(String role, String name, {Widget? link}) {
+  Widget _credit(String role, String name,
+      {Map<String, Object> arguments = const {}, Widget? link}) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: Column(
         children: [
           AppText(role,
-              style: theme.textTheme.labelMedium, textAlign: TextAlign.center),
+              arguments: arguments,
+              style: theme.textTheme.labelMedium,
+              textAlign: TextAlign.center),
           const SizedBox(height: 5),
           Text(name,
               textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
@@ -88,6 +89,18 @@ class _CreditsDialogState extends State<_CreditsDialog> {
         child: AppText(label,
             textAlign: TextAlign.center,
             style: const TextStyle(decoration: TextDecoration.underline)),
+      );
+
+  Widget _fontCredit(String theme, String font, String designer) => _credit(
+        '{font} font design for {theme}',
+        designer,
+        arguments: {'font': font, 'theme': theme},
+        link: _link(
+          ValueKey('credits-font-$font'),
+          'font source · Google Fonts',
+          Uri.https(
+              'fonts.google.com', '/specimen/${font.replaceAll(' ', '+')}'),
+        ),
       );
 
   @override
@@ -124,33 +137,13 @@ class _CreditsDialogState extends State<_CreditsDialog> {
                   ),
                 ),
                 _credit('development', 'Codex AI'),
-                _credit(
-                  'original Cyberpunk photography',
-                  _photographerName,
-                  link: _link(
-                    const ValueKey('credits-portfolio'),
-                    'view portfolio',
-                    Uri.parse(_photographerPortfolio),
-                  ),
-                ),
-                _credit(
-                  _pastelDisplayFont,
-                  'Marcelo Magalhães',
-                  link: _link(
-                    const ValueKey('credits-coiny'),
-                    'view portfolio',
-                    Uri.https('fonts.google.com', '/specimen/Coiny'),
-                  ),
-                ),
-                _credit(
-                  _pastelReadingFont,
-                  'Vernon Adams, Cyreal, Jacques Le Bailly',
-                  link: _link(
-                    const ValueKey('credits-nunito'),
-                    'view portfolio',
-                    Uri.https('fonts.google.com', '/specimen/Nunito'),
-                  ),
-                ),
+                _fontCredit('Milk', _pastelDisplayFont, 'Marcelo Magalhães'),
+                _fontCredit('Milk', _pastelReadingFont,
+                    'Vernon Adams, Cyreal, Jacques Le Bailly'),
+                _fontCredit('Pixel', _pixelFont, 'Stefie Justprince'),
+                _fontCredit('SV', _svButtonFont, 'CodeMan38'),
+                _fontCredit('SV', _svTextFont, 'Peter Hull'),
+                _fontCredit('Cyberpunk', _cyberpunkFont, 'Indian Type Foundry'),
               ],
             ),
           ),

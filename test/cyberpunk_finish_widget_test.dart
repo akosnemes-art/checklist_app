@@ -41,6 +41,18 @@ double _contentOpacity(WidgetTester tester) {
   return tester.widget<FadeTransition>(fade.first).opacity.value;
 }
 
+Future<ByteData> _pixels(WidgetTester tester, Finder target) async {
+  final render = tester.renderObject<RenderRepaintBoundary>(target);
+  return (await tester.runAsync(() async {
+    final image = await render.toImage();
+    try {
+      return (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    } finally {
+      image.dispose();
+    }
+  }))!;
+}
+
 void main() {
   testWidgets('Cyberpunk popup expands from a rail before fading in content',
       (tester) async {
@@ -89,7 +101,8 @@ void main() {
     expect(_contentOpacity(tester), 1);
   });
 
-  testWidgets('Cyberpunk paints fine stationary grain and accent lighting',
+  testWidgets(
+      'Cyberpunk refreshes fine TV noise and sweeps a faint horizontal band',
       (tester) async {
     await _openApp(tester, 'cyberpunk');
     final finish = _key('cyberpunk-surface-finish');
@@ -98,30 +111,134 @@ void main() {
       of: _key('workspace-surface'),
       matching: finish,
     );
-    Future<ByteData> pixels() async {
-      final render = tester.renderObject<RenderRepaintBoundary>(surface);
-      return (await tester.runAsync(() async {
-        final image = await render.toImage();
-        try {
-          return (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
-        } finally {
-          image.dispose();
-        }
-      }))!;
-    }
-
-    final first = await pixels();
+    final first = await _pixels(tester, surface);
     final width = tester.getSize(surface).width.round();
     int alpha(int x, int y) => first.getUint8((y * width + x) * 4 + 3);
     int rowAlpha(int y) =>
         List.generate(width, (x) => alpha(x, y)).reduce((a, b) => a + b);
     expect(rowAlpha(12), greaterThan(rowAlpha(150)));
-    final grain = {for (var x = 0; x < width; x++) alpha(x, 150)};
-    expect(grain.length, greaterThan(1));
-    expect(grain.every((value) => value <= 64), isTrue);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect((await pixels()).buffer.asUint8List(),
+    final grain = find.descendant(
+      of: _key('workspace-surface'),
+      matching: _key('cyberpunk-background-grain'),
+    );
+    final initial = await _pixels(tester, grain);
+    double difference(ByteData other) {
+      var total = 0;
+      for (var i = 3; i < initial.lengthInBytes; i += 4) {
+        total += (initial.getUint8(i) - other.getUint8(i)).abs();
+      }
+      return total * 4 / initial.lengthInBytes;
+    }
+
+    await tester.pump(const Duration(milliseconds: 40));
+    final near = difference(await _pixels(tester, grain));
+    await tester.pump(const Duration(milliseconds: 720));
+    final later = difference(await _pixels(tester, grain));
+    expect(near, inExclusiveRange(0, 4));
+    expect(later, inExclusiveRange(0, 4));
+    expect((await _pixels(tester, surface)).buffer.asUint8List(),
         orderedEquals(first.buffer.asUint8List()));
+
+    final layer = tester.widget<RepaintBoundary>(grain).child! as CustomPaint;
+    final dynamic noise = layer.painter!;
+    final int tick = noise.frame.value;
+    await tester.pump(Duration(milliseconds: ((70 - tick) % 1440) * 40));
+    final sweep = await _pixels(tester, grain);
+    final size = tester.getSize(grain);
+    final centre = size.height ~/ 2;
+    int bandAlpha(int y) =>
+        List.generate(width, (x) => sweep.getUint8((y * width + x) * 4 + 3))
+            .reduce((a, b) => a + b);
+    expect(bandAlpha(centre), greaterThan(bandAlpha(centre - 12)));
+
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    await tester.pumpAndSettle();
+    final still = await _pixels(tester, grain);
+    await tester.pump(const Duration(seconds: 2));
+    expect((await _pixels(tester, grain)).buffer.asUint8List(),
+        orderedEquals(still.buffer.asUint8List()));
+  });
+
+  testWidgets('Cyberpunk task field glows blue while focused', (tester) async {
+    await _openApp(tester, 'cyberpunk');
+    await tester.tapAt(const Offset(380, 320));
+    await tester.pumpAndSettle();
+    final composer = find.byType(TextField);
+    final field = tester.widget<TextField>(composer);
+    final paint =
+        find.ancestor(of: composer, matching: find.byType(CustomPaint));
+    final border = tester.widget<CustomPaint>(paint.first).foregroundPainter!;
+    expect(field.decoration!.focusedBorder!.borderSide.color,
+        const Color(0xFF379BFF));
+    expect(field.decoration!.focusedBorder!.borderSide.width,
+        greaterThan(field.decoration!.enabledBorder!.borderSide.width));
+
+    Future<int> intensity() async => (await tester.runAsync(() async {
+          final recorder = ui.PictureRecorder();
+          const size = Size(120, 48);
+          border.paint(Canvas(recorder), size);
+          final picture = recorder.endRecording();
+          final image = await picture.toImage(120, 48);
+          picture.dispose();
+          try {
+            final data = (await image.toByteData())!;
+            return data.getUint8((24 * 120 + 2) * 4 + 3);
+          } finally {
+            image.dispose();
+          }
+        }))!;
+
+    final idle = await intensity();
+    await tester.tap(composer);
+    await tester.pump();
+    expect(field.focusNode!.hasFocus, isTrue);
+    expect(await intensity(), greaterThan(idle * 2));
+    field.focusNode!.unfocus();
+    await tester.pump();
+    expect(await intensity(), idle);
+  });
+
+  testWidgets('Cyberpunk reminder opens in red and flashes the selected date',
+      (tester) async {
+    await _openApp(tester, 'cyberpunk');
+    await tester.tapAt(const Offset(380, 320));
+    await tester.pumpAndSettle();
+    await tester.tap(_key('checklist-reminder-button'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 36));
+    expect(_frameBounds(tester).height, 3);
+    expect(_contentOpacity(tester), 0);
+    await tester.pumpAndSettle();
+    const red = Color(0xFFFF2349);
+    final dialog =
+        tester.widget<AlertDialog>(_key('checklist-reminder-dialog'));
+    final frame = dialog.shape! as OutlinedBorder;
+    expect(frame.side.color, red);
+    const panel = Rect.fromLTWH(0, 0, 400, 200);
+    expect(frame.getOuterPath(panel).contains(const Offset(398, 198)), isFalse);
+
+    final calendar = _key('checklist-reminder-calendar');
+    const selected = {WidgetState.selected};
+    DatePickerThemeData style() => DatePickerTheme.of(tester.element(calendar));
+    final day = style().dayShape!.resolve(selected)!;
+    expect(day.side.color.toARGB32(), red.toARGB32());
+    expect(day.side.width, lessThan(1));
+    final square = day.getOuterPath(const Rect.fromLTWH(0, 0, 38, 44));
+    expect(square.getBounds().height, square.getBounds().width);
+    expect(square.contains(const Offset(37, 40)), isFalse);
+    final idle = style().dayBackgroundColor!.resolve(selected)!;
+
+    await tester.tap(find.descendant(of: calendar, matching: find.text('15')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 86));
+    final flash = style().dayBackgroundColor!.resolve(selected)!;
+    expect(flash.g, greaterThan(.8));
+    expect(flash.a, greaterThan(idle.a));
+    await tester.pumpAndSettle();
+    expect(style().dayBackgroundColor!.resolve(selected), idle);
+    expect(find.bySemanticsLabel(RegExp(r'^15, ')), findsOneWidget);
   });
 
   testWidgets('Boi keeps its existing popup shape and visual treatment',

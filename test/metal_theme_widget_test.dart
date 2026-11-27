@@ -56,11 +56,12 @@ void main() {
     for (final theme in [
       'Boi',
       'Pencil',
-      'Pastel',
+      'Milk',
       'Copper',
       'Black Metal',
       'Pixel',
-      'Cyberpunk'
+      'Cyberpunk',
+      'SV',
     ]) {
       expect(find.text(theme), findsOneWidget);
     }

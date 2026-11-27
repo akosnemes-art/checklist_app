@@ -1,7 +1,7 @@
 name: checklist_app
 description: A local-first checklist and notes app for Android.
 publish_to: 'none'
-version: 0.5.7+58
+version: 0.5.8+61
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -35,7 +35,15 @@ flutter:
     - assets/fonts/Rajdhani-OFL.txt
     - assets/fonts/Coiny-OFL.txt
     - assets/fonts/Nunito-OFL.txt
+    - assets/fonts/PressStart2P-OFL.txt
+    - assets/fonts/VT323-OFL.txt
   fonts:
+    - family: Press Start 2P
+      fonts:
+        - asset: assets/fonts/PressStart2P-Regular.ttf
+    - family: VT323
+      fonts:
+        - asset: assets/fonts/VT323-Regular.ttf
     - family: Coiny
       fonts:
         - asset: assets/fonts/Coiny-Regular.ttf
