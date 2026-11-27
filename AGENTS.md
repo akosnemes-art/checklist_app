@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current source version: **0.5.6**. The Flutter build number may increase for
+- Current source version: **0.5.7**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -36,8 +36,11 @@ These details have already been approved and must not change incidentally:
 
 - Square corners are used throughout buttons, fields, dialogs, menus, chips,
   drawers, snackbars, and window chrome except in Pastel. Pastel uses rounded
-  corners and smooth bevels in place of decorative borders. Its mobile drawer
-  opener has a gently glowing white ring. The radius follows Android's
+  corners and neumorphic raised and recessed surfaces with opposing soft
+  shadows. Its mobile drawer opener is a raised circular menu icon seated in
+  a recessed rim. Pressing controls transitions the relief inwards with up to
+  1.2 dp of travel over 120 ms. Reduced motion removes the travel and shows
+  the pressed relief immediately. The radius follows Android's
   reported display corners within safe layout bounds and defaults to 18 dp.
   Cyberpunk new-checklist, new-note, reminder, and task checkbox controls
   have a bevel at the lower-right corner.
@@ -52,7 +55,7 @@ These details have already been approved and must not change incidentally:
 - Boi Checklist mode uses purple; Boi Notes mode uses blue. Pencil mode uses
   only the approved neutral greys except for explicitly retained blue dialog
   frames, blue note links, and blue/yellow Notes formatting controls. Pastel uses its approved
-  palette with blue Notes hyperlinks and warm-grey selected note rows.
+  palette with blue Notes hyperlinks.
 - Boi checklist completion progress is brand yellow (`#F3ED23`). Pencil
   progress is black on a light-grey track. Cyberpunk uses a glowing brand
   yellow fill and a flat electric-blue (`#379BFF`) track, including for
@@ -66,10 +69,12 @@ These details have already been approved and must not change incidentally:
   and selected-row treatment. It does not recolour the note body text.
 - White frames are intentional around the create-note button, filter/sort
   button, and category selector outside Pastel. Cyberpunk's general UI borders, including
-  the sidebar create buttons, use brand yellow with a faint glow by default.
+  the sidebar create buttons, use electric blue (`#379BFF`) with a faint
+  glow by default.
 - Three-dot settings buttons are intentionally unframed and vertical. Pixel
   draws the dots and Settings navigation glyphs as square pixels with a soft
-  glow that brightens on activation.
+  glow that brightens on activation. Pixel also uses pixel-art glyphs for
+  the Notes formatting, category and photo controls.
   Cyberpunk menu dots and task checkboxes use red and briefly glitch through
   bright yellow on activation, then settle with a red glow while active.
 - The Notes filter button and `new note` button have exactly the same height.
@@ -137,7 +142,9 @@ rely on the palette positions.
   cancel/create actions. It has no `name it` heading or priority control, and
   new checklists default to medium priority. Priority can still be changed from
   the selected checklist header.
-- The selected checklist shows a purple-framed calendar reminder button. It
+- The selected checklist shows a calendar reminder button. In Pastel the
+  reminder button, calendar and time picker use sculpted surfaces. Pastel's
+  calendar has extra margins and a scrollable body on shorter screens. It
   opens a calendar and time picker; a saved reminder stays attached to that
   checklist and can be changed or removed. The checklist sidebar three-dot
   menu includes the lowercase `reminder` action.
@@ -170,7 +177,7 @@ rely on the palette positions.
   There is no six-dot drag handle.
 - A linked task shows the Material `sticky_note_2` icon directly below its
   left-aligned checkbox. Linked and unlinked task checkboxes use the same fixed
-  leading-column width and align with the first line of task text. Cyberpunk
+  leading-column width and align with the top of the task text. Cyberpunk
   uses a thin stroke for task ticks and the wordmark checkmark. The icon is yellow in Boi and
   blue in Pencil and Pastel. Tapping it changes it to purple before opening
   the linked note in a scrollable popup that renders the note's formatting.
@@ -179,11 +186,15 @@ rely on the palette positions.
   The task text wraps within the remaining row width and also
   retains its established note-opening tap.
 - In Pastel, priority controls use red `#E31F26` for high, teal `#00978D` for
-  medium, and lavender `#B5B1D8` for low. In Pencil, priority controls use navy
+  medium, and lavender `#B5B1D8` for low. Its header priority control is
+  at least 44 dp tall and its menu entries are 54 dp tall. In Pencil,
+  priority controls use navy
   `#0E2F44` for high, dark grey `#64696A` for medium, and grey `#999999` for
   low. Boi priority colours do not change.
 - The selected checklist header includes its creation date and task counts.
 - Progress changes animate smoothly rather than jumping to the new value.
+  Pastel uses an uncoloured recessed track, including in empty checklists,
+  with a raised fill matching completed task panels (`#E5F4EB` by default).
   Cyberpunk priority buttons and menu markers glow in their priority colours.
   Pixel's progress fill and task and workspace checkmarks glow. Cyberpunk
   task dividers use the current border colour at 50% opacity.
@@ -208,9 +219,11 @@ rely on the palette positions.
 - The section label becomes `YOUR NOTES` and shows the note count.
 - Only note entries are shown in the sidebar while Notes mode is active.
 - Note sorting supports newest, oldest, A–Z, and category A–Z.
-- A note list entry uses its category colour (or default note blue), shows its
-  creation date, and receives a category-coloured selected treatment. In Pastel
-  the selected note row background uses very light warm grey `#F7F5F2`.
+- A note list entry uses its category colour (or default note colour), shows its
+  creation date, and receives a category-coloured selected treatment outside
+  Pastel. Pastel's checklist and note sidebar entries are flat with circular
+  colour markers, recessed three-dot menus and a small recessed divider
+  between rows. Selected entries use heavier text.
 - The sidebar note-row menu uses an unframed vertical ellipsis and offers
   rename, delete, and category settings.
 - The main Notes workspace deliberately has no `notes` heading, no `make a
@@ -247,10 +260,14 @@ rely on the palette positions.
   unframed vertical-ellipsis menu offers rename, delete, and category settings.
 - On Android, a `+` button sits between the note category
   and three-dot buttons. Its menu offers `add picture` and `take a photo`.
+  The Pixel `+` matches the category icon colour. Cyberpunk uses a red
+  `+` and its standard blue border.
   PaddleOCR turns the selected image into editable note text in English or
   Hungarian entirely offline and inserts it at the current editor selection.
   Photo imports preserve detected bold, italic, and underline as editable
   formatting. Style inference runs after capture and leaves live link scanning responsive.
+  Notes camera capture targets the physical device orientation at shutter
+  time and applies the resulting JPEG orientation before offline OCR.
   The live preview can switch between rear and front cameras when available.
   It displays recognised written addresses and QR links offline. Recognised
   addresses and QR links in a captured photo become tappable links in the note.
@@ -288,6 +305,9 @@ rely on the palette positions.
   the content and returns to the main Settings page.
 - The Settings arrow points down when open and up when closed. Pressing a
   Settings row briefly brightens its text.
+  The arrow aligns horizontally with the sidebar three-dot menus. It is the
+  only beveled control in Pastel's sidebar Settings. Cyberpunk Settings icons
+  are red and glow only while Settings is open.
 - The main Settings page contains `themes`, `language`, `import / export`, and
   `about`.
 - The Themes page replaces the main option text with a fade and offers `Boi`,
@@ -463,8 +483,8 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Verified Android APK: version 0.5.6 internal build `54`.
-- Current source baseline: 103 passing Flutter tests, clean static analysis,
+- Verified Android APK: version 0.5.7 internal build `57`.
+- Current source baseline: 109 passing Flutter tests, clean static analysis,
   and a successful Android release build. The two JVM typography tests last
   passed for build 45. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,

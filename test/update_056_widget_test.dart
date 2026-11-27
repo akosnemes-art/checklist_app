@@ -15,7 +15,8 @@ const _notes =
     '[{"id":"note","name":"My note","createdAt":"2026-11-11T10:00:00.000Z","content":"Note body"}]';
 
 Future<void> _load(WidgetTester tester, String theme,
-    {String linkedText = 'Linked task'}) async {
+    {String linkedText = 'Linked task',
+    Map<String, Object> saved = const {}}) async {
   SharedPreferences.setMockInitialValues({
     'checklist.welcome.v1': true,
     'checklist.lastSeenVersion.v1': checklistRelease,
@@ -25,6 +26,7 @@ Future<void> _load(WidgetTester tester, String theme,
         '[{"id":"project","name":"My checklist","createdAt":"2026-11-11T10:00:00.000Z","tasks":['
             '{"id":"linked","text":${jsonEncode(linkedText)},"isDone":false,"linkedNoteId":"note"},'
             '{"id":"unlinked","text":"Unlinked task","isDone":false}]}]',
+    ...saved,
   });
   tester.view.physicalSize = const Size(400, 780);
   tester.view.devicePixelRatio = 1;
@@ -177,24 +179,24 @@ void main() {
     expect(signals().shouldRepaint(original), isTrue);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('Cyberpunk has yellow frames and half-opacity task dividers',
+  testWidgets('Cyberpunk has blue frames and half-opacity task dividers',
       (tester) async {
     await _load(tester, 'cyberpunk');
-    const yellow = Color(0xFFF3ED23);
+    const blue = Color(0xFF379BFF);
     final theme = Theme.of(tester.element(_key('workspace-surface')));
-    expect(theme.colorScheme.outline, yellow);
-    expect((theme.popupMenuTheme.shape! as OutlinedBorder).side.color, yellow);
+    expect(theme.colorScheme.outline, blue);
+    expect((theme.popupMenuTheme.shape! as OutlinedBorder).side.color, blue);
     expect(tester.widget<Divider>(_key('checklist-task-divider')).color,
-        yellow.withValues(alpha: .5));
+        blue.withValues(alpha: .5));
     final reminder =
         tester.widget<OutlinedButton>(_key('checklist-reminder-button'));
-    expect(reminder.style!.side!.resolve({})!.color, yellow);
+    expect(reminder.style!.side!.resolve({})!.color, blue);
     await _tap(tester, find.byTooltip('open menu'));
     final create = tester.widget<FilledButton>(_key('sidebar-create-button'));
-    expect(create.style!.side!.resolve({})!.color, yellow);
+    expect(create.style!.side!.resolve({})!.color, blue);
     await _tap(tester, _key('sidebar-create-button'));
     final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
-    expect((dialog.shape! as OutlinedBorder).side.color, yellow);
+    expect((dialog.shape! as OutlinedBorder).side.color, blue);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('Pastel uses Android corner geometry and credits its two fonts',
@@ -221,9 +223,6 @@ void main() {
     final lifted =
         tester.widgetList<DecoratedBox>(_key('pastel-beveled-surface'));
     expect(lifted, isNotEmpty);
-    final surface = lifted.first.decoration as BoxDecoration;
-    expect(surface.borderRadius, corners);
-    expect(surface.boxShadow, hasLength(3));
     expect(_key('checklist-task-divider'), findsNothing);
     final taskPlate = lifted.singleWhere((widget) => find
         .descendant(
@@ -232,23 +231,54 @@ void main() {
         )
         .evaluate()
         .isNotEmpty);
-    expect((taskPlate.decoration as BoxDecoration).gradient, isNotNull);
-    expect(theme.dialogTheme.elevation, 10);
-    final raised = theme.filledButtonTheme.style!.elevation!;
-    expect(raised.resolve({}), 3);
-    expect(raised.resolve({WidgetState.pressed}), 0);
-    expect(theme.iconButtonTheme.style!.backgroundBuilder, isNull);
+    final surface = taskPlate.decoration as BoxDecoration;
+    expect(surface.borderRadius, corners);
+    expect(surface.boxShadow, hasLength(2));
+    expect(surface.boxShadow!.first.offset.dx, greaterThan(0));
+    expect(surface.boxShadow!.last.offset.dx, lessThan(0));
+    expect(theme.dialogTheme.elevation, 7);
+    expect(theme.iconButtonTheme.style!.backgroundBuilder, isNotNull);
     expect(theme.filledButtonTheme.style!.side!.resolve({}), BorderSide.none);
-    final ring = tester
-        .widget<DecoratedBox>(_key('pastel-drawer-button-ring'))
-        .decoration as BoxDecoration;
-    expect(ring.shape, BoxShape.circle);
-    expect(ring.border!.top.color, Colors.white);
-    expect(ring.boxShadow!.single.blurRadius, greaterThan(0));
+    final drawer = _key('pastel-drawer-button');
+    expect(
+        find.descendant(of: drawer, matching: find.byIcon(Icons.menu_rounded)),
+        findsOneWidget);
+    final travel =
+        find.ancestor(of: drawer, matching: _key('pastel-press-travel'));
+    double depth() =>
+        tester.widget<Transform>(travel).transform.getTranslation().y;
+    expect(depth(), 0);
+    final press = await tester.startGesture(tester.getCenter(drawer));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(depth(), inExclusiveRange(0, 1.2));
+    await press.cancel();
+    await tester.pumpAndSettle();
+    expect(depth(), 0);
+
+    await _tap(tester, _key('checklist-reminder-button'));
+    final calendar = _key('checklist-reminder-calendar');
+    expect(
+        find.ancestor(of: calendar, matching: _key('pastel-beveled-surface')),
+        findsOneWidget);
+    final calendarDialog =
+        tester.widget<AlertDialog>(_key('checklist-reminder-dialog'));
+    expect(calendarDialog.scrollable, isTrue);
+    expect(tester.getSize(calendar).width, greaterThanOrEqualTo(300));
+    expect(tester.getSize(_key('checklist-reminder-time')).height,
+        greaterThanOrEqualTo(48));
+    final date = Theme.of(tester.element(calendar)).datePickerTheme;
+    expect(date.todayBorder, BorderSide.none);
+    expect(date.dayBackgroundColor!.resolve({WidgetState.selected}), isNotNull);
+    expect(
+      theme.outlinedButtonTheme.style!.foregroundColor!.resolve({}),
+      const Color(0xFF75445F),
+    );
+    await _tap(tester, find.text('cancel'));
 
     await _tap(tester, find.byTooltip('open menu'));
     final create = tester.widget<FilledButton>(_key('sidebar-create-button'));
-    expect(create.style!.backgroundColor!.resolve({}), const Color(0xFFF2AED3));
+    expect(create.style!.backgroundColor!.resolve({}), const Color(0xFFECD2E1));
     await _tap(tester, _key('settings-toggle'));
     await _tap(tester, _key('settings-about'));
     await _tap(tester, _key('about-credits'));
@@ -271,8 +301,175 @@ void main() {
         findsOneWidget);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
+  testWidgets('Pastel Settings is flat apart from its aligned arrow',
+      (tester) async {
+    await _load(tester, 'pastel');
+    await _tap(tester, find.byTooltip('open menu'));
+    final chevron = _key('settings-chevron');
+    double x(Finder target) => tester.getCenter(target).dx;
+    expect(x(chevron), closeTo(x(_key('sidebar-checklist-settings')), .001));
+    final bevel = _key('pastel-press-depth');
+    expect(find.descendant(of: chevron, matching: bevel), findsOneWidget);
+    await _tap(tester, _key('settings-toggle'));
+    expect(find.descendant(of: _key('settings-panel'), matching: bevel),
+        findsOneWidget);
+    await _tap(tester, _key('settings-about'));
+    expect(find.descendant(of: _key('settings-panel'), matching: bevel),
+        findsOneWidget);
+    await _tap(tester, find.bySemanticsLabel('NOTES'));
+    expect(x(chevron), closeTo(x(_key('sidebar-note-settings')), .001));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('Cyberpunk Settings icons are red and glow while open',
+      (tester) async {
+    await _load(tester, 'cyberpunk');
+    await _tap(tester, find.byTooltip('open menu'));
+    const red = Color(0xFFFF2349);
+    final gear = find.descendant(
+        of: _key('settings-toggle'),
+        matching: find.byIcon(Icons.settings_outlined));
+    final arrow = find.descendant(
+        of: _key('settings-chevron'),
+        matching: find.byIcon(Icons.keyboard_arrow_down_rounded));
+    for (final finder in [gear, arrow]) {
+      final icon = tester.widget<Icon>(finder);
+      expect(icon.color, red);
+      expect(icon.shadows, isNull);
+    }
+    await _tap(tester, _key('settings-toggle'));
+    for (final finder in [
+      gear,
+      arrow,
+      find.byIcon(Icons.translate_rounded),
+      find.byIcon(Icons.info_outline_rounded),
+    ]) {
+      final icon = tester.widget<Icon>(finder);
+      expect(icon.color, red);
+      expect(icon.shadows!.single.blurRadius, greaterThan(0));
+    }
+    await _tap(tester, _key('settings-chevron'));
+    expect(tester.widget<Icon>(gear).shadows, isNull);
+    expect(tester.widget<Icon>(arrow).shadows, isNull);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets(
+      'Pastel progress fills its recess and priority controls are larger',
+      (tester) async {
+    await _load(tester, 'pastel');
+    final track = _key('pastel-progress-track');
+    final fill = _key('pastel-progress-fill');
+    expect(track, findsOneWidget);
+    expect(fill, findsNothing);
+    final dynamic recess = tester.widget<CustomPaint>(track).painter;
+    expect(recess.colour, isNull);
+    expect(recess.depth, 1);
+
+    await _tap(tester, _task('linked'));
+    BoxDecoration face(Finder widget) =>
+        tester.widget<DecoratedBox>(widget).decoration as BoxDecoration;
+    final row = find.ancestor(
+      of: _key('task-row-linked'),
+      matching: _key('pastel-beveled-surface'),
+    );
+    expect(face(fill).color, const Color(0xFFE5F4EB));
+    expect(face(fill).color, face(row).color);
+    expect(tester.getSize(fill).width,
+        closeTo(tester.getSize(track).width / 2, 1));
+    final dynamic raised = tester
+        .widget<CustomPaint>(
+            find.descendant(of: fill, matching: find.byType(CustomPaint)))
+        .foregroundPainter;
+    expect(raised.depth, 0);
+
+    final priority = _key('priority-chip-normal');
+    expect(tester.getSize(priority).height, greaterThanOrEqualTo(44));
+    await _tap(tester, priority);
+    final option = find.ancestor(
+      of: _key('priority-menu-high'),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    );
+    expect(tester.getSize(option).height, 54);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  for (final appearance in ['pixel', 'pastel', 'cyberpunk']) {
+    testWidgets(
+        'Notes formatting, category and camera controls use $appearance',
+        (tester) async {
+      const categoryInk = Color(0xFF229FE3);
+      await _load(tester, appearance, saved: {
+        'checklist.notes.v1':
+            '[{"id":"note","name":"My note","createdAt":"2026-11-11T10:00:00.000Z","content":"Note body","categoryId":"custom"}]',
+        'checklist.noteCategories.v1': jsonEncode([
+          {
+            'id': 'custom',
+            'name': 'Custom colour',
+            'colorValue': categoryInk.toARGB32()
+          },
+        ]),
+      });
+      await _tap(tester, find.byTooltip('open menu'));
+      await _tap(tester, find.bySemanticsLabel('NOTES'));
+      await tester.tapAt(const Offset(375, 120));
+      await tester.pumpAndSettle();
+      if (appearance == 'pixel') {
+        for (final icon in [
+          Icons.format_bold_rounded,
+          Icons.format_italic_rounded,
+          Icons.format_underlined_rounded,
+          Icons.label_outline_rounded,
+          Icons.add_rounded,
+        ]) {
+          expect(_key('pixel-note-glyph-${icon.codePoint}'), findsOneWidget);
+        }
+        Color glyphColour(IconData icon) {
+          final glyph = _key('pixel-note-glyph-${icon.codePoint}');
+          final dynamic painter = tester.widget<CustomPaint>(glyph).painter;
+          return painter.colour as Color;
+        }
+
+        expect(glyphColour(Icons.label_outline_rounded), categoryInk);
+        expect(glyphColour(Icons.add_rounded), categoryInk);
+        final bold =
+            _key('pixel-note-glyph-${Icons.format_bold_rounded.codePoint}');
+        final idle = tester.widget<CustomPaint>(bold).painter!;
+        await _tap(tester, _key('note-format-bold'));
+        expect(tester.widget<CustomPaint>(bold).painter!.shouldRepaint(idle),
+            isTrue);
+      } else if (appearance == 'pastel') {
+        for (final button in [
+          find.byTooltip('change category'),
+          _key('note-ocr-button'),
+          _key('note-format-bold'),
+        ]) {
+          expect(
+              find
+                      .descendant(
+                          of: button, matching: _key('pastel-press-depth'))
+                      .evaluate()
+                      .isNotEmpty ||
+                  find
+                      .ancestor(
+                          of: button, matching: _key('pastel-press-depth'))
+                      .evaluate()
+                      .isNotEmpty,
+              isTrue);
+        }
+      } else {
+        final plus = _key('note-ocr-button');
+        final field = tester.widget<Container>(plus);
+        expect((field.decoration! as BoxDecoration).border!.top.color,
+            const Color(0xFF379BFF));
+        final icon =
+            find.descendant(of: plus, matching: find.byIcon(Icons.add_rounded));
+        expect(tester.widget<Icon>(icon).color, const Color(0xFFFF2349));
+      }
+      await _tap(tester, _key('note-ocr-button'));
+      expect(find.text('take a photo'), findsOneWidget);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  }
+
   for (final theme in AppTheme.values) {
-    testWidgets('Task controls align to the text and row in ${theme.name}',
+    testWidgets('Task checkboxes align to the top of the text in ${theme.name}',
         (tester) async {
       await _load(tester, theme == AppTheme.copper ? 'goth' : theme.name,
           linkedText: 'A longer linked task that wraps over multiple lines '
@@ -282,8 +479,10 @@ void main() {
           find.descendant(of: task, matching: find.byType(EditableText)));
       final firstLine = editor.renderEditable.preferredLineHeight;
       expect(tester.getSize(task).height, greaterThan(firstLine));
-      expect(tester.getCenter(_task('linked')).dy,
-          closeTo(tester.getTopLeft(task).dy + firstLine / 2, 1));
+      expect(tester.getTopLeft(_task('linked')).dy,
+          closeTo(tester.getTopLeft(task).dy, .001));
+      expect(tester.getTopLeft(_task('unlinked')).dy,
+          closeTo(tester.getTopLeft(_key('task-text-unlinked')).dy, .001));
       expect(tester.getCenter(_menu(0)).dy,
           closeTo(tester.getCenter(_key('task-row-linked')).dy, .001));
       expect(tester.getCenter(_menu(1)).dy,

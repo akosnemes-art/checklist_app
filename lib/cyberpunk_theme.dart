@@ -13,7 +13,7 @@ const _cyberpunkPalette = _ModernPalette(
   checklistSidebar: Color(0xE81C101C),
   notesSidebar: Color(0xE8131A27),
   ink: Color(0xFFFFECE7),
-  border: _brandYellow,
+  border: _cyberpunkProgressBlue,
   checklistAccent: Color(0xFFFF7881),
   notesAccent: Color(0xFF6EE5EB),
   buttonInk: Color(0xFF200F20),
@@ -36,7 +36,7 @@ ThemeData _buildCyberpunkTheme(ThemeData dark, {required bool notes}) {
       );
   const style = ButtonStyle(
     shape: WidgetStatePropertyAll(RoundedRectangleBorder()),
-    side: WidgetStatePropertyAll(BorderSide(color: _brandYellow)),
+    side: WidgetStatePropertyAll(BorderSide(color: _cyberpunkProgressBlue)),
     backgroundBuilder: _cyberpunkButtonLayer,
   );
   return base.copyWith(

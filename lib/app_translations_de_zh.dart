@@ -1,6 +1,32 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Refined sidebar Settings and added roomier Pastel calendar and priority controls.":
+      (
+    "Die Einstellungen der Seitenleiste wurden verfeinert. Kalender und Prioritätsschaltflächen in Pastel sind größer.",
+    "侧栏设置样式已调整，Pastel 主题的日历和优先级按钮更宽敞。"
+  ),
+  "Pastel progress has a recessed track and a raised green fill.": (
+    "Pastel zeigt einen vertieften Fortschrittsbalken mit erhabener grüner Füllung.",
+    "Pastel 的进度条采用凹槽和凸起的绿色填充。"
+  ),
+  "Aligned task checkboxes and refined the Pastel, Pixel and Cyberpunk controls.":
+      (
+    "Aufgaben-Kontrollkästchen wurden ausgerichtet und die Bedienelemente von Pastel, Pixel und Cyberpunk verfeinert.",
+    "任务复选框已对齐，Pastel、Pixel 和 Cyberpunk 的控件样式已优化。"
+  ),
+  "Pastel uses soft raised and recessed surfaces with inward button motion.": (
+    "Pastel nutzt sanft erhabene und vertiefte Flächen. Tasten sinken beim Drücken leicht ein.",
+    "Pastel 采用柔和的凸起与凹陷表面，按钮按下时会轻微下沉。"
+  ),
+  "The Notes camera orients sideways photos for text recognition.": (
+    "Die Notizkamera richtet Querformatfotos für die Texterkennung aus.",
+    "笔记相机会校正横向拍摄照片的方向，以便识别文字。"
+  ),
+  "Pixel adds pixel-art formatting, category and photo icons.": (
+    "Pixel erhält Pixelgrafik-Symbole für Formatierung, Kategorien und Fotos.",
+    "Pixel 主题为格式、分类和照片按钮加入像素风图标。"
+  ),
   "Task controls align with their rows, with refined Cyberpunk, Pixel and Pastel styling.":
       (
     "Aufgabensteuerelemente sind an ihren Zeilen ausgerichtet. Cyberpunk, Pixel und Pastel wurden optisch verfeinert.",
@@ -27,10 +53,10 @@ const _germanAndChinese = <String, (String, String)>{
     "Cyberpunk bietet sich stufenweise öffnende Fenster, eine feine Körnung und sanft leuchtende Kanten.",
     "Cyberpunk 主题新增分层弹窗动画、细腻颗粒纹理和微光边缘。"
   ),
-  "Cyberpunk has glowing yellow borders and Pastel has raised panels and Nunito text.":
+  "Cyberpunk has glowing blue borders and Pastel has raised panels and Nunito text.":
       (
-    "Cyberpunk hat leuchtende gelbe Rahmen und Pastel erhabene Flächen und die Schrift Nunito.",
-    "Cyberpunk 使用微光黄色边框，Pastel 使用立体面板和 Nunito 字体。"
+    "Cyberpunk hat leuchtende blaue Rahmen und Pastel erhabene Flächen und die Schrift Nunito.",
+    "Cyberpunk 使用微光蓝色边框，Pastel 使用立体面板和 Nunito 字体。"
   ),
   "Cyberpunk adds a blue cut-corner new-note button.": (
     "In Cyberpunk hat die Schaltfläche für neue Notizen eine blaue Farbe und eine abgeschrägte Ecke.",

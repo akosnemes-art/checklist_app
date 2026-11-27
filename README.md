@@ -1,4 +1,4 @@
-# Checklist 0.5.6
+# Checklist 0.5.7
 
 CHECKLIST is a local-first checklist and notes app for Android 8.0 or newer.
 
@@ -15,9 +15,10 @@ The approved product behaviour and visual invariants are recorded in
 ## What it includes
 
 - Boi, Pencil, Pastel, Copper, Black Metal, Pixel, and Cyberpunk themes.
-  Pastel has softly beveled surfaces, Coiny headings, and Nunito body text.
+  Pastel has neumorphic surfaces, a raised green progress fill, a roomier
+  reminder calendar, Coiny headings, and Nunito body text.
   Pixel has arcade lettering, glowing pixel settings controls, and subtle
-  CRT noise. Cyberpunk has neon circuitry, glowing yellow borders, thin
+  CRT noise. Cyberpunk has neon circuitry, glowing blue borders, thin
   checkmarks, and cut-corner checklist, note, and reminder buttons. Each theme can be
   customised with colour swatches and hue, saturation, and value sliders.
   Saved Glass selections move to Pencil.
@@ -43,7 +44,7 @@ The approved product behaviour and visual invariants are recorded in
   checkmark and three-dot settings control kept independent and no drag handle.
 - Linked-note icons below task checkboxes are yellow in Boi and blue in Pencil
   and Pastel. They flash purple before opening the attached note.
-  Task checkboxes align to the first line of text, and each task menu is
+  Task checkboxes align to the top of the text, and each task menu is
   centred vertically on its row.
 - Dedicated red, teal, and lavender priority controls in the Pastel theme.
 - An optional 16:9 cover image for every checklist, captured through a

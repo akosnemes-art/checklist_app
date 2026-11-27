@@ -51,10 +51,10 @@ void main() {
         find.byKey(const ValueKey('implemented-changes-title')),
         findsOneWidget,
       );
-      expect(find.textContaining('unlink notes'), findsOneWidget);
-      expect(find.textContaining('new control and background'), findsOneWidget);
-      expect(find.textContaining('softly raised surfaces'), findsOneWidget);
-      expect(find.textContaining('layered popups'), findsOneWidget);
+      expect(find.textContaining('roomier Pastel calendar'), findsOneWidget);
+      expect(find.textContaining('raised green fill'), findsOneWidget);
+      expect(find.textContaining('sideways photos'), findsOneWidget);
+      expect(find.textContaining('pixel-art formatting'), findsOneWidget);
       expect(find.text('read less'), findsOneWidget);
       expect(
         tester.getSize(expandingContent).height,

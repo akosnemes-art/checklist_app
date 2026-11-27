@@ -19,6 +19,13 @@ class _TestCamera extends CameraPlatform {
   final String path;
   final operations = <String>[];
   late StreamController<CameraImageData> _frames;
+  final _orientation =
+      StreamController<DeviceOrientationChangedEvent>.broadcast(
+    sync: true,
+  );
+
+  void orient(DeviceOrientation orientation) =>
+      _orientation.add(DeviceOrientationChangedEvent(orientation));
 
   @override
   Future<List<CameraDescription>> availableCameras() async => const [
@@ -69,7 +76,18 @@ class _TestCamera extends CameraPlatform {
 
   @override
   Stream<DeviceOrientationChangedEvent> onDeviceOrientationChanged() =>
-      const Stream.empty();
+      _orientation.stream;
+
+  @override
+  Future<void> lockCaptureOrientation(
+    int cameraId,
+    DeviceOrientation orientation,
+  ) async =>
+      operations.add('lock $cameraId ${orientation.name}');
+
+  @override
+  Future<void> unlockCaptureOrientation(int cameraId) async =>
+      operations.add('unlock $cameraId');
 
   @override
   Widget buildPreview(int cameraId) => const SizedBox.expand();
@@ -337,6 +355,8 @@ void main() {
     expect(opened, isEmpty);
     expect(capturedLinks, isEmpty);
 
+    platform.orient(DeviceOrientation.landscapeRight);
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('take-note-photo')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 25));
@@ -350,8 +370,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 300));
     expect(camera, findsNothing);
-    expect(platform.operations,
-        containsAllInOrder(['stopImageStream', 'capture 2', 'dispose 2']));
+    expect(
+        platform.operations,
+        containsAllInOrder([
+          'stopImageStream',
+          'lock 2 landscapeRight',
+          'capture 2',
+          'unlock 2',
+          'dispose 2',
+        ]));
 
     final editable = tester.state<EditableTextState>(find.byType(EditableText));
     final imported = editable.widget.controller.text;

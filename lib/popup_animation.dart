@@ -30,12 +30,14 @@ Widget _animatedTimePicker(
                   progress: animation.value,
                   surface: surface,
                 )
-              : _DrawnPopupFrame(
-                  frame.side,
-                  animation.value,
-                  surface: surface,
-                  borderRadius: frame.borderRadius,
-                ),
+              : base.appearance == AppTheme.pastel && animation.isCompleted
+                  ? frame
+                  : _DrawnPopupFrame(
+                      frame.side,
+                      animation.value,
+                      surface: surface,
+                      borderRadius: frame.borderRadius,
+                    ),
         ),
       ),
       child: child!,
@@ -52,6 +54,9 @@ Widget _popupAlert(
   Widget? content,
   List<Widget>? actions,
   EdgeInsetsGeometry? actionsPadding,
+  EdgeInsetsGeometry? contentPadding,
+  EdgeInsets? insetPadding,
+  bool scrollable = false,
 }) {
   final theme = Theme.of(context);
   final cyberpunk = theme.appearance == AppTheme.cyberpunk;
@@ -72,6 +77,9 @@ Widget _popupAlert(
     builder: (context, _) => AlertDialog(
       key: key,
       backgroundColor: backgroundColor,
+      contentPadding: contentPadding,
+      insetPadding: insetPadding,
+      scrollable: scrollable,
       clipBehavior: cyberpunk ? Clip.antiAlias : null,
       shape: cyberpunk
           ? _CyberpunkPopupFrame(
@@ -79,13 +87,13 @@ Widget _popupAlert(
               accent: theme.colorScheme.primary,
               progress: animation.value,
             )
-          : _DrawnPopupFrame(
-              theme.appearance == AppTheme.pastel
-                  ? BorderSide.none
-                  : frame.side,
-              animation.value,
-              borderRadius: frame.borderRadius,
-            ),
+          : theme.appearance == AppTheme.pastel
+              ? _PastelSoftBorder(borderRadius: frame.borderRadius)
+              : _DrawnPopupFrame(
+                  frame.side,
+                  animation.value,
+                  borderRadius: frame.borderRadius,
+                ),
       title: fade(title),
       content: fade(content),
       // Keep each action's normal layout and overflow behaviour.

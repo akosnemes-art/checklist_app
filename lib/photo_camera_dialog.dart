@@ -218,6 +218,9 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
   void _takePicture() {
     final controller = _controller;
     if (controller == null || !_isPreviewing(controller)) return;
+    final orientation = controller.value.deviceOrientation;
+    final orientForOcr = !widget.forCover &&
+        Theme.of(context).platform == TargetPlatform.android;
     setState(() {
       _capturing = true;
       _clearDetectedLink();
@@ -228,7 +231,9 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
         if (controller.value.isStreamingImages) {
           await controller.stopImageStream();
         }
-        final photo = await controller.takePicture();
+        final photo = orientForOcr
+            ? await _captureOrientedPhoto(controller, orientation)
+            : await controller.takePicture();
         if (mounted && ModalRoute.of(context)?.isCurrent == true) {
           Navigator.pop(context, photo.path);
         } else {
@@ -244,6 +249,24 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
     });
   }
 
+  Future<XFile> _captureOrientedPhoto(
+    CameraController controller,
+    DeviceOrientation orientation,
+  ) async {
+    // CameraX otherwise targets the locked portrait display. Target the
+    // physical device orientation so the existing EXIF decoder can orient OCR.
+    await controller.lockCaptureOrientation(orientation);
+    try {
+      return await controller.takePicture();
+    } finally {
+      try {
+        await controller.unlockCaptureOrientation();
+      } catch (error) {
+        debugPrint('Could not unlock the camera capture orientation: $error');
+      }
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -254,23 +277,36 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
   }
 
   Widget _cameraFrame(Widget child) {
-    return AspectRatio(
-      key: ValueKey(
-          widget.forCover ? 'cover-camera-frame' : 'note-camera-frame'),
-      aspectRatio: _aspectRatio,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Theme.of(context).metalPalette?.checklistAccent ??
-                _defaultNoteBlue,
-            width: 3,
+    final theme = Theme.of(context);
+    final pastel = theme.appearance == AppTheme.pastel;
+    return _pastelLift(
+      theme,
+      AspectRatio(
+        key: ValueKey(
+            widget.forCover ? 'cover-camera-frame' : 'note-camera-frame'),
+        aspectRatio: _aspectRatio,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: pastel
+                ? null
+                : Border.all(
+                    color:
+                        theme.metalPalette?.checklistAccent ?? _defaultNoteBlue,
+                    width: 3,
+                  ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(pastel ? 5 : 3),
+            child: pastel
+                ? ClipRRect(
+                    borderRadius: _pastelRadius(theme, scale: .75),
+                    child: child)
+                : ClipRect(child: child),
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(3),
-          child: ClipRect(child: child),
-        ),
       ),
+      colour: theme.colorScheme.surfaceContainer,
+      inset: true,
     );
   }
 

@@ -9,6 +9,7 @@ class _SettingsMenu<T> extends StatefulWidget {
     required this.onSelected,
     this.iconSize = 18,
     this.colour,
+    this.pastelRecessed = false,
   });
 
   final Key iconKey;
@@ -16,6 +17,7 @@ class _SettingsMenu<T> extends StatefulWidget {
   final double dimension;
   final double iconSize;
   final Color? colour;
+  final bool pastelRecessed;
   final PopupMenuItemBuilder<T> itemBuilder;
   final ValueChanged<T> onSelected;
 
@@ -65,7 +67,20 @@ class _SettingsMenuState<T> extends State<_SettingsMenu<T>> {
       child: SizedBox.square(
         key: widget.iconKey,
         dimension: widget.dimension,
-        child: Center(child: icon),
+        child: Center(
+          child: _pastelPressable(
+            theme,
+            Padding(
+              padding: theme.appearance == AppTheme.pastel
+                  ? const EdgeInsets.all(5)
+                  : EdgeInsets.zero,
+              child: icon,
+            ),
+            round: true,
+            selected: _open,
+            restingDepth: widget.pastelRecessed ? .78 : 0,
+          ),
+        ),
       ),
     );
   }
@@ -101,8 +116,19 @@ Widget _settingsGlyph(
   required double size,
   Color? colour,
   bool active = false,
+  bool? settingsOpen,
 }) {
   final theme = Theme.of(context);
+  if (theme.appearance == AppTheme.cyberpunk && settingsOpen != null) {
+    return Icon(
+      icon,
+      size: size,
+      color: _cyberpunkRed,
+      shadows: settingsOpen
+          ? [Shadow(color: _cyberpunkRed.withValues(alpha: .65), blurRadius: 7)]
+          : null,
+    );
+  }
   if (theme.appearance != AppTheme.pixel) {
     return Icon(icon, size: size, color: colour);
   }
@@ -130,6 +156,37 @@ Widget _settingsGlyph(
     key: ValueKey('pixel-settings-glyph-${icon.codePoint}'),
     size: Size.square(size),
     painter: _PixelSettingsGlyph(pixels, accent, active),
+  );
+}
+
+Widget _noteGlyph(
+  BuildContext context,
+  IconData icon, {
+  Color? colour,
+  bool active = false,
+}) {
+  if (Theme.of(context).appearance != AppTheme.pixel) {
+    return Icon(icon, color: colour);
+  }
+  final pixels = switch (icon) {
+    Icons.format_bold_rounded => const [60, 34, 34, 60, 34, 34, 60],
+    Icons.format_italic_rounded => const [30, 8, 8, 16, 16, 32, 60],
+    Icons.format_underlined_rounded => const [34, 34, 34, 34, 28, 0, 62],
+    Icons.label_outline_rounded => const [0, 124, 66, 65, 66, 124, 0],
+    Icons.add_rounded => const [0, 8, 8, 62, 8, 8, 0],
+    _ => null,
+  };
+  if (pixels == null) return Icon(icon, color: colour);
+  return CustomPaint(
+    key: ValueKey('pixel-note-glyph-${icon.codePoint}'),
+    size: const Size.square(24),
+    painter: _PixelSettingsGlyph(
+      pixels,
+      colour ??
+          IconTheme.of(context).color ??
+          Theme.of(context).colorScheme.primary,
+      active,
+    ),
   );
 }
 
@@ -249,21 +306,11 @@ class _TaskCheckbox extends StatelessWidget {
           Center(
             child: SizedBox.square(
               dimension: 18,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: _pastelRadius(theme, scale: .25),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFE1D5EB), Color(0xFFFFFAFE)],
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Color(0x37725388),
-                        blurRadius: 3,
-                        offset: Offset(0, 1)),
-                  ],
-                ),
+              child: _PastelPressFace(
+                radius: _pastelRadius(theme, scale: .25),
+                colour: checked ? null : _pastelClay,
+                pressed: checked,
+                child: const SizedBox.expand(),
               ),
             ),
           ),

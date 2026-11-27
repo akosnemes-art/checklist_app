@@ -194,7 +194,7 @@ void main() {
     expect(style.shape!.resolve({}), checklistButton.style!.shape!.resolve({}));
     expect(noteButton.clipBehavior, Clip.antiAlias);
     expect(style.backgroundColor!.resolve({}), const Color(0xFF165AC8));
-    expect(style.side!.resolve({})!.color, const Color(0xFFF3ED23));
+    expect(style.side!.resolve({})!.color, const Color(0xFF379BFF));
     expect(style.foregroundColor!.resolve({}), const Color(0xFFF8F7FF));
     expect(tester.getSize(create), checklistSize);
     expect(tester.getSize(_key('sidebar-filter-frame')).height,

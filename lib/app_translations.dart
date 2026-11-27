@@ -1,6 +1,32 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Refined sidebar Settings and added roomier Pastel calendar and priority controls.":
+      (
+    "Les réglages de la barre latérale ont été affinés. Le calendrier et les boutons de priorité de Pastel sont plus spacieux.",
+    "Nastavení v postranním panelu bylo upraveno. Kalendář a tlačítka priority v motivu Pastel mají více prostoru."
+  ),
+  "Pastel progress has a recessed track and a raised green fill.": (
+    "Dans Pastel, la barre de progression a une piste en creux et un remplissage vert en relief.",
+    "Ukazatel průběhu v motivu Pastel má zapuštěnou dráhu a vystouplou zelenou výplň."
+  ),
+  "Aligned task checkboxes and refined the Pastel, Pixel and Cyberpunk controls.":
+      (
+    "Les cases des tâches sont alignées et les commandes Pastel, Pixel et Cyberpunk ont été affinées.",
+    "Zaškrtávací políčka úkolů jsou zarovnaná a ovládací prvky motivů Pastel, Pixel a Cyberpunk byly upraveny."
+  ),
+  "Pastel uses soft raised and recessed surfaces with inward button motion.": (
+    "Pastel adopte des surfaces douces en relief et en creux, avec des boutons qui s’enfoncent.",
+    "Pastel přináší jemné vystouplé a zapuštěné plochy a tlačítka, která se při stisku zanoří."
+  ),
+  "The Notes camera orients sideways photos for text recognition.": (
+    "L’appareil photo des notes oriente les prises en paysage pour reconnaître le texte.",
+    "Fotoaparát v poznámkách otočí snímky pořízené naležato pro rozpoznávání textu."
+  ),
+  "Pixel adds pixel-art formatting, category and photo icons.": (
+    "Pixel ajoute des icônes pixel art pour la mise en forme, les catégories et les photos.",
+    "Pixel přidává pixelové ikony pro formátování, kategorie a fotografie."
+  ),
   "Task controls align with their rows, with refined Cyberpunk, Pixel and Pastel styling.":
       (
     "Les commandes de tâche sont alignées sur leurs lignes et les thèmes Cyberpunk, Pixel et Pastel ont été affinés.",
@@ -27,10 +53,10 @@ const _frenchAndCzech = <String, (String, String)>{
     "Cyberpunk affiche des fenêtres en plusieurs étapes, un grain fin et des bords légèrement lumineux.",
     "Cyberpunk má vrstvená vyskakovací okna, jemné zrno a lehce zářící okraje."
   ),
-  "Cyberpunk has glowing yellow borders and Pastel has raised panels and Nunito text.":
+  "Cyberpunk has glowing blue borders and Pastel has raised panels and Nunito text.":
       (
-    "Cyberpunk a des bordures jaunes lumineuses et Pastel des panneaux en relief et la police Nunito.",
-    "Cyberpunk má zářící žluté okraje a Pastel vystouplé panely a písmo Nunito."
+    "Cyberpunk a des bordures bleues lumineuses et Pastel des panneaux en relief et la police Nunito.",
+    "Cyberpunk má zářící modré okraje a Pastel vystouplé panely a písmo Nunito."
   ),
   "Cyberpunk adds a blue cut-corner new-note button.": (
     "Dans Cyberpunk, le bouton de nouvelle note est bleu et son coin est coupé.",

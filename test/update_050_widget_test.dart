@@ -103,20 +103,20 @@ void main() {
   });
 
   testWidgets(
-      'dropdown edges follow the theme and the Pastel note highlight is warm grey',
+      'dropdown edges follow the theme and Pastel sidebar entries stay flat',
       (tester) async {
     await _pumpApp(tester);
     Future<void> expectMenuFrame(BorderSide side, {double radius = 0}) async {
       await tester.tap(find.byTooltip('sort checklists'));
       await tester.pumpAndSettle();
-      final menu = tester.widgetList<Material>(find.byType(Material)).where(
-            (material) =>
-                material.type == MaterialType.card &&
-                material.shape ==
-                    RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(radius),
-                        side: side),
-          );
+      final menu =
+          tester.widgetList<Material>(find.byType(Material)).where((material) {
+        final shape = material.shape;
+        return material.type == MaterialType.card &&
+            shape is RoundedRectangleBorder &&
+            shape.borderRadius == BorderRadius.circular(radius) &&
+            shape.side == side;
+      });
       expect(menu, hasLength(1));
       Navigator.of(tester.element(find.text('date · newest'))).pop();
       await tester.pumpAndSettle();
@@ -133,16 +133,35 @@ void main() {
     await tester.tap(_key('theme-pastel'));
     await tester.pumpAndSettle();
     await expectMenuFrame(BorderSide.none, radius: 18);
+    final divider = _key('pastel-sidebar-divider');
+    expect(divider, findsOneWidget);
+    expect(tester.getSize(divider).height, 3);
+    final priority = tester.widget<Container>(find.descendant(
+      of: _key('pastel-sidebar-priority').first,
+      matching: find.byType(Container),
+    ));
+    final priorityFace = priority.decoration! as BoxDecoration;
+    expect(priorityFace.shape, BoxShape.circle);
+    expect(priorityFace.color, const Color(0xFF00978D));
+
+    void expectFlatRow(String name) {
+      final row = _key(name);
+      final face = tester.widget<Material>(
+          find.descendant(of: row, matching: find.byType(Material)).first);
+      expect(face.color, Colors.transparent);
+      final relief =
+          find.descendant(of: row, matching: _key('pastel-press-depth'));
+      expect(relief, findsOneWidget);
+      final menu = tester.widget<TweenAnimationBuilder<double>>(relief);
+      expect(menu.tween.end, .78);
+    }
+
+    expectFlatRow('sidebar-project-first-project');
     await _selectNotes(tester);
     await tester.tap(_key('sidebar-note-second'));
     await tester.pumpAndSettle();
-    final noteSurface = tester.widget<Material>(find
-        .descendant(
-          of: _key('sidebar-note-second'),
-          matching: find.byType(Material),
-        )
-        .first);
-    expect(noteSurface.color, const Color(0xFFF7F5F2));
+    expectFlatRow('sidebar-note-second');
+    expect(divider, findsOneWidget);
   });
 
   testWidgets(

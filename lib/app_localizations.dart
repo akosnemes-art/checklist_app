@@ -21,6 +21,18 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Refined sidebar Settings and added roomier Pastel calendar and priority controls.":
+      "Finomodott az oldalsáv beállításainak megjelenése, a Pastel naptára és prioritásgombjai pedig több helyet kaptak.",
+  "Pastel progress has a recessed track and a raised green fill.":
+      "A Pastel folyamatjelző süllyesztett vájatot és kiemelkedő zöld kitöltést kapott.",
+  "Aligned task checkboxes and refined the Pastel, Pixel and Cyberpunk controls.":
+      "A feladatok jelölőnégyzetei a szöveghez igazodnak, a Pastel, Pixel és Cyberpunk vezérlői finomodtak.",
+  "Pastel uses soft raised and recessed surfaces with inward button motion.":
+      "A Pastel lágyan kiemelkedő és süllyesztett felületeket kapott, a gombok lenyomáskor besüllyednek.",
+  "The Notes camera orients sideways photos for text recognition.":
+      "A Jegyzetek kamerája a szövegfelismeréshez elforgatja a fekvő helyzetben készült képeket.",
+  "Pixel adds pixel-art formatting, category and photo icons.":
+      "A Pixel témában a formázás, a kategória és a fénykép ikonjai pixelgrafikát kaptak.",
   "Task controls align with their rows, with refined Cyberpunk, Pixel and Pastel styling.":
       "A feladatok vezérlői a sorokhoz igazodnak, a Cyberpunk, Pixel és Pastel megjelenése finomodott.",
   "Updated the launcher icon to show version 0.5.6.":
@@ -34,8 +46,8 @@ const _hungarian = <String, String>{
       "A Pastel lekerekített, finoman kiemelt felületeket és új betűtípusokat kapott.",
   "Cyberpunk has layered popups, fine grain and softly glowing edges.":
       "A Cyberpunk felugró ablakai rétegenként nyílnak meg, a felületek finoman szemcsézettek, a szélek pedig lágyan világítanak.",
-  "Cyberpunk has glowing yellow borders and Pastel has raised panels and Nunito text.":
-      "A Cyberpunk keretei sárgán világítanak, a Pastel kiemelt paneleket és Nunito betűtípust kapott.",
+  "Cyberpunk has glowing blue borders and Pastel has raised panels and Nunito text.":
+      "A Cyberpunk keretei kéken világítanak, a Pastel kiemelt paneleket és Nunito betűtípust kapott.",
   "Cyberpunk adds a blue cut-corner new-note button.":
       "A Cyberpunk új jegyzet gombja kék színt és levágott sarkot kapott.",
   "Cyberpunk progress glows on the yellow fill.":

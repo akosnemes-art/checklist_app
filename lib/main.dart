@@ -66,7 +66,6 @@ const _pastelWhite = Color(0xFFFFFFFF);
 const _pastelYellow = Color(0xFFF8F2C8);
 const _pastelGreen = Color(0xFFBED4C7);
 const _pastelMauve = Color(0xFFC7B0B8);
-const _pastelSelectedNote = _lightBackground;
 const _pastelPriorityHigh = Color(0xFFE31F26);
 const _pastelPriorityMedium = Color(0xFF00978D);
 const _pastelPriorityLow = Color(0xFFB5B1D8);
@@ -78,17 +77,25 @@ const _taskReorderHoldDuration = Duration(milliseconds: 140);
 const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
+const _sidebarEntryInset = 10.0;
+const _sidebarEntryMenuSize = 36.0;
 const _buildChanges = <String>[
+  'Refined sidebar Settings and added roomier Pastel calendar and priority controls.',
+  'Pastel progress has a recessed track and a raised green fill.',
+  'Aligned task checkboxes and refined the Pastel, Pixel and Cyberpunk controls.',
+  'Pastel uses soft raised and recessed surfaces with inward button motion.',
+  'The Notes camera orients sideways photos for text recognition.',
+  'Pixel adds pixel-art formatting, category and photo icons.',
+];
+const _implementedChanges = <String>[
+  ..._buildChanges,
   'Added a task menu action to unlink notes.',
   'Pixel and Cyberpunk have new control and background effects.',
   'Pastel has rounded, softly raised surfaces and new fonts.',
   'Cyberpunk has layered popups, fine grain and softly glowing edges.',
-  'Cyberpunk has glowing yellow borders and Pastel has raised panels and Nunito text.',
+  'Cyberpunk has glowing blue borders and Pastel has raised panels and Nunito text.',
   'Task controls align with their rows, with refined Cyberpunk, Pixel and Pastel styling.',
   'Updated the launcher icon to show version 0.5.6.',
-];
-const _implementedChanges = <String>[
-  ..._buildChanges,
   'Cyberpunk adds a blue cut-corner new-note button.',
   'Cyberpunk progress glows on the yellow fill.',
   'Theme backgrounds reach the system bars, and the launcher icon is updated.',
@@ -1208,25 +1215,32 @@ class _ChecklistHomeState extends State<ChecklistHome>
     required IconData icon,
     required String tooltip,
   }) {
+    final theme = Theme.of(context);
+    final pastel = theme.appearance == AppTheme.pastel;
     final active = (_activeNoteFormats & format.bit) != 0;
     final palette = _metalPalette;
-    final accent = Theme.of(context).custom(
+    final accent = theme.custom(
           active ? _ThemeColour.checklistAccent : _ThemeColour.notesAccent,
         ) ??
         _modernPalette?.accent(!active);
+    final ink = accent ??
+        (pastel
+            ? (active ? _pastelPlum : _deepBlueButton)
+            : active
+                ? (palette?.checklistAccent ?? _brandYellow)
+                : (palette?.notesAccent ?? _defaultNoteBlue));
     return IconButton(
       key: ValueKey('note-format-${format.name}'),
       tooltip: localizeText(context, tooltip),
       onPressed: () => _toggleNoteFormat(format),
       style: IconButton.styleFrom(
-        foregroundColor: accent ??
-            (active
-                ? (palette?.checklistAccent ?? _brandYellow)
-                : (palette?.notesAccent ?? _defaultNoteBlue)),
+        foregroundColor: ink,
         side: BorderSide.none,
-        shape: const RoundedRectangleBorder(),
+        shape: pastel ? null : const RoundedRectangleBorder(),
       ),
-      icon: Icon(icon),
+      icon: _noteGlyph(context, icon,
+          colour: theme.appearance == AppTheme.pixel ? ink : null,
+          active: active),
     );
   }
 
@@ -2100,7 +2114,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
               const SizedBox(width: 8),
               if (icon != null) ...[
                 _settingsGlyph(context, icon,
-                    size: 18, colour: foreground, active: pressed || selected),
+                    size: 18,
+                    colour: foreground,
+                    active: pressed || selected,
+                    settingsOpen: _settingsOpen),
                 const SizedBox(width: 10),
               ],
               Expanded(
@@ -2137,7 +2154,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
         child: Row(
           children: [
             _settingsGlyph(context, Icons.arrow_back_rounded,
-                size: 17, colour: foreground, active: pressed),
+                size: 17,
+                colour: foreground,
+                active: pressed,
+                settingsOpen: _settingsOpen),
             const SizedBox(width: 8),
             Expanded(
               child: AppText(
@@ -2318,6 +2338,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 style: TextButton.styleFrom(
                   foregroundColor: creditColour,
                   side: _surfaceSide(theme, creditColour, width: 1.5),
+                  backgroundBuilder: widget.isPastel
+                      ? (_, __, child) => child ?? const SizedBox.shrink()
+                      : null,
                 ),
                 onPressed: () => showDialog<void>(
                   context: context,
@@ -2379,6 +2402,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                         size: 20,
                         colour: foreground,
                         active: pressed || _settingsOpen,
+                        settingsOpen: _settingsOpen,
                       ),
                       const SizedBox(width: 7),
                       Flexible(
@@ -2404,24 +2428,30 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   child: const SizedBox.expand(),
                 ),
               ),
-              IconButton(
-                key: const ValueKey('settings-chevron'),
-                tooltip: localizeText(
-                  context,
-                  _settingsOpen ? 'close settings' : 'open settings',
-                ),
-                onPressed: () => setState(() {
-                  _settingsOpen = !_settingsOpen;
-                  if (!_settingsOpen) _settingsPage = _SettingsPage.main;
-                }),
-                style: IconButton.styleFrom(side: BorderSide.none),
-                icon: AnimatedRotation(
-                  turns: _settingsOpen ? 0 : 0.5,
-                  duration: const Duration(milliseconds: 300),
-                  child: _settingsGlyph(
-                      context, Icons.keyboard_arrow_down_rounded,
-                      size: 24, active: _settingsOpen),
-                ),
+              SizedBox(
+                width: 2 * _sidebarEntryInset + _sidebarEntryMenuSize,
+                child: Center(
+                    child: IconButton(
+                  key: const ValueKey('settings-chevron'),
+                  tooltip: localizeText(
+                    context,
+                    _settingsOpen ? 'close settings' : 'open settings',
+                  ),
+                  onPressed: () => setState(() {
+                    _settingsOpen = !_settingsOpen;
+                    if (!_settingsOpen) _settingsPage = _SettingsPage.main;
+                  }),
+                  style: IconButton.styleFrom(side: BorderSide.none),
+                  icon: AnimatedRotation(
+                    turns: _settingsOpen ? 0 : 0.5,
+                    duration: const Duration(milliseconds: 300),
+                    child: _settingsGlyph(
+                        context, Icons.keyboard_arrow_down_rounded,
+                        size: 24,
+                        active: _settingsOpen,
+                        settingsOpen: _settingsOpen),
+                  ),
+                )),
               ),
             ],
           ),
@@ -2637,9 +2667,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color.lerp(sidebarColor, _pastelPorcelain, .78)!,
-                    Color.lerp(sidebarColor, _pastelLavender, .56)!,
-                    Color.lerp(sidebarColor, _pastelRose, .44)!,
+                    Color.lerp(sidebarColor, _pastelPorcelain, .93)!,
+                    Color.lerp(sidebarColor, _pastelClay, .92)!,
+                    Color.lerp(sidebarColor, _pastelRose, .86)!,
                   ],
                 )
               : null,
@@ -2679,7 +2709,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           const SizedBox(width: 8),
                           _cyberpunkOutline(
                             theme,
-                            _pastelLift(
+                            _pastelPressable(
                               theme,
                               Container(
                                 key: const ValueKey('sidebar-filter-frame'),
@@ -2750,31 +2780,20 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                   visible: !_sidebarExitingIds.contains(
                                     note.id,
                                   ),
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                        bottom: widget.isPastel ? 8 : 4),
-                                    child: Material(
+                                  child: _sidebarEntry(
+                                    theme,
+                                    hasNext: index < notes.length - 1,
+                                    Material(
                                       shape: _pastelShape(theme),
-                                      elevation: widget.isPastel
-                                          ? (selected ? 4 : 2)
-                                          : 0,
-                                      shadowColor: widget.isPastel
-                                          ? const Color(0x458E739B)
-                                          : null,
-                                      color: selected
-                                          ? (widget.isPastel
-                                              ? _pastelSelectedNote
-                                              : noteColor.withValues(
-                                                  alpha: 0.2))
-                                          : widget.isPastel
-                                              ? _pastelPorcelain
-                                              : Colors.transparent,
+                                      color: selected && !widget.isPastel
+                                          ? noteColor.withValues(alpha: .2)
+                                          : Colors.transparent,
                                       child: ListTile(
                                         dense: true,
                                         shape: _pastelShape(theme),
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                          horizontal: 10,
+                                          horizontal: _sidebarEntryInset,
                                           vertical: 1,
                                         ),
                                         minLeadingWidth: 10,
@@ -2806,7 +2825,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                         trailing: _SettingsMenu<String>(
                                           iconKey: const ValueKey(
                                               'sidebar-note-settings'),
-                                          dimension: 36,
+                                          pastelRecessed: true,
+                                          dimension: _sidebarEntryMenuSize,
                                           colour: sidebarForeground.withValues(
                                               alpha: 0.72),
                                           tooltip: localizeText(
@@ -2860,45 +2880,44 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                   visible: !_sidebarExitingIds.contains(
                                     project.id,
                                   ),
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                        bottom: widget.isPastel ? 8 : 4),
-                                    child: Material(
+                                  child: _sidebarEntry(
+                                    theme,
+                                    hasNext: index < projects.length - 1,
+                                    Material(
                                       shape: _pastelShape(theme),
-                                      elevation: widget.isPastel
-                                          ? (selected ? 4 : 2)
-                                          : 0,
-                                      shadowColor: widget.isPastel
-                                          ? const Color(0x458E739B)
-                                          : null,
-                                      color: widget.isPastel
-                                          ? (selected
-                                              ? _pastelLavender
-                                              : _pastelPorcelain)
-                                          : selected
-                                              ? (widget.isDark
-                                                      ? (palette
-                                                              ?.checklistAccent ??
-                                                          _brandPurple)
-                                                      : _lightLine)
-                                                  .withValues(alpha: 0.22)
-                                              : Colors.transparent,
+                                      color: selected && !widget.isPastel
+                                          ? (widget.isDark
+                                                  ? (palette?.checklistAccent ??
+                                                      _brandPurple)
+                                                  : _lightLine)
+                                              .withValues(alpha: .22)
+                                          : Colors.transparent,
                                       child: ListTile(
                                         dense: true,
                                         shape: _pastelShape(theme),
                                         contentPadding:
                                             const EdgeInsets.symmetric(
-                                          horizontal: 10,
+                                          horizontal: _sidebarEntryInset,
                                           vertical: 1,
                                         ),
                                         minLeadingWidth: 10,
                                         horizontalTitleGap: 10,
-                                        leading: _ImportanceBar(
-                                          importance: project.importance,
-                                          isPastel: widget.isPastel,
-                                          isPencil: widget.appTheme ==
-                                              AppTheme.pencil,
-                                        ),
+                                        leading: widget.isPastel
+                                            ? _NoteColourDot(
+                                                key: const ValueKey(
+                                                    'pastel-sidebar-priority'),
+                                                color: _themedImportanceColor(
+                                                  theme,
+                                                  project.importance,
+                                                  isPastel: true,
+                                                  isPencil: false,
+                                                ),
+                                              )
+                                            : _ImportanceBar(
+                                                importance: project.importance,
+                                                isPencil: widget.appTheme ==
+                                                    AppTheme.pencil,
+                                              ),
                                         title: Row(
                                           children: [
                                             Expanded(
@@ -2964,7 +2983,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                             _SettingsMenu<String>(
                                               iconKey: const ValueKey(
                                                   'sidebar-checklist-settings'),
-                                              dimension: 36,
+                                              pastelRecessed: true,
+                                              dimension: _sidebarEntryMenuSize,
                                               colour: sidebarForeground
                                                   .withValues(alpha: 0.72),
                                               tooltip: localizeText(
@@ -3070,6 +3090,12 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final border = theme.custom(_ThemeColour.borders) ??
         (cyberpunk ? theme.colorScheme.outline : null);
     final photoFrame = cyberpunk ? theme.colorScheme.outline : _borderWhite;
+    final photoIconColour = switch (widget.appTheme) {
+      AppTheme.pixel => noteColour,
+      AppTheme.cyberpunk => _cyberpunkRed,
+      AppTheme.pastel => _deepBlueButton,
+      _ => palette?.notesAccent ?? _defaultNoteBlue,
+    };
     final panel = theme.custom(_ThemeColour.panel);
 
     final editor = note == null
@@ -3124,9 +3150,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
                     IconButton(
                       tooltip: localizeText(context, 'change category'),
                       onPressed: () => _chooseNoteCategory(note),
-                      icon: Icon(
+                      icon: _noteGlyph(
+                        context,
                         Icons.label_outline_rounded,
-                        color: noteColour,
+                        colour: noteColour,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -3144,7 +3171,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           ),
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: palette?.notesAccent ?? _defaultNoteBlue,
+                            color:
+                                cyberpunk || widget.appTheme == AppTheme.pixel
+                                    ? photoIconColour
+                                    : palette?.notesAccent ?? _defaultNoteBlue,
                           ),
                         )
                       else
@@ -3168,20 +3198,25 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           ],
                           child: _cyberpunkOutline(
                             theme,
-                            Container(
-                              key: const ValueKey('note-ocr-button'),
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                borderRadius: _pastelRadius(theme),
-                                border: Border.fromBorderSide(
-                                    _surfaceSide(theme, photoFrame)),
-                              ),
-                              child: Icon(
-                                Icons.add_rounded,
-                                color: palette?.notesAccent ?? _defaultNoteBlue,
-                              ),
-                            ),
+                            _pastelPressable(
+                                theme,
+                                Container(
+                                  key: const ValueKey('note-ocr-button'),
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    borderRadius: _pastelRadius(theme),
+                                    border: Border.fromBorderSide(
+                                        _surfaceSide(theme, photoFrame)),
+                                  ),
+                                  child: Center(
+                                    child: _noteGlyph(
+                                      context,
+                                      Icons.add_rounded,
+                                      colour: photoIconColour,
+                                    ),
+                                  ),
+                                )),
                           ),
                         ),
                       const SizedBox(width: 8),
@@ -3337,6 +3372,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                           ),
                         ),
                       ),
+                      inset: true,
                     ),
                   ),
                 ),
@@ -3385,7 +3421,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               if (!wide) ...[
                                 Builder(
                                   builder: (scaffoldContext) =>
-                                      _pastelDrawerRing(
+                                      _pastelDrawerButton(
                                     theme,
                                     IconButton(
                                       tooltip:
@@ -3455,6 +3491,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                         .map(
                                           (importance) => PopupMenuItem(
                                             value: importance,
+                                            height: widget.isPastel
+                                                ? 54
+                                                : kMinInteractiveDimension,
                                             child: _ImportanceMenuLabel(
                                               importance: importance,
                                               isPastel: widget.isPastel,
@@ -3527,7 +3566,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                               ),
                             ),
                           ),
-                          if (cyberpunk || project.tasks.isNotEmpty) ...[
+                          if (widget.isPastel ||
+                              cyberpunk ||
+                              project.tasks.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             _AnimatedChecklistProgress(
                               value: project.tasks.isEmpty
@@ -3538,16 +3579,12 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                   : accent ??
                                       (widget.isDark
                                           ? _brandYellow
-                                          : widget.isPastel
-                                              ? _pastelMauve
-                                              : _lightText),
+                                          : _lightText),
                               backgroundColor: cyberpunk
                                   ? _cyberpunkProgressBlue
                                   : widget.isDark || _modernPalette != null
                                       ? theme.dividerColor
-                                      : widget.isPastel
-                                          ? _pastelYellow
-                                          : const Color(0xFFD8D8D6),
+                                      : const Color(0xFFD8D8D6),
                             ),
                           ],
                           const SizedBox(height: 13.5),
@@ -3639,11 +3676,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                               : () => _showTaskNote(linkedNote),
                                           onDelete: () => _deleteTask(task),
                                         ),
-                                        colour:
-                                            theme.custom(_ThemeColour.panel) ??
-                                                (task.isDone
-                                                    ? const Color(0xFFE5F4EB)
-                                                    : _pastelPorcelain),
+                                        colour: theme
+                                                .custom(_ThemeColour.panel) ??
+                                            (task.isDone
+                                                ? _pastelCompletedTaskSurface
+                                                : _pastelPorcelain),
                                       ),
                                       if (index < project.tasks.length - 1 &&
                                           widget.isPastel)
@@ -3715,6 +3752,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                         ),
                       ),
                     ),
+                    inset: true,
                   ),
                 ),
               ),
@@ -4402,14 +4440,12 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
                   : _switchGrey),
         ),
         labelStyle: TextStyle(color: dialogForeground),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: _pastelRadius(base),
-          borderSide: _surfaceSide(base, fieldBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: _pastelRadius(base),
-          borderSide: _surfaceSide(base, fieldBorder),
-        ),
+        enabledBorder: pastel
+            ? _PastelInsetField(borderRadius: _pastelRadius(base))
+            : OutlineInputBorder(borderSide: _surfaceSide(base, fieldBorder)),
+        focusedBorder: pastel
+            ? _PastelInsetField(borderRadius: _pastelRadius(base))
+            : OutlineInputBorder(borderSide: _surfaceSide(base, fieldBorder)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -4437,7 +4473,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
           shape: _pastelShape(base),
           side: _surfaceSide(base, fieldBorder),
           foregroundBuilder: base.textButtonTheme.style?.foregroundBuilder,
-        ),
+        ).merge(pastel ? base.textButtonTheme.style : null),
       ),
     );
 
@@ -4971,7 +5007,7 @@ class _NewNoteCategoryDialogState extends State<_NewNoteCategoryDialog> {
 }
 
 class _NoteColourDot extends StatelessWidget {
-  const _NoteColourDot({required this.color});
+  const _NoteColourDot({required this.color, super.key});
 
   final Color color;
 
@@ -5424,15 +5460,23 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final pastel = theme.appearance == AppTheme.pastel;
     return _popupAlert(
       context,
       key: const ValueKey('checklist-reminder-dialog'),
+      insetPadding: pastel
+          ? const EdgeInsets.symmetric(horizontal: 18, vertical: 24)
+          : null,
+      contentPadding: pastel ? const EdgeInsets.fromLTRB(22, 16, 22, 20) : null,
+      actionsPadding: pastel ? const EdgeInsets.fromLTRB(22, 0, 22, 24) : null,
+      scrollable: pastel,
       title: const AppText(
         'reminder',
         style: TextStyle(fontWeight: FontWeight.w700),
       ),
       content: SizedBox(
-        width: 360,
+        width: pastel ? 408 : 360,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -5443,19 +5487,32 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.titleSmall,
             ),
-            const SizedBox(height: 8),
-            CalendarDatePicker(
-              key: const ValueKey('checklist-reminder-calendar'),
-              initialDate: _selectedDate,
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-              onDateChanged: (value) =>
-                  setState(() => _selectedDate = DateUtils.dateOnly(value)),
+            SizedBox(height: pastel ? 12 : 8),
+            _pastelLift(
+              theme,
+              Padding(
+                padding: pastel
+                    ? const EdgeInsets.fromLTRB(10, 10, 10, 12)
+                    : EdgeInsets.zero,
+                child: CalendarDatePicker(
+                  key: const ValueKey('checklist-reminder-calendar'),
+                  initialDate: _selectedDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                  onDateChanged: (value) =>
+                      setState(() => _selectedDate = DateUtils.dateOnly(value)),
+                ),
+              ),
+              colour: theme.colorScheme.surfaceContainer,
+              inset: true,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: pastel ? 14 : 8),
             OutlinedButton.icon(
               key: const ValueKey('checklist-reminder-time'),
               onPressed: _chooseTime,
+              style: pastel
+                  ? OutlinedButton.styleFrom(minimumSize: const Size(0, 48))
+                  : null,
               icon: const Icon(Icons.schedule_rounded),
               label: AppText(_selectedTime.format(context)),
             ),
@@ -5474,7 +5531,7 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
                 ),
               ),
               if (widget.initialReminder != null) ...[
-                const SizedBox(width: 6),
+                SizedBox(width: pastel ? 12 : 6),
                 Expanded(
                   child: TextButton(
                     key: const ValueKey('remove-checklist-reminder'),
@@ -5486,7 +5543,7 @@ class _ChecklistReminderDialogState extends State<_ChecklistReminderDialog> {
                   ),
                 ),
               ],
-              const SizedBox(width: 6),
+              SizedBox(width: pastel ? 12 : 6),
               Expanded(
                 child: _BrightActionButton(
                   key: const ValueKey('save-checklist-reminder'),
@@ -5851,7 +5908,7 @@ class _CoverImageState extends State<_CoverImage> {
         ],
         child: _cyberpunkOutline(
           theme,
-          _pastelLift(
+          _pastelPressable(
             theme,
             Container(
               width: double.infinity,
@@ -6161,6 +6218,9 @@ class _AnimatedChecklistProgress extends StatelessWidget {
       duration: const Duration(milliseconds: 420),
       curve: Curves.easeOutCubic,
       builder: (context, animatedValue, child) {
+        if (appearance == AppTheme.pastel) {
+          return _pastelChecklistProgress(Theme.of(context), animatedValue);
+        }
         final bar = LinearProgressIndicator(
           minHeight: 5,
           value: animatedValue,
@@ -6295,22 +6355,13 @@ class _TaskRow extends StatelessWidget {
     final taskStyle = theme.textTheme.bodyLarge!.copyWith(
       height: 1.45,
       color: task.isDone
-          ? theme.colorScheme.onSurface.withValues(alpha: 0.44)
+          ? theme.colorScheme.onSurface.withValues(
+              alpha: theme.appearance == AppTheme.pastel ? .63 : .44)
           : null,
       decoration: task.isDone ? TextDecoration.lineThrough : null,
       decorationColor: theme.colorScheme.onSurface.withValues(alpha: 0.45),
     );
-    final metrics = TextPainter(
-      text: TextSpan(style: taskStyle),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      locale: Localizations.maybeLocaleOf(context),
-    );
-    final firstLine = metrics.preferredLineHeight;
-    metrics.dispose();
-    const checkboxCenter = 16.0;
     const menuSize = 40.0;
-    final lineCenter = firstLine / 2;
     final taskText = SelectableText(
       task.text,
       key: ValueKey(
@@ -6339,7 +6390,6 @@ class _TaskRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SizedBox(height: math.max(0, lineCenter - checkboxCenter)),
                     SizedBox.square(
                       key: ValueKey('task-checkbox-${task.id}'),
                       dimension: 32,
@@ -6360,14 +6410,10 @@ class _TaskRow extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                      top: math.max(0, checkboxCenter - lineCenter)),
-                  child: _TaskHoldReorderListener(
-                    key: ValueKey('task-reorder-area-${task.id}'),
-                    index: reorderIndex,
-                    child: taskText,
-                  ),
+                child: _TaskHoldReorderListener(
+                  key: ValueKey('task-reorder-area-${task.id}'),
+                  index: reorderIndex,
+                  child: taskText,
                 ),
               ),
               const SizedBox.square(dimension: menuSize),
@@ -6457,7 +6503,9 @@ class _ImportanceChip extends StatelessWidget {
     final mediumRim = _blackMetalMediumRim(theme, importance, width: 2);
     return Container(
       key: ValueKey('priority-chip-${importance.name}'),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: isPastel
+          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 11)
+          : const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: mediumRim != null ? color : color.withValues(alpha: 0.12),
         borderRadius: _pastelRadius(theme, scale: .65),
@@ -6478,14 +6526,17 @@ class _ImportanceChip extends StatelessWidget {
             importance: importance,
             isPastel: isPastel,
             isPencil: isPencil,
-            width: 4,
-            height: 16,
+            width: isPastel ? 5 : 4,
+            height: isPastel ? 22 : 16,
           ),
           const SizedBox(width: 7),
           AppText(
             _importanceLabel(importance),
-            style: theme.textTheme.labelMedium?.copyWith(
-                color: mediumRim != null ? _blackMetalMediumLabel : color),
+            style: (isPastel
+                    ? theme.textTheme.labelLarge
+                    : theme.textTheme.labelMedium)
+                ?.copyWith(
+                    color: mediumRim != null ? _blackMetalMediumLabel : color),
           ),
         ],
       ),
@@ -6519,8 +6570,8 @@ class _ImportanceMenuLabel extends StatelessWidget {
       children: [
         Container(
           key: ValueKey('priority-menu-${importance.name}'),
-          width: 4,
-          height: 18,
+          width: isPastel ? 5 : 4,
+          height: isPastel ? 22 : 18,
           color: decorate ? null : color,
           decoration: decorate
               ? BoxDecoration(color: color, border: mediumRim, boxShadow: glow)
