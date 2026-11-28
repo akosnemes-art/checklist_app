@@ -9,7 +9,7 @@ class ReminderService {
   static const _channel = MethodChannel(channelName);
 
   Future<void> sync(List<ChecklistProject> projects) async {
-    if (!Platform.isAndroid) return;
+    if (!Platform.isAndroid && !Platform.isIOS) return;
     final reminders = projects
         .where((project) => project.reminderAt != null)
         .map(

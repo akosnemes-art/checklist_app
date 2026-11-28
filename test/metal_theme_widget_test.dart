@@ -56,7 +56,7 @@ void main() {
     for (final theme in [
       'Boi',
       'Pencil',
-      'Milk',
+      'Blue milk',
       'Copper',
       'Black Metal',
       'Pixel',

@@ -14,7 +14,7 @@ regression test for every approved visual or interaction change.
 ## Product identity and release policy
 
 - Product name: **CHECKLIST**.
-- Current source version: **0.5.8**. The Flutter build number may increase for
+- Current source version: **0.5.9**. The Flutter build number may increase for
   rebuilt APKs, but the public version must not change without explicit user
   approval.
 - Android application ID: `com.gather.checklist`.
@@ -23,7 +23,8 @@ regression test for every approved visual or interaction change.
   public version or internal build number changes. It states the public
   version, build number, and design credit. Its purple `read more` text expands
   the dialog with the implemented changes.
-- Android is the supported platform. The app is built with Flutter.
+- Android is the released platform. The Flutter project also has an iPhone target
+  with local signing and installation instructions in `IOS_INSTALL.md`.
 - The app is local-first. Checklists, tasks, notes, categories, preferences,
   selections, and cover-image references are stored locally. Do not introduce
   accounts, cloud storage, analytics, or network requirements unless requested.
@@ -35,14 +36,15 @@ regression test for every approved visual or interaction change.
 These details have already been approved and must not change incidentally:
 
 - Square corners are used throughout buttons, fields, dialogs, menus, chips,
-  drawers, snackbars, and window chrome except in Milk. Milk uses rounded
+  drawers, snackbars, and window chrome except in Blue milk. Blue milk uses rounded
   corners and neumorphic raised and recessed surfaces with opposing soft
-  shadows. Its mobile drawer opener is a raised circular menu icon seated in
-  a recessed rim. Its three white lines glow. Selected Milk formatting icons
-  have a lavender glow. Other Milk controls use matte relief and directional
-  shadows. Pressing controls transitions the relief inwards with up to
-  1.2 dp of travel over 120 ms. Reduced motion removes the travel and shows
-  the pressed relief immediately. The radius follows Android's
+  shadows. Blue milk uses a matte mint surface with upper-left highlights and
+  lower-right shadows. Its drawer opener matches the raised reminder and
+  priority controls. Selected formatting icons have a lavender face and soft
+  glow. Pressing buttons animates the relief inwards and back with up to
+  1.2 dp of travel over 120 ms in each direction. Three-dot controls keep
+  their resting relief. Reduced motion removes the travel and shows the
+  pressed relief immediately. The radius follows Android's
   reported display corners within safe layout bounds and defaults to 18 dp.
   Cyberpunk new-checklist, new-note, reminder, and task checkbox controls
   have a bevel at the lower-right corner.
@@ -56,7 +58,7 @@ These details have already been approved and must not change incidentally:
   all affected UI except the drawer/sidebar opening animation itself.
 - Boi Checklist mode uses purple; Boi Notes mode uses blue. Pencil mode uses
   only the approved neutral greys except for explicitly retained blue dialog
-  frames, blue note links, and blue/yellow Notes formatting controls. Milk uses its approved
+  frames, blue note links, and blue/yellow Notes formatting controls. Blue milk uses its approved
   palette with blue Notes hyperlinks.
 - Boi checklist completion progress is brand yellow (`#F3ED23`). Pencil
   progress is black on a light-grey track. Cyberpunk uses a glowing brand
@@ -65,15 +67,16 @@ These details have already been approved and must not change incidentally:
 - Checklist priorities are: low blue (`#229FE3`), normal purple
   (`#922FD0`), and high yellow (`#F3ED23`).
 - The task-composer placeholder beginning `add a task…` and the note-editor
-  placeholder `start writing…` are grey (`#9AA0AA`), with deeper grey-purple
-  ink (`#5E5267`) in Milk for readability. Typed note
-  body text is white (`#F8F7FF`) in dark mode and black in light mode.
+  placeholder `start writing…` are grey (`#9AA0AA`). Blue milk uses pale grey
+  (`#899095`) for the task composer and slate (`#536479`) for the note hint.
+  Typed note body text is white (`#F8F7FF`) in dark
+  mode, slate (`#324256`) in Blue milk, and black in Pencil.
 - Note-category colour affects the note title, category label, list indicator,
-  and selected-row treatment. In Milk, bright category ink is darkened for
+  and selected-row treatment. In Blue milk, bright category ink is darkened for
   readability while the category indicator retains the saved colour.
   Category colour does not recolour the note body text.
 - White frames are intentional around the create-note button, filter/sort
-  button, and category selector outside Milk. Cyberpunk's general UI borders, including
+  button, and category selector outside Blue milk. Cyberpunk's general UI borders, including
   the sidebar create buttons, use electric blue (`#379BFF`) with a faint
   glow by default.
 - Three-dot settings buttons are intentionally unframed and vertical. Pixel
@@ -86,12 +89,13 @@ These details have already been approved and must not change incidentally:
 - There are no static decorative hearts in the sidebar.
 - Popup dialogs have a two-pixel default-note-blue frame. The linked-note and
   create-note popups use light line grey in Pencil. Dropdown menus use
-  two-pixel default-note-blue frames in Boi and light grey in Pencil. Milk
-  dialogs and menus use raised borderless surfaces. Milk dialog content can
+  two-pixel default-note-blue frames in Boi and light grey in Pencil. Blue milk
+  dialogs and menus use raised borderless surfaces. Blue milk dialog content can
   scroll separately from its actions and has space around labels and controls.
 - Save and create buttons brighten for 60 milliseconds before completing the
   action. Dialog frames draw first and the contents then fade in. The complete
-  transition takes 280 milliseconds and respects reduced-motion settings.
+  transition takes 240 milliseconds in Blue milk and 280 milliseconds in other
+  themes and respects reduced-motion settings.
 
 ### Canonical palette
 
@@ -119,14 +123,14 @@ These details have already been approved and must not change incidentally:
 | Pencil high priority | `#0E2F44` |
 | Pencil medium priority | `#64696A` |
 | Pencil low priority | `#999999` |
-| Milk cool background | `#EAF0F6` |
-| Milk writing surface | `#F7FAFC` |
-| Milk lavender accent | `#D8C6EF` |
-| Milk checklist sidebar | `#E5ECF2` |
-| Milk Notes sidebar | `#E8ECF4` |
-| Milk high priority | `#E31F26` |
-| Milk medium priority | `#00978D` |
-| Milk low priority | `#B5B1D8` |
+| Blue milk background, writing surface, and sidebar | `#E8FDF6` |
+| Blue milk body text | `#324256` |
+| Blue milk metadata and control ink | `#536479` |
+| Blue milk selected surface | `#E4DBF7` |
+| Blue milk completion gradient | `#9C72ED` to `#AF96F4` |
+| Blue milk high priority | `#E31F26` |
+| Blue milk medium priority | `#00978D` |
+| Blue milk low priority | `#B5B1D8` |
 
 The 18 category colours are defined once in `_noteColours` in
 `lib/main.dart`. Preserve their order because tests and saved user choices may
@@ -148,8 +152,8 @@ rely on the palette positions.
   cancel/create actions. It has no `name it` heading or priority control, and
   new checklists default to medium priority. Priority can still be changed from
   the selected checklist header.
-- The selected checklist shows a calendar reminder button. In Milk the
-  reminder button, calendar and time picker use sculpted surfaces. Milk's
+- The selected checklist shows a calendar reminder button. In Blue milk the
+  reminder button, calendar and time picker use sculpted surfaces. Blue milk's
   calendar has extra margins and a scrollable body on shorter screens. It
   opens a calendar and time picker; a saved reminder stays attached to that
   checklist and can be changed or removed. The checklist sidebar three-dot
@@ -189,13 +193,13 @@ rely on the palette positions.
   left-aligned checkbox. Linked and unlinked task checkboxes use the same fixed
   leading-column width and align with the top of the task text. Cyberpunk
   uses a thin stroke for task ticks and the wordmark checkmark. The icon is yellow in Boi and
-  blue in Pencil and Milk. Tapping it changes it to purple before opening
+  blue in Pencil and Blue milk. Tapping it changes it to purple before opening
   the linked note in a scrollable popup that renders the note's formatting.
   Links in the popup are clickable. The `+ note` chooser shows formatted
   previews of the existing notes.
   The task text wraps within the remaining row width and also
   retains its established note-opening tap.
-- In Milk, priority controls use red `#E31F26` for high, teal `#00978D` for
+- In Blue milk, priority controls use rounded colour bars and red `#E31F26` for high, teal `#00978D` for
   medium, and lavender `#B5B1D8` for low. Its header priority control is
   at least 44 dp tall and its menu entries are 54 dp tall. In Pencil,
   priority controls use navy
@@ -203,8 +207,10 @@ rely on the palette positions.
   low. Boi priority colours do not change.
 - The selected checklist header includes its creation date and task counts.
 - Progress changes animate smoothly rather than jumping to the new value.
-  Milk uses an uncoloured recessed track, including in empty checklists,
-  with a raised fill matching completed task panels (`#CFE8DA` by default).
+  Blue milk uses a recessed track, including in empty checklists, with a clipped
+  lavender fill. Its 24 dp task checkboxes are recessed when empty and use
+  a lavender gradient and dark checkmark when checked. Task cards stay neutral
+  and use 16 dp spacing. Blue milk inputs use a visible lavender focus marker.
   Cyberpunk priority buttons and menu markers glow in their priority colours.
   Pixel's progress fill and task and workspace checkmarks glow. Cyberpunk
   task dividers use the current border colour at 50% opacity.
@@ -232,7 +238,7 @@ rely on the palette positions.
 - Note sorting supports newest, oldest, A–Z, and category A–Z.
 - A note list entry uses its category colour (or default note colour), shows its
   creation date, and receives a category-coloured selected treatment outside
-  Milk. Milk's checklist and note sidebar entries are flat with circular
+  Blue milk. Blue milk's checklist and note sidebar entries are flat with circular
   colour markers, recessed three-dot menus and a small recessed divider
   between rows. Selected entries use heavier text.
 - The sidebar note-row menu uses an unframed vertical ellipsis and offers
@@ -246,11 +252,13 @@ rely on the palette positions.
 - The Notes workspace background extends behind the status bar. Its controls
   remain in the safe area with 14 px of top padding, and the writing surface
   is opaque in every theme.
-- Note content autosaves locally after a short debounce.
+- Note content autosaves locally after a short debounce. Leaving the app flushes pending edits.
+  Newly entered asterisks are literal text. Notes without a content format field
+  retain legacy star formatting on load. New saves and backups use contentFormat 2.
 - Links in note text are underlined and open in the system browser or registered
   app when tapped outside edit mode. Boi uses brand yellow `#F3ED23`, Pencil
-  uses default note blue `#5A9BFF`, and Milk uses deep blue `#1553A3`.
-  Links glow briefly when tapped in other themes. Milk links brighten to
+  uses default note blue `#5A9BFF`, and Blue milk uses deep blue `#1553A3`.
+  Links glow briefly when tapped in other themes. Blue milk links brighten to
   `#5A9BFF` with a colour change.
   While editing, taps position the cursor.
 - The note editor has unframed bold, italic, and underline controls. Inactive
@@ -267,8 +275,8 @@ rely on the palette positions.
 - SV uses full wood-framed controls for `B`, `i`, and `U`, with Press Start 2P
   letters. Its category and photo buttons use the same finish and pixel glyphs.
 - The create-note dialog uses the dark-blue Notes theme in Boi and the note
-  editor's writing surface in Pencil and Milk. The rename-note dialog uses a
-  pale pastel-blue `#D9EAF7` background with a blue frame outside Milk. Both retain the
+  editor's writing surface in Pencil and Blue milk. The rename-note dialog uses a
+  pale pastel-blue `#D9EAF7` background with a blue frame outside Blue milk. Both retain the
   category selector.
 - The note-header category button opens category assignment. The adjacent
   unframed vertical-ellipsis menu offers rename, delete, and category settings.
@@ -299,9 +307,9 @@ rely on the palette positions.
 - Editing a category can change both its name and colour without breaking note
   assignments.
 - The normal change-category popup has `cancel`, `new`, and `remove` on one
-  horizontal row in that order. Cancel has a blue frame, transparent
-  background, and grey text. New and remove are blue buttons with white frames
-  and white text.
+  horizontal row in that order. Blue milk uses borderless sculpted actions with
+  slate labels. Boi uses a blue frame, transparent background, and grey text
+  for Cancel, and blue buttons with white frames and text for New and Remove.
 - Pressing `remove` changes colour dots into square selection boxes.
 - Selecting a category shows a checkmark, crosses out its name, waits one
   second, then removes it from the popup.
@@ -320,21 +328,22 @@ rely on the palette positions.
   sidebar also closes Settings and resets its page.
 - The Settings arrow points down when open and up when closed. Pressing a
   Settings row briefly brightens its text.
-  The arrow aligns horizontally with the sidebar three-dot menus. It is the
-  only beveled control in Milk's sidebar Settings. Cyberpunk Settings icons
+  Blue milk's 32 dp arrow aligns horizontally with the sidebar three-dot menus.
+  It stays recessed as Settings expands or collapses and then returns to its
+  raised position. The Blue milk Settings divider extends to both drawer edges
+  and uses the same recessed relief as its list dividers. Cyberpunk Settings icons
   are red and glow only while Settings is open.
 - The main Settings page contains `themes`, `language`, `import / export`, and
   `about`.
 - The Themes page replaces the main option text with a fade and offers `Boi`,
-  `Pencil`, `Milk`, `Copper`, `Black Metal`, `Pixel`, `Cyberpunk`, and `SV`.
+  `Pencil`, `Blue milk`, `Copper`, `Black Metal`, `Pixel`, `Cyberpunk`, and `SV`.
   Boi is the established dark appearance,
-  Pencil is the established light appearance, and Milk uses matte blue-white
+  Pencil is the established light appearance, and Blue milk uses matte mint
   surfaces with soft raised and recessed relief. It keeps the stored `pastel`
   preference and colour overrides.
-  Metadata, menu dots, and placeholders use deeper ink. Lavender and
-  powder-blue create controls distinguish Checklist and Notes. Milk headings
-  use Coiny by Marcelo Magalhães and body text uses Nunito by Vernon Adams,
-  Cyreal, and Jacques Le Bailly. Copper uses
+  Metadata and menu dots use slate ink. Blue milk uses Manrope with Nunito as a
+  fallback, capsule primary buttons, a milk-jug icon in Themes, and a plain
+  text wordmark. Copper uses
   charcoal surfaces, wine and plum
   sidebars, antique-gold progress and popup frames, dusty-rose note links,
   and serif headings. Copper keeps the previous Goth preference value and
@@ -417,6 +426,19 @@ rely on the palette positions.
   `Checklist_app_icon_safe.png` with centred lettering as both the legacy and
   adaptive launcher icon.
 
+## iPhone-specific contract
+
+- The iPhone target supports portrait on iOS 15 or newer and uses the approved
+  CHECKLIST launcher artwork. Xcode signs it with the installer's Apple team.
+- The Flutter checklists, Notes, backup format, themes, and local storage are
+  shared. iPhone uses Apple Vision for on-device image text and QR recognition
+  and inserts recognised text as plain text. Manual formatting is available.
+- iPhone reminders are local notifications. The app synchronises the next 64
+  upcoming reminders, respects the iPhone's notification settings, and uses
+  the standard notification sound.
+- iPhone link previews use a temporary WebKit web view and retain standard
+  iOS transport rules. The shared Dart cache stores successful screenshots.
+
 ## Persistence and compatibility
 
 `LocalStore` owns these SharedPreferences keys; preserve them and maintain
@@ -436,6 +458,7 @@ backward-compatible decoding:
 - `checklist.selectedNote.v1`
 - `checklist.welcome.v1`
 - `checklist.lastSeenVersion.v1`
+- `checklist.pendingRestore.v1` (temporary, for replaying a confirmed import before loading the workspace)
 
 Never silently rename or delete a persistence key. A schema change requires an
 explicit migration so existing user data survives an APK update. Cover-image
@@ -450,7 +473,7 @@ deletion must remain restricted to the app-owned support directory.
 - `lib/modern_themes.dart`: Pixel palette, scanlines, and shared theme backdrop.
 - `lib/appearance_motion.dart`: bottom-to-top theme reveal and Pixel CRT noise.
 - `lib/interaction_finish.dart`: task checkboxes and themed settings menus.
-- `lib/pastel_finish.dart`: Milk typography, rounded shapes, and relief.
+- `lib/pastel_finish.dart`: Blue milk typography, rounded shapes, and relief.
 - `lib/sv_theme.dart`: SV palette, parchment frames, and backdrop.
 - `lib/cyberpunk_theme.dart` and `lib/cyberpunk_backdrop.dart`: Cyberpunk
   palette, button glitches, and animated circuitry.
@@ -477,6 +500,8 @@ deletion must remain restricted to the app-owned support directory.
   camera-frame preparation and offline QR decoding.
 - `android/app/src/main/kotlin/com/gather/checklist/PhotoTypography.kt` and
   `PhotoTextStyles.kt`: photo word regions and lettering style detection.
+- `ios/Runner/`: iPhone launcher assets and the Apple Vision, notification,
+  and WebKit bridges. `IOS_INSTALL.md` explains local installation and signing.
 - `android/app/src/main/jniLibs/`: locally rebuilt OpenCV 4.5.3 JNI and C++
   runtime libraries for PaddleOCR, including 16 KB Android page support.
 - `tool/opencv_16k.config.py`: reproducible OpenCV Android ABI/linker build
@@ -505,10 +530,10 @@ deletion must remain restricted to the app-owned support directory.
 
 ## Current verification baseline
 
-- Verified Android APK: version 0.5.8 internal build `61`.
-- Current source baseline: 117 passing Flutter tests, clean static analysis,
-  and a successful Android release build. The two JVM typography tests last
-  passed for build 45. The APK includes camera-based cover
+- Verified local Android APK: version 0.5.9 internal build `64`.
+- Current source baseline: 129 passing Flutter tests and clean static analysis.
+  The iPhone target has passed source checks and still needs an Xcode build and
+  physical-device verification. The two JVM typography tests and bounded image-input test passed for build 64. The APK includes camera-based cover
   capture, offline PaddleOCR, exact system-alarm checklist reminders,
   task-to-note links, tappable Notes hyperlinks, live text and QR link
   detection, and locally rebuilt OpenCV 4.5.3 libraries. All packaged

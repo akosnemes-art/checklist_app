@@ -34,8 +34,9 @@ class _NoteFormatting {
       final inLink =
           linkIndex < links.length && index >= links[linkIndex].start;
       final code = text.codeUnitAt(index) - 0xe000;
-      final legacy = inLink ? null : _legacyFormat(text, index);
-      final markerLength = code >= 0 && code < 6 ? 1 : legacy?.$2 ?? 0;
+      final legacyUnderline = !inLink && text.startsWith('__', index);
+      final markerLength =
+          code >= 0 && code < 6 ? 1 : (legacyUnderline ? 2 : 0);
       if (markerLength == 0) {
         offsets[index] = styles.length;
         rawStyles[index++] = style;
@@ -48,8 +49,8 @@ class _NoteFormatting {
         offsets[index] = styles.length;
         rawStyles[index] = style;
       }
-      if (legacy != null) {
-        style ^= legacy.$1.bit;
+      if (legacyUnderline) {
+        style ^= _NoteFormat.underline.bit;
       } else {
         final bit = 1 << (code ~/ 2);
         style = code.isEven ? style | bit : style & ~bit;
@@ -58,13 +59,6 @@ class _NoteFormatting {
     offsets[index] = styles.length;
     rawStyles[index] = style;
     plainText = visible.toString();
-  }
-
-  static (_NoteFormat, int)? _legacyFormat(String text, int index) {
-    if (text.startsWith('**', index)) return (_NoteFormat.bold, 2);
-    if (text.startsWith('__', index)) return (_NoteFormat.underline, 2);
-    if (text.startsWith('*', index)) return (_NoteFormat.italic, 1);
-    return null;
   }
 
   late final String plainText;

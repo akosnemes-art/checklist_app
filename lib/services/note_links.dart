@@ -65,17 +65,22 @@ List<NoteLink> findNoteLinks(String text) {
 
 String _trimLinkEnd(String link) {
   const closing = {')': '(', ']': '[', '}': '{'};
-  while (link.isNotEmpty) {
-    final last = link[link.length - 1];
+  var end = link.length;
+  final excess = <String, int>{};
+  while (end > 0) {
+    final last = link[end - 1];
     final opening = closing[last];
-    if (!'.,!?:;\''.contains(last) &&
-        (opening == null ||
-            last.allMatches(link).length <= opening.allMatches(link).length)) {
+    if (opening != null) {
+      final extra = excess.putIfAbsent(last,
+          () => last.allMatches(link).length - opening.allMatches(link).length);
+      if (extra <= 0) break;
+      excess[last] = extra - 1;
+    } else if (!".,!?:;'".contains(last)) {
       break;
     }
-    link = link.substring(0, link.length - 1);
+    end--;
   }
-  return link;
+  return end == link.length ? link : link.substring(0, end);
 }
 
 final _ocrAddress = RegExp(

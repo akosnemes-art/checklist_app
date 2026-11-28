@@ -1,6 +1,34 @@
 part of 'app_localizations.dart';
 
 const _frenchAndCzech = <String, (String, String)>{
+  "Fixed asterisks in Notes and updated the app icon.": (
+    "J’ai corrigé les astérisques dans les notes et mis à jour l’icône.",
+    "Opravil jsem hvězdičky v poznámkách a aktualizoval ikonu aplikace."
+  ),
+  "Notes now saves pending edits when you leave the app.": (
+    "Les notes enregistrent les dernières modifications quand vous quittez l’application.",
+    "Při opuštění aplikace se uloží i poslední úpravy poznámek."
+  ),
+  'Renamed Milk to Blue milk and refreshed its controls and sidebar.': (
+    'Milk devient Blue milk avec des commandes et une barre latérale revues.',
+    'Motiv Milk se nyní jmenuje Blue milk a má upravené ovládání i postranní panel.'
+  ),
+  'Updated the font credits.': (
+    'Les crédits des polices ont été mis à jour.',
+    'Aktualizovány údaje o autorech písem.'
+  ),
+  'Reminder saved. Allow notifications in iPhone Settings to receive it.': (
+    'Rappel enregistré. Autorisez les notifications dans les réglages de l’iPhone pour le recevoir.',
+    'Připomínka byla uložena. Chcete-li ji dostat, povolte oznámení v nastavení iPhonu.'
+  ),
+  'Reminder saved, but the notification could not be scheduled.': (
+    'Rappel enregistré, mais la notification n’a pas pu être programmée.',
+    'Připomínka byla uložena, ale oznámení se nepodařilo naplánovat.'
+  ),
+  "Redesigned Milk with matte surfaces, Manrope and lavender accents.": (
+    "Milk a été repensé avec des surfaces mates, la police Manrope et des touches lavande.",
+    "Milk má nový vzhled s matnými povrchy, písmem Manrope a levandulovými akcenty."
+  ),
   "Added new fonts and pixel buttons to SV.": (
     "Nouvelles polices et nouveaux boutons pixel pour SV.",
     "Nová písma a pixelová tlačítka pro SV."

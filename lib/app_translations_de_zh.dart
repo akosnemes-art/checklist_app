@@ -1,6 +1,34 @@
 part of 'app_localizations.dart';
 
 const _germanAndChinese = <String, (String, String)>{
+  "Fixed asterisks in Notes and updated the app icon.": (
+    "Ich habe die Sternchen in Notizen korrigiert und das App-Symbol aktualisiert.",
+    "我修复了笔记中的星号问题，并更新了应用图标。"
+  ),
+  "Notes now saves pending edits when you leave the app.": (
+    "Beim Verlassen der App werden ausstehende Änderungen an Notizen gespeichert.",
+    "离开应用时会保存尚未写入的笔记更改。"
+  ),
+  'Renamed Milk to Blue milk and refreshed its controls and sidebar.': (
+    'Milk heißt jetzt Blue milk und hat überarbeitete Bedienelemente und eine neue Seitenleiste.',
+    'Milk 已更名为 Blue milk，控件和侧栏也已更新。'
+  ),
+  'Updated the font credits.': (
+    'Die Schrift-Credits wurden aktualisiert.',
+    '已更新字体署名。'
+  ),
+  'Reminder saved. Allow notifications in iPhone Settings to receive it.': (
+    'Erinnerung gespeichert. Erlaube Mitteilungen in den iPhone-Einstellungen, um sie zu erhalten.',
+    '提醒已保存。请在 iPhone 设置中允许通知，以接收提醒。'
+  ),
+  'Reminder saved, but the notification could not be scheduled.': (
+    'Erinnerung gespeichert. Die Mitteilung konnte nicht geplant werden.',
+    '提醒已保存，但无法安排通知。'
+  ),
+  "Redesigned Milk with matte surfaces, Manrope and lavender accents.": (
+    "Milk wurde mit matten Flächen, Manrope und Lavendelakzenten neu gestaltet.",
+    "Milk 换用了哑光表面、Manrope 字体和淡紫色点缀。"
+  ),
   "Added new fonts and pixel buttons to SV.": (
     "Neue Schriften und Pixeltasten für SV.",
     "SV 新增字体和像素按钮。"

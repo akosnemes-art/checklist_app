@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:checklist_app/app_version.dart';
 import 'package:checklist_app/main.dart';
 import 'package:flutter/material.dart';
@@ -50,23 +48,46 @@ Future<void> _selectNotes(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<Color> _pixel(WidgetTester tester, Offset point) async {
-  final paint = tester.renderObject<RenderRepaintBoundary>(_key('app-paint'));
-  return (await tester.runAsync(() async {
-    final image = await paint.toImage();
-    try {
-      final data =
-          (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
-      final offset = (point.dy.round() * image.width + point.dx.round()) * 4;
-      return Color.fromARGB(data.getUint8(offset + 3), data.getUint8(offset),
-          data.getUint8(offset + 1), data.getUint8(offset + 2));
-    } finally {
-      image.dispose();
-    }
-  }))!;
-}
-
 void main() {
+  testWidgets('typed stars stay visible and pending edits save on pause',
+      (tester) async {
+    await _pumpApp(tester);
+    await _selectNotes(tester);
+    final field = _key('note-content-field');
+    const literal = '* milk\n2 * 3 **strong** *italics* 😀';
+    await tester.enterText(field, literal);
+    final controller = tester.widget<TextField>(field).controller!;
+    final span = controller.buildTextSpan(
+        context: tester.element(field), withComposing: false);
+    final body = span.children!.whereType<TextSpan>().single;
+    expect(body.text, literal);
+    expect(body.style!.fontStyle, isNot(FontStyle.italic));
+    expect(body.style!.fontWeight, isNot(FontWeight.w700));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    final saved = await SharedPreferences.getInstance();
+    expect(saved.getString('checklist.notes.v1'),
+        contains('2 * 3 **strong** *italics*'));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    controller.selection =
+        TextSelection(baseOffset: 0, extentOffset: literal.length);
+    await tester.tap(_key('note-format-bold'));
+    await tester.pumpAndSettle();
+    final formatted = controller.buildTextSpan(
+        context: tester.element(field), withComposing: false);
+    expect(
+        formatted.children!
+            .whereType<TextSpan>()
+            .singleWhere((s) => s.text == literal)
+            .style!
+            .fontWeight,
+        FontWeight.w700);
+  });
+
   testWidgets(
       'selection fades note content downwards and staggers checklist tasks',
       (tester) async {
@@ -77,9 +98,11 @@ void main() {
 
     double taskOpacity(String taskId) => tester
         .widget<FadeTransition>(
-          find.descendant(
-              of: _key('reorder-task-$taskId'),
-              matching: find.byType(FadeTransition)),
+          find
+              .descendant(
+                  of: _key('reorder-task-$taskId'),
+                  matching: find.byType(FadeTransition))
+              .first,
         )
         .opacity
         .value;
@@ -92,14 +115,11 @@ void main() {
     await tester.tap(_key('sidebar-note-second'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
-    final field = tester.getRect(_key('note-content-field'));
-    final top = field.topLeft + const Offset(10, 20);
-    final bottom = field.bottomLeft + const Offset(10, -20);
-    expect(await _pixel(tester, top), const Color(0xFFF7FAFC));
+    final reveal = tester.renderObject(_key('note-body-reveal'));
+    expect(reveal.debugLayer, isA<ShaderMaskLayer>());
     expect(_key('pastel-workspace-backdrop'), findsOneWidget);
-    expect(await _pixel(tester, bottom), isNot(const Color(0xFFF7FAFC)));
     await tester.pumpAndSettle();
-    expect(await _pixel(tester, bottom), const Color(0xFFF7FAFC));
+    expect(reveal.debugLayer, isNull);
   });
 
   testWidgets(
@@ -275,7 +295,7 @@ void main() {
         .whereType<TextSpan>()
         .toList();
     const url = 'https://example.org';
-    expect(spans().first.style!.color, const Color(0xFF101010));
+    expect(spans().first.style!.color, const Color(0xFF324256));
     expect(spans().last.style!.color, const Color(0xFF1553A3));
     final text = editable.widget.controller.text;
     final box = editor

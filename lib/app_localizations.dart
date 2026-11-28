@@ -21,6 +21,19 @@ const welcomeMessage = 'You are using CHECKLIST version {version} '
     '(build {build}).\n\nDesigned by Ákos Nemes using Codex AI.';
 
 const _hungarian = <String, String>{
+  "Fixed asterisks in Notes and updated the app icon.":
+      "Javítottam a csillagok kezelését a jegyzetekben és frissítettem az alkalmazás ikonját.",
+  "Notes now saves pending edits when you leave the app.":
+      "Az alkalmazás elhagyásakor a jegyzetek függő módosításai mentésre kerülnek.",
+  'Renamed Milk to Blue milk and refreshed its controls and sidebar.':
+      'A Milk új neve Blue milk, és megújultak a gombjai és az oldalsávja.',
+  'Updated the font credits.': 'Frissültek a betűtípusok szerzői adatai.',
+  'Reminder saved. Allow notifications in iPhone Settings to receive it.':
+      'Az emlékeztető mentve. Engedélyezd az értesítéseket az iPhone beállításaiban.',
+  'Reminder saved, but the notification could not be scheduled.':
+      'Az emlékeztető mentve, de az értesítést nem sikerült ütemezni.',
+  "Redesigned Milk with matte surfaces, Manrope and lavender accents.":
+      "A Milk matt felületekkel, Manrope betűtípussal és levendulaszínű kiemelésekkel újult meg.",
   "Added new fonts and pixel buttons to SV.":
       "Az SV új betűtípusokat és pixelgombokat kapott.",
   "Refined Cyberpunk’s TV noise.": "Finomodott a Cyberpunk tévézaja.",

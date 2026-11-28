@@ -31,6 +31,15 @@ void main() {
     );
   });
 
+  test('trims long mixed punctuation while preserving balanced URL brackets',
+      () {
+    const url = 'https://example.org/A_(UK)';
+    final text = '$url${')!]' * 10000} next';
+    final link = findNoteLinks(text).single;
+    expect(link.uri.toString(), url);
+    expect(link.end, url.length);
+  });
+
   test('skips email fragments and local or executable URI schemes', () {
     expect(
       findNoteLinks('name@example.org file://example.org/path '

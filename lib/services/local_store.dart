@@ -25,9 +25,20 @@ class ChecklistBackup {
   final List<NoteCategory> noteCategories;
   final String? selectedProjectId;
   final String? selectedNoteId;
+
+  Map<String, Object?> toJson() => {
+        'format': 'checklist-backup',
+        'schemaVersion': 1,
+        'projects': projects.map((p) => p.toJson()).toList(),
+        'notes': notes.map((n) => n.toJson()).toList(),
+        'noteCategories': noteCategories.map((c) => c.toJson()).toList(),
+        'selectedProjectId': selectedProjectId,
+        'selectedNoteId': selectedNoteId,
+      };
 }
 
 class LocalStore {
+  static const _pendingRestoreKey = 'checklist.pendingRestore.v1';
   static const _projectsKey = 'checklist.projects.v1';
   static const _darkModeKey = 'checklist.darkMode.v1';
   static const _themeKey = 'checklist.theme.v1';
@@ -178,20 +189,17 @@ class LocalStore {
       loadSelectedProjectId(),
       loadSelectedNoteId(),
     ]);
-    final projects = results[0]! as List<ChecklistProject>;
-    final notes = results[1]! as List<NoteEntry>;
-    final categories = results[2]! as List<NoteCategory>;
-    final payload = <String, Object?>{
-      'format': 'checklist-backup',
-      'schemaVersion': 1,
+    final backup = ChecklistBackup(
+      projects: results[0]! as List<ChecklistProject>,
+      notes: results[1]! as List<NoteEntry>,
+      noteCategories: results[2]! as List<NoteCategory>,
+      selectedProjectId: results[3] as String?,
+      selectedNoteId: results[4] as String?,
+    );
+    final payload = {
+      ...backup.toJson(),
       'appVersion': checklistVersion,
       'exportedAt': DateTime.now().toUtc().toIso8601String(),
-      'projects': projects.map((project) => project.toJson()).toList(),
-      'notes': notes.map((note) => note.toJson()).toList(),
-      'noteCategories':
-          categories.map((category) => category.toJson()).toList(),
-      'selectedProjectId': results[3] as String?,
-      'selectedNoteId': results[4] as String?,
     };
     return Uint8List.fromList(
       utf8.encode(const JsonEncoder.withIndent('  ').convert(payload)),
@@ -200,7 +208,11 @@ class LocalStore {
 
   ChecklistBackup decodeBackup(Uint8List bytes) {
     if (bytes.isEmpty) throw const FormatException('The backup file is empty.');
-    final decoded = jsonDecode(utf8.decode(bytes));
+    return _decodeBackupText(utf8.decode(bytes));
+  }
+
+  ChecklistBackup _decodeBackupText(String text) {
+    final decoded = jsonDecode(text);
     if (decoded is! Map<String, dynamic> ||
         decoded['format'] != 'checklist-backup' ||
         decoded['schemaVersion'] != 1) {
@@ -231,6 +243,22 @@ class LocalStore {
     final notes = mapsFor('notes').map(NoteEntry.fromJson).toList();
     final categories =
         mapsFor('noteCategories').map(NoteCategory.fromJson).toList();
+    void checkIds(Iterable<String> ids) {
+      final seen = <String>{};
+      for (final id in ids) {
+        if (id.isEmpty || !seen.add(id)) {
+          throw const FormatException(
+              'The backup contains a missing or repeated ID.');
+        }
+      }
+    }
+
+    checkIds(projects.map((p) => p.id));
+    checkIds(notes.map((n) => n.id));
+    checkIds(categories.map((c) => c.id));
+    for (final project in projects) {
+      checkIds(project.tasks.map((t) => t.id));
+    }
     final selectedProjectId = decoded['selectedProjectId'] as String?;
     final selectedNoteId = decoded['selectedNoteId'] as String?;
     return ChecklistBackup(
@@ -247,6 +275,25 @@ class LocalStore {
   }
 
   Future<void> restoreBackup(ChecklistBackup backup) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!await prefs.setString(
+        _pendingRestoreKey, jsonEncode(backup.toJson()))) {
+      throw StateError('Could not start the backup import.');
+    }
+    await _finishRestore(prefs, backup);
+  }
+
+  Future<void> recoverPendingRestore() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pending = prefs.getString(_pendingRestoreKey);
+    if (pending != null) {
+      await _finishRestore(prefs, _decodeBackupText(pending));
+    }
+  }
+
+  Future<void> _finishRestore(
+      SharedPreferences prefs, ChecklistBackup backup) async {
+    // Replacing these keys is idempotent. On interruption the journal survives.
     await Future.wait([
       saveProjects(backup.projects),
       saveNotes(backup.notes),
@@ -256,6 +303,9 @@ class LocalStore {
       ),
       saveSelectedNoteId(backup.selectedNoteId),
     ]);
+    if (!await prefs.remove(_pendingRestoreKey)) {
+      throw StateError('Could not finish the backup import.');
+    }
   }
 
   Future<bool> loadHeartAnimationEnabled() async {
@@ -409,17 +459,16 @@ class LocalStore {
 
     final supportDirectory = await getApplicationSupportDirectory();
     final coversDirectory = Directory('${supportDirectory.path}/covers');
-    final coversPath = coversDirectory.absolute.path;
-    final coverPath = File(path).absolute.path;
-
-    // Only delete files created inside this app's own cover directory.
-    if (coverPath != coversPath &&
-        !coverPath.startsWith('$coversPath${Platform.pathSeparator}')) {
+    final cover = File(path).absolute;
+    // Cover images are direct children. Ignore nested paths and symbolic links.
+    if (cover.parent.path != coversDirectory.absolute.path ||
+        await FileSystemEntity.type(coversDirectory.path, followLinks: false) !=
+            FileSystemEntityType.directory ||
+        await FileSystemEntity.type(cover.path, followLinks: false) !=
+            FileSystemEntityType.file) {
       return;
     }
-
-    final cover = File(coverPath);
-    if (await cover.exists()) await cover.delete();
+    await cover.delete();
   }
 
   Future<Directory> _coverDirectory() async {

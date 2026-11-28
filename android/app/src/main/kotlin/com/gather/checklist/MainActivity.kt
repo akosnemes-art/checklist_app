@@ -39,7 +39,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayInputStream
 import java.io.File
 
 class MainActivity : FlutterActivity(), SensorEventListener {
@@ -334,20 +333,28 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     }
 
     private fun loadOcrBitmap(imageUri: Uri?, imageFile: File?): Bitmap {
-        val imageBytes = when {
-            imageFile != null -> imageFile.readBytes()
-            imageUri != null -> contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
-            else -> null
-        } ?: throw IllegalStateException("The image is empty.")
-        if (imageBytes.isEmpty() || imageBytes.size > MAX_IMAGE_BYTES) {
-            throw IllegalArgumentException("Choose an image smaller than 40 MB.")
+        if (imageFile != null) return decodeOcrBitmap(imageFile)
+        val uri = requireNotNull(imageUri)
+        val source = contentResolver.openInputStream(uri) ?: error("The image is empty.")
+        return source.use { input ->
+            val temporary = File.createTempFile("ocr-", ".image", cacheDir)
+            try {
+                temporary.outputStream().use { output ->
+                    copyPhotoInput(input, output, MAX_IMAGE_BYTES)
+                }
+                decodeOcrBitmap(temporary)
+            } finally {
+                temporary.delete()
+            }
         }
-        return decodeOcrBitmap(imageBytes)
     }
 
-    private fun decodeOcrBitmap(imageBytes: ByteArray): Bitmap {
+    private fun decodeOcrBitmap(file: File): Bitmap {
+        require(file.length() in 1L..MAX_IMAGE_BYTES.toLong()) {
+            "Choose a non-empty image smaller than 40 MB."
+        }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, bounds)
+        BitmapFactory.decodeFile(file.path, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
             throw IllegalArgumentException("The selected image format could not be read.")
         }
@@ -361,12 +368,7 @@ class MainActivity : FlutterActivity(), SensorEventListener {
             inSampleSize = sampleSize
             inPreferredConfig = Bitmap.Config.ARGB_8888
         }
-        var prepared = BitmapFactory.decodeByteArray(
-            imageBytes,
-            0,
-            imageBytes.size,
-            decodeOptions,
-        ) ?: throw IllegalArgumentException("The selected image format could not be read.")
+        var prepared = BitmapFactory.decodeFile(file.path, decodeOptions) ?: throw IllegalArgumentException("The selected image format could not be read.")
 
         val preparedMaxDimension = maxOf(prepared.width, prepared.height)
         if (preparedMaxDimension > MAX_OCR_IMAGE_DIMENSION) {
@@ -382,12 +384,10 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         }
 
         val orientation = try {
-            ByteArrayInputStream(imageBytes).use { stream ->
-                ExifInterface(stream).getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL,
-                )
-            }
+            ExifInterface(file.path).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
         } catch (_: Exception) {
             ExifInterface.ORIENTATION_NORMAL
         }

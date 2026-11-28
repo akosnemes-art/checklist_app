@@ -325,8 +325,14 @@ void main() {
     expect(find.text('Codex AI'), findsOneWidget);
     expect(find.text('akosnemes@proton.me'), findsOneWidget);
     expect(find.text('Allan Ferreira'), findsNothing);
-    expect(find.text('Coiny font design for Milk'), findsOneWidget);
-    expect(find.text('Nunito font design for Milk'), findsOneWidget);
+    expect(find.text('Roboto font design for Boi / Pencil'), findsOneWidget);
+    expect(find.text('Christian Robertson'), findsOneWidget);
+    expect(find.text('Noto Serif font design for Copper / Black Metal'),
+        findsOneWidget);
+    expect(find.textContaining('Steve Matteson'), findsOneWidget);
+    expect(find.text('Manrope font design for Blue milk'), findsOneWidget);
+    expect(find.text('Nunito font design for Blue milk / SV'), findsOneWidget);
+    expect(find.text('Mikhail Sharanda, Mirko Velimirovic'), findsOneWidget);
     expect(find.text('Pixelify Sans font design for Pixel'), findsOneWidget);
     expect(find.text('Stefie Justprince'), findsOneWidget);
     expect(find.text('Press Start 2P font design for SV'), findsOneWidget);
@@ -334,7 +340,8 @@ void main() {
     expect(find.text('VT323 font design for SV'), findsOneWidget);
     expect(find.text('Peter Hull'), findsOneWidget);
     expect(find.text('Rajdhani font design for Cyberpunk'), findsOneWidget);
-    expect(find.text('Indian Type Foundry'), findsOneWidget);
+    expect(find.textContaining('Shiva Nalleperumal'), findsOneWidget);
+    expect(find.textContaining('Indian Type Foundry'), findsOneWidget);
 
     final font = _key('credits-font-Rajdhani');
     expect(

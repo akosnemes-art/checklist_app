@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:checklist_app/services/local_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -54,6 +57,67 @@ void main() {
       expect(await destination.loadSelectedNoteId(), 'note');
     },
   );
+
+  test('duplicate task IDs are rejected before a backup can replace local data',
+      () {
+    final task = {'id': 't', 'text': 'Groceries'};
+    final backup = {
+      'format': 'checklist-backup',
+      'schemaVersion': 1,
+      'projects': [
+        {
+          'id': 'p',
+          'name': 'Home',
+          'createdAt': '2026-01-01',
+          'tasks': [task, task]
+        }
+      ],
+      'notes': [],
+      'noteCategories': [],
+    };
+    expect(
+        () => LocalStore()
+            .decodeBackup(Uint8List.fromList(utf8.encode(jsonEncode(backup)))),
+        throwsFormatException);
+  });
+
+  test('a confirmed, interrupted import finishes before the next load',
+      () async {
+    final prefs = {
+      'checklist.projects.v1':
+          '[{"id":"old","name":"Previous","createdAt":"2026-01-01"}]',
+      'checklist.pendingRestore.v1': jsonEncode({
+        'format': 'checklist-backup',
+        'schemaVersion': 1,
+        'projects': [
+          {'id': 'new', 'name': 'Restored', 'createdAt': '2026-02-02'}
+        ],
+        'notes': [
+          {
+            'id': 'note',
+            'name': 'Notes',
+            'createdAt': '2026-02-02',
+            'contentFormat': 2,
+            'content': '*'
+          }
+        ],
+        'noteCategories': [],
+        'selectedProjectId': 'new',
+        'selectedNoteId': 'note'
+      }),
+    };
+    SharedPreferences.setMockInitialValues(prefs);
+    final store = LocalStore();
+    await store.recoverPendingRestore();
+    await store.recoverPendingRestore();
+    expect((await store.loadProjects()).single.id, 'new');
+    expect((await store.loadNotes()).single.content, '*');
+    expect(await store.loadSelectedNoteId(), 'note');
+    expect(
+        (await SharedPreferences.getInstance())
+            .containsKey('checklist.pendingRestore.v1'),
+        isFalse);
+  });
 
   test(
     'heart animation defaults off and persists its hidden setting',

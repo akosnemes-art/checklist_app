@@ -70,18 +70,18 @@ class _SettingsMenuState<T> extends State<_SettingsMenu<T>> {
         key: widget.iconKey,
         dimension: widget.dimension,
         child: Center(
-          child: _pastelPressable(
-            theme,
-            Padding(
-              padding: theme.appearance == AppTheme.pastel
-                  ? const EdgeInsets.all(5)
-                  : EdgeInsets.zero,
-              child: icon,
-            ),
-            round: true,
-            selected: _open,
-            restingDepth: widget.pastelRecessed ? .78 : 0,
-          ),
+          child: appearance == AppTheme.pastel
+              ? _PastelPressFace(
+                  radius: BorderRadius.circular(100),
+                  colour: theme.custom(_ThemeColour.panel) ?? _milkBackground,
+                  pressed: false,
+                  restingDepth: widget.pastelRecessed ? .78 : 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(5),
+                    child: icon,
+                  ),
+                )
+              : icon,
         ),
       ),
     );
@@ -259,15 +259,19 @@ class _TaskCheckbox extends StatelessWidget {
           side: edge == null
               ? theme.checkboxTheme.side
               : BorderSide(color: edge, width: 1),
-          fillColor: fill == null
-              ? null
-              : WidgetStateProperty.resolveWith(
-                  (states) => states.contains(WidgetState.selected)
-                      ? fill
-                      : Colors.transparent,
-                ),
+          fillColor: appearance == AppTheme.pastel
+              ? const WidgetStatePropertyAll(Colors.transparent)
+              : fill == null
+                  ? null
+                  : WidgetStateProperty.resolveWith(
+                      (states) => states.contains(WidgetState.selected)
+                          ? fill
+                          : Colors.transparent,
+                    ),
           checkColor:
-              appearance == AppTheme.cyberpunk ? Colors.transparent : null,
+              appearance == AppTheme.cyberpunk || appearance == AppTheme.pastel
+                  ? Colors.transparent
+                  : null,
           materialTapTargetSize: MaterialTapTargetSize.padded,
           visualDensity: VisualDensity.standard,
         );
@@ -313,22 +317,45 @@ class _TaskCheckbox extends StatelessWidget {
         alignment: Alignment.center,
         fit: StackFit.expand,
         children: [
-          Center(
-            child: SizedBox.square(
-              dimension: 18,
-              child: _PastelPressFace(
-                radius: _pastelRadius(theme, scale: .25),
-                colour: checked ? null : _pastelCheckboxFace,
-                pressed: checked,
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
+          Center(child: _MilkTaskMark(checked: checked)),
           box(),
         ],
       );
     }
     return box();
+  }
+}
+
+class _MilkTaskMark extends StatelessWidget {
+  const _MilkTaskMark({required this.checked});
+
+  final bool checked;
+
+  @override
+  Widget build(BuildContext context) {
+    const radius = BorderRadius.all(Radius.circular(7));
+    final face =
+        Theme.of(context).custom(_ThemeColour.panel) ?? _milkBackground;
+    return SizedBox.square(
+      key: const ValueKey('milk-task-mark'),
+      dimension: 24,
+      child: CustomPaint(
+        painter: _PastelFacePainter(radius, 1, face),
+        child: AnimatedOpacity(
+          opacity: checked ? 1 : 0,
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 170),
+          curve: Curves.easeInOut,
+          child: const DecoratedBox(
+            decoration: BoxDecoration(
+                gradient: _milkAccentGradient, borderRadius: radius),
+            child:
+                Icon(Icons.check_rounded, size: 19, color: Color(0xFF35235A)),
+          ),
+        ),
+      ),
+    );
   }
 }
 

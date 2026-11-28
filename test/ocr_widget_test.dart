@@ -291,6 +291,11 @@ void main() {
         expect(call.arguments['height'], 2);
         expect(call.arguments['aspectRatio'], 3 / 4);
         expect(call.arguments['rotation'], scans == 0 ? 90 : 270);
+        expect(
+            call.arguments['mirrored'],
+            scans == 1 && defaultTargetPlatform == TargetPlatform.iOS
+                ? true
+                : null);
         return scans++ == 0
             ? {'text': 'https : / / example . org /Docs?x=1'}
             : {'qr': qrUrl};
@@ -374,9 +379,10 @@ void main() {
         platform.operations,
         containsAllInOrder([
           'stopImageStream',
-          'lock 2 landscapeRight',
+          if (defaultTargetPlatform == TargetPlatform.android)
+            'lock 2 landscapeRight',
           'capture 2',
-          'unlock 2',
+          if (defaultTargetPlatform == TargetPlatform.android) 'unlock 2',
           'dispose 2',
         ]));
 
@@ -411,7 +417,11 @@ void main() {
       await tester.pump();
     }
     expect(capturedLinks, [ocrUrl, qrUrl]);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  },
+      variant: const TargetPlatformVariant({
+        TargetPlatform.android,
+        TargetPlatform.iOS,
+      }));
 
   testWidgets('the cover camera detects QR links and releases on cancel', (
     tester,

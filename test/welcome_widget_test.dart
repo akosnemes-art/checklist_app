@@ -51,10 +51,7 @@ void main() {
         find.byKey(const ValueKey('implemented-changes-title')),
         findsOneWidget,
       );
-      expect(find.text('Added new fonts and pixel buttons to SV.'),
-          findsOneWidget);
-      expect(find.text('Refined Cyberpunk’s TV noise.'), findsOneWidget);
-      expect(find.text('Added Milk formatting glow and spaced out its popups.'),
+      expect(find.text('Fixed asterisks in Notes and updated the app icon.'),
           findsOneWidget);
       expect(find.textContaining('Improved Pastel contrast'), findsNothing);
       expect(find.text('read less'), findsOneWidget);

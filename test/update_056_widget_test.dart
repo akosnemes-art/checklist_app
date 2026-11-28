@@ -200,7 +200,7 @@ void main() {
     expect((dialog.shape! as OutlinedBorder).side.color, blue);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('Pastel uses Android corner geometry and credits its two fonts',
+  testWidgets('Milk uses Manrope, matte surfaces and Android corner geometry',
       (tester) async {
     const display = MethodChannel('checklist/display');
     final messenger = tester.binding.defaultBinaryMessenger;
@@ -218,8 +218,8 @@ void main() {
     expect(
         (theme.inputDecorationTheme.border! as OutlineInputBorder).borderRadius,
         corners);
-    expect(theme.textTheme.headlineMedium?.fontFamily, 'Coiny');
-    expect(theme.textTheme.bodyLarge?.fontFamily, 'Nunito');
+    expect(theme.textTheme.headlineMedium?.fontFamily, 'Manrope');
+    expect(theme.textTheme.bodyLarge?.fontFamily, 'Manrope');
     expect(_key('pastel-workspace-backdrop'), findsOneWidget);
     final lifted =
         tester.widgetList<DecoratedBox>(_key('pastel-beveled-surface'));
@@ -244,9 +244,8 @@ void main() {
     final drawerGlyph =
         find.descendant(of: drawer, matching: find.byIcon(Icons.menu_rounded));
     final icon = tester.widget<Icon>(drawerGlyph);
-    expect(icon.color, Colors.white);
-    expect(icon.shadows!.first.color, Colors.white);
-    expect(icon.shadows!.first.blurRadius, greaterThan(0));
+    expect(icon.color, const Color(0xFF536479));
+    expect(icon.shadows, isNull);
     final travel =
         find.ancestor(of: drawer, matching: _key('pastel-press-travel'));
     double depth() =>
@@ -276,17 +275,17 @@ void main() {
     expect(date.dayBackgroundColor!.resolve({WidgetState.selected}), isNotNull);
     expect(
       theme.outlinedButtonTheme.style!.foregroundColor!.resolve({}),
-      const Color(0xFF75445F),
+      const Color(0xFF536479),
     );
     await _tap(tester, find.text('cancel'));
 
     await _tap(tester, find.byTooltip('open menu'));
     final create = tester.widget<FilledButton>(_key('sidebar-create-button'));
-    expect(create.style!.backgroundColor!.resolve({}), const Color(0xFFE5E0F2));
+    expect(create.style!.backgroundColor!.resolve({}), const Color(0xFFE8FDF6));
     await _tap(tester, _key('settings-toggle'));
     await _tap(tester, _key('settings-about'));
     await _tap(tester, _key('about-credits'));
-    expect(find.text('Marcelo Magalhães'), findsOneWidget);
+    expect(find.text('Mikhail Sharanda, Mirko Velimirovic'), findsOneWidget);
     expect(
         find.text('Vernon Adams, Cyreal, Jacques Le Bailly'), findsOneWidget);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
@@ -305,24 +304,54 @@ void main() {
         findsOneWidget);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets('Pastel Settings is flat apart from its aligned arrow',
+  testWidgets('Blue milk Settings shows a recessed divider and a press cycle',
       (tester) async {
-    await _load(tester, 'pastel');
+    await _load(tester, 'pastel', saved: {
+      'checklist.projects.v1':
+          '[{"id":"first","name":"First","createdAt":"2026-11-11T10:00:00.000Z","tasks":[]},'
+              '{"id":"second","name":"Second","createdAt":"2026-11-10T10:00:00.000Z","tasks":[]}]',
+    });
     await _tap(tester, find.byTooltip('open menu'));
     final chevron = _key('settings-chevron');
     double x(Finder target) => tester.getCenter(target).dx;
-    expect(x(chevron), closeTo(x(_key('sidebar-checklist-settings')), .001));
-    final bevel = _key('pastel-press-depth');
-    expect(find.descendant(of: chevron, matching: bevel), findsOneWidget);
-    await tester.tap(_key('settings-toggle'));
+    expect(
+        x(chevron), closeTo(x(_key('sidebar-checklist-settings').first), .001));
+    expect(tester.getSize(chevron), const Size.square(32));
+    expect(tester.widget<Drawer>(find.byType(Drawer)).elevation, 0);
+    final fullDivider = _key('settings-expanding-line');
+    expect(tester.getRect(fullDivider).left, 0);
+    expect(tester.getSize(fullDivider).width,
+        tester.getSize(find.byType(Drawer)).width);
+    final shelf = _key('pastel-sidebar-divider');
+    BoxDecoration dividerFace(Finder target) => tester
+        .widget<DecoratedBox>(
+          find.descendant(of: target, matching: find.byType(DecoratedBox)),
+        )
+        .decoration as BoxDecoration;
+    expect(dividerFace(fullDivider), dividerFace(shelf));
+    for (final mode in ['CHECKLIST', 'NOTES']) {
+      final role = find.bySemanticsLabel(mode);
+      expect(
+        find.descendant(of: role, matching: _key('pastel-press-depth')),
+        findsNothing,
+      );
+    }
+    final travel =
+        find.ancestor(of: chevron, matching: _key('pastel-press-travel'));
+    double depth() =>
+        tester.widget<Transform>(travel).transform.getTranslation().y;
+    expect(depth(), 0);
+    await tester.tap(chevron);
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(depth(), closeTo(1.2, .001));
     expect(tester.widget<Text>(find.text('settings')).style!.shadows, isNull);
-    await tester.pumpAndSettle();
-    expect(find.descendant(of: _key('settings-panel'), matching: bevel),
-        findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(depth(), 0);
+    expect(tester.getSize(fullDivider).width,
+        tester.getSize(find.byType(Drawer)).width);
     await _tap(tester, _key('settings-about'));
-    expect(find.descendant(of: _key('settings-panel'), matching: bevel),
-        findsOneWidget);
     await _tap(tester, find.bySemanticsLabel('NOTES'));
     expect(x(chevron), closeTo(x(_key('sidebar-note-settings')), .001));
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
@@ -335,7 +364,8 @@ void main() {
     await _tap(tester, find.byTooltip('open menu'));
     await _tap(tester, _key('settings-toggle'));
     await _tap(tester, _key('settings-themes'));
-    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Blue milk'), findsOneWidget);
+    expect(_key('milk-jug-icon'), findsOneWidget);
     expect(find.text('Pastel'), findsNothing);
     await tester.ensureVisible(_key('theme-sv'));
     await _tap(tester, _key('theme-sv'));
@@ -403,6 +433,17 @@ void main() {
     ];
     expect(buttons[0].right, lessThan(buttons[1].left));
     expect(buttons[1].right, lessThan(buttons[2].left));
+    for (final action in ['new', 'remove']) {
+      final button =
+          tester.widget<FilledButton>(_key('category-$action-button'));
+      expect(
+          button.style!.backgroundColor!.resolve({}), const Color(0xFFE8FDF6));
+      expect(
+          button.style!.foregroundColor!.resolve({}), const Color(0xFF536479));
+      expect(button.style!.side!.resolve({}), BorderSide.none);
+    }
+    final cancel = tester.widget<TextButton>(_key('category-cancel-button'));
+    expect(cancel.style!.foregroundColor!.resolve({}), const Color(0xFF536479));
     await _tap(tester, _key('category-cancel-button'));
     expect(popup, findsNothing);
     expect(tester.takeException(), isNull);
@@ -440,8 +481,7 @@ void main() {
     expect(tester.widget<Icon>(arrow).shadows, isNull);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
-  testWidgets(
-      'Pastel progress fills its recess and priority controls are larger',
+  testWidgets('Milk confines lavender progress and completion to small accents',
       (tester) async {
     await _load(tester, 'pastel');
     final track = _key('pastel-progress-track');
@@ -449,28 +489,48 @@ void main() {
     expect(track, findsOneWidget);
     expect(fill, findsNothing);
     final dynamic recess = tester.widget<CustomPaint>(track).painter;
-    expect(recess.colour, isNull);
+    expect(recess.colour, const Color(0xFFE8FDF6));
     expect(recess.depth, 1);
 
+    final mark =
+        find.descendant(of: _task('linked'), matching: _key('milk-task-mark'));
+    expect(tester.getSize(mark), const Size.square(24));
+    final opacity =
+        find.descendant(of: mark, matching: find.byType(AnimatedOpacity));
+    expect(tester.widget<AnimatedOpacity>(opacity).opacity, 0);
     await _tap(tester, _task('linked'));
+    expect(tester.widget<AnimatedOpacity>(opacity).opacity, 1);
+    expect(
+        tester
+            .widget<Checkbox>(find.descendant(
+                of: _task('linked'), matching: find.byType(Checkbox)))
+            .value,
+        isTrue);
     BoxDecoration face(Finder widget) =>
         tester.widget<DecoratedBox>(widget).decoration as BoxDecoration;
     final row = find.ancestor(
       of: _key('task-row-linked'),
       matching: _key('pastel-beveled-surface'),
     );
-    expect(face(fill).color, const Color(0xFFCFE8DA));
-    expect(face(fill).color, face(row).color);
+    expect(face(row).color, const Color(0xFFE8FDF6));
+    final gradient = face(fill).gradient! as LinearGradient;
+    expect(gradient.colors, [const Color(0xFF9C72ED), const Color(0xFFAF96F4)]);
+    expect(find.ancestor(of: fill, matching: find.byType(ClipRRect)),
+        findsAtLeastNWidgets(1));
     expect(tester.getSize(fill).width,
         closeTo(tester.getSize(track).width / 2, 1));
-    final dynamic raised = tester
-        .widget<CustomPaint>(
-            find.descendant(of: fill, matching: find.byType(CustomPaint)))
-        .foregroundPainter;
-    expect(raised.depth, 0);
-
     final priority = _key('priority-chip-normal');
     expect(tester.getSize(priority).height, greaterThanOrEqualTo(44));
+    final travel =
+        find.ancestor(of: priority, matching: _key('pastel-press-travel'));
+    final hold = await tester.startGesture(tester.getCenter(priority));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(tester.widget<Transform>(travel).transform.getTranslation().y,
+        closeTo(1.2, .001));
+    await hold.cancel();
+    await tester.pumpAndSettle();
+    expect(tester.widget<Transform>(travel).transform.getTranslation().y, 0);
     await _tap(tester, priority);
     final option = find.ancestor(
       of: _key('priority-menu-high'),
@@ -490,23 +550,44 @@ void main() {
         {'id': 'bright', 'name': 'Sunshine', 'colorValue': yellow.toARGB32()},
       ]),
     });
-    const muted = Color(0xFF5E5267);
+    const muted = Color(0xFF536479);
     final composer = tester.widget<TextField>(find.byType(TextField));
-    expect(composer.decoration!.hintStyle!.color, muted);
+    expect(composer.decoration!.hintStyle!.color, const Color(0xFF899095));
+    final dynamic focusBorder = composer.decoration!.focusedBorder;
+    expect(focusBorder.focused, isTrue);
     final dots = find.descendant(
         of: _menu(0), matching: find.byIcon(Icons.more_vert_rounded));
     expect(tester.widget<Icon>(dots).color, muted);
+    final dotFace =
+        find.descendant(of: _menu(0), matching: _key('pastel-press-depth'));
+    await _tap(tester, _menu(0));
+    expect(
+        tester.widget<TweenAnimationBuilder<double>>(dotFace).tween.end, .78);
+    await tester.tapAt(const Offset(8, 20));
+    await tester.pumpAndSettle();
 
     Color textColour(Finder target) =>
         tester.widget<Text>(target).style!.color!;
     double contrast(Color ink, Color surface) =>
         (surface.computeLuminance() + .05) / (ink.computeLuminance() + .05);
     final priority = _key('priority-chip-normal');
-    final tint =
-        (tester.widget<Container>(priority).decoration as BoxDecoration).color!;
+    final priorityRelief =
+        find.ancestor(of: priority, matching: _key('pastel-press-depth'));
+    final dynamic priorityPainter = tester
+        .widget<CustomPaint>(
+          find
+              .descendant(
+                  of: priorityRelief, matching: find.byType(CustomPaint))
+              .first,
+        )
+        .painter;
+    final Color tint = priorityPainter.colour;
+    final bar = tester.widget<Container>(_key('milk-priority-bar'));
+    expect((bar.decoration as BoxDecoration).borderRadius,
+        BorderRadius.circular(2.5));
     final priorityText =
         find.descendant(of: priority, matching: find.text('medium'));
-    const clay = Color(0xFFE8EFF5);
+    const clay = Color(0xFFE8FDF6);
     expect(contrast(textColour(priorityText), Color.alphaBlend(tint, clay)),
         greaterThanOrEqualTo(4.5));
 

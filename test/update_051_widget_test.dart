@@ -29,7 +29,7 @@ void main() {
       const BorderSide(color: Color(0xFF858C94), width: 2),
       const Color(0xFFE7E6E3)
     ),
-    ('pastel', BorderSide.none, const Color(0xFFF7FAFC)),
+    ('pastel', BorderSide.none, const Color(0xFFE8FDF6)),
   ]) {
     testWidgets(
         'create-note popup follows $theme and reveals content after the frame',

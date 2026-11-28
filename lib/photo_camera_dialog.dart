@@ -146,6 +146,8 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
   void _showCameraError(Object error) {
     final permissionDenied = error is CameraException &&
         (error.code == 'CameraAccessDenied' ||
+            error.code == 'CameraAccessDeniedWithoutPrompt' ||
+            error.code == 'CameraAccessRestricted' ||
             error.code == 'cameraPermission');
     setState(() {
       _opening = false;
@@ -158,9 +160,9 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
   }
 
   Future<void> _startScanning(CameraController controller) async {
-    if (!mounted ||
-        Theme.of(context).platform != TargetPlatform.android ||
-        !controller.supportsImageStreaming()) {
+    if (!mounted || !controller.supportsImageStreaming()) return;
+    final platform = Theme.of(context).platform;
+    if (platform != TargetPlatform.android && platform != TargetPlatform.iOS) {
       return;
     }
     try {
@@ -193,6 +195,8 @@ class _PhotoCameraDialogState extends State<_PhotoCameraDialog>
         image,
         rotation: controller.description.sensorOrientation,
         aspectRatio: _aspectRatio,
+        mirrored: Theme.of(context).platform == TargetPlatform.iOS &&
+            controller.description.lensDirection == CameraLensDirection.front,
       );
       if (!_isPreviewing(controller)) return;
       final link = result.qrLink ?? result.textLinks.firstOrNull?.uri;

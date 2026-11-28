@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:checklist_app/app_version.dart';
 import 'package:checklist_app/main.dart';
+import 'package:checklist_app/services/ocr_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -42,6 +43,7 @@ class _ImageFilePicker extends FilePickerPlatform {
 
   final String filePath;
   bool picked = false;
+  FileType? pickedType;
 
   @override
   Future<PlatformFile?> pickFile({
@@ -58,11 +60,60 @@ class _ImageFilePicker extends FilePickerPlatform {
     WebOptions webOptions = const WebOptions(),
   }) async {
     picked = true;
+    pickedType = type;
     return _PickedImage(filePath);
   }
 }
 
 void main() {
+  testWidgets('iPhone Notes sends a picked image to native OCR',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'checklist.welcome.v1': true,
+      'checklist.lastSeenVersion.v1': checklistRelease,
+      'checklist.notes.v1':
+          '[{"id":"note","name":"Scan","createdAt":"2026-11-12T10:00:00Z","content":"","categoryId":null}]',
+    });
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final oldPicker = FilePickerPlatform.instance;
+    final picker = _ImageFilePicker('/picked/letter.heic');
+    FilePickerPlatform.instance = picker;
+    addTearDown(() => FilePickerPlatform.instance = oldPicker);
+    const channel = MethodChannel(OcrService.channelName);
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'recognisePhoto');
+      expect(call.arguments, {'path': '/picked/letter.heic'});
+      return {'text': 'Train tickets'};
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    await tester.pumpWidget(const ChecklistApp());
+    await tester.pumpAndSettle();
+    final presentation = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+      find.byKey(const ValueKey('edge-to-edge-system-ui')),
+    );
+    expect(presentation.value.statusBarBrightness, Brightness.dark);
+    await tester.tap(find.byTooltip('open menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('NOTES'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(375, 135));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('note-ocr-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('add picture'));
+    await tester.pumpAndSettle();
+    expect(picker.pickedType, FileType.image);
+    expect(find.text('Train tickets'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    final saved = await SharedPreferences.getInstance();
+    expect(saved.getString('checklist.notes.v1'), contains('Train tickets'));
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+
   testWidgets('checklist launches with a dated starter checklist', (
     tester,
   ) async {
@@ -617,10 +668,10 @@ void main() {
       expect(tester.getBottomLeft(settings).dy, lessThanOrEqualTo(776));
     }
 
-    expectDrawer(const Color(0xFFE5ECF2));
+    expectDrawer(const Color(0xFFE8FDF6));
     await tester.tap(find.bySemanticsLabel('NOTES'));
     await tester.pumpAndSettle();
-    expectDrawer(const Color(0xFFE8ECF4));
+    expectDrawer(const Color(0xFFE8FDF6));
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   testWidgets('tasks link to notes and open a scrollable note popup', (
@@ -922,7 +973,7 @@ void main() {
     );
     expect(find.text('Boi'), findsOneWidget);
     expect(find.text('Pencil'), findsOneWidget);
-    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Blue milk'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('theme-pencil')));
     await tester.pumpAndSettle();
@@ -965,16 +1016,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('theme-pastel')));
     await tester.pumpAndSettle();
     modeTheme = Theme.of(tester.element(find.byType(Scaffold).first));
-    expect(modeTheme.scaffoldBackgroundColor, const Color(0xFFEAF0F6));
-    expect(modeTheme.colorScheme.surface, const Color(0xFFF7FAFC));
-    expect(modeTheme.colorScheme.secondary, const Color(0xFFD8C6EF));
-    expect(modeTheme.dividerColor, const Color(0xFFBAC8D4));
+    expect(modeTheme.scaffoldBackgroundColor, const Color(0xFFE8FDF6));
+    expect(modeTheme.colorScheme.surface, const Color(0xFFE8FDF6));
+    expect(modeTheme.colorScheme.secondary, const Color(0xFFE4DBF7));
+    expect(modeTheme.dividerColor, const Color(0xFFC4D0DC));
     final pastelSidebar = tester.widget<AnimatedContainer>(
       find.byKey(const ValueKey('sidebar-surface')),
     );
     expect(
       (pastelSidebar.decoration! as BoxDecoration).color,
-      const Color(0xFFE8ECF4),
+      const Color(0xFFE8FDF6),
     );
     final preferences = await SharedPreferences.getInstance();
     expect(preferences.getString('checklist.theme.v1'), 'pastel');
@@ -984,31 +1035,32 @@ void main() {
     final mediumChip = tester.widget<Container>(
       find.byKey(const ValueKey('priority-chip-normal')),
     );
-    final mediumSurface = mediumChip.decoration! as BoxDecoration;
-    expect(mediumSurface.border!.top, BorderSide.none);
-    expect(
-      mediumSurface.color,
-      const Color(0xFF00978D).withValues(alpha: .12),
-    );
+    expect(mediumChip.decoration, isNull);
     await tester.tap(find.byKey(const ValueKey('priority-chip-normal')));
     await tester.pumpAndSettle();
     expect(
       tester
           .widget<Container>(find.byKey(const ValueKey('priority-menu-high')))
-          .color,
-      const Color(0xFFE31F26),
+          .decoration,
+      BoxDecoration(
+          color: const Color(0xFFE31F26),
+          borderRadius: BorderRadius.circular(2.5)),
     );
     expect(
       tester
           .widget<Container>(find.byKey(const ValueKey('priority-menu-normal')))
-          .color,
-      const Color(0xFF00978D),
+          .decoration,
+      BoxDecoration(
+          color: const Color(0xFF00978D),
+          borderRadius: BorderRadius.circular(2.5)),
     );
     expect(
       tester
           .widget<Container>(find.byKey(const ValueKey('priority-menu-low')))
-          .color,
-      const Color(0xFFB5B1D8),
+          .decoration,
+      BoxDecoration(
+          color: const Color(0xFFB5B1D8),
+          borderRadius: BorderRadius.circular(2.5)),
     );
     await tester.tapAt(const Offset(1100, 700));
     await tester.pumpAndSettle();
@@ -1424,13 +1476,13 @@ void main() {
     await tap(opener);
     await tap(settings);
     await tap(themes);
-    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Blue milk'), findsOneWidget);
 
     await tester.tapAt(const Offset(360, 385));
     await tester.pumpAndSettle();
     expect(find.byType(Drawer), findsNothing);
     await tap(opener);
-    expect(find.text('Milk'), findsNothing);
+    expect(find.text('Blue milk'), findsNothing);
     expect(themes, findsNothing);
     await tap(settings);
     expect(themes, findsOneWidget);

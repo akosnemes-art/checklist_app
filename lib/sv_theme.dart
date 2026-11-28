@@ -137,9 +137,7 @@ Widget _taskSurface(ThemeData theme, Widget child, {required bool completed}) {
       ),
     );
   }
-  return _pastelLift(theme, child,
-      colour: panel ??
-          (completed ? _pastelCompletedTaskSurface : _pastelPorcelain));
+  return _pastelLift(theme, child, colour: panel);
 }
 
 class _SvLandscape extends CustomPainter {

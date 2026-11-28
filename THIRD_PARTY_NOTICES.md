@@ -12,16 +12,27 @@ with their SIL Open Font License 1.1 notices.
 [Press Start 2P source](https://github.com/google/fonts/tree/main/ofl/pressstart2p) · [Press Start 2P license](assets/fonts/PressStart2P-OFL.txt)
 [VT323 source](https://github.com/google/fonts/tree/main/ofl/vt323) · [VT323 license](assets/fonts/VT323-OFL.txt)
 
-## Milk fonts
+## Blue milk fonts
 
-Milk uses Coiny by Marcelo Magalhães and Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly. Nunito's bundled styles are static instances of the upstream variable fonts.
+Blue milk uses Manrope by Mikhail Sharanda, with variable-font work by Mirko
+Velimirovic. Nunito by Vernon Adams, Cyreal, and Jacques Le Bailly is a fallback
+in Blue milk and SV. The bundled Nunito styles are static instances of the
+upstream variable fonts.
 Both ship with their SIL Open Font License 1.1 notices.
-[Coiny licence](assets/fonts/Coiny-OFL.txt) · [Nunito licence](assets/fonts/Nunito-OFL.txt) · [Nunito source](https://github.com/googlefonts/nunito)
+[Manrope licence](assets/fonts/Manrope-OFL.txt) · [Manrope source](https://github.com/google/fonts/tree/main/ofl/manrope) · [Nunito licence](assets/fonts/Nunito-OFL.txt) · [Nunito source](https://github.com/googlefonts/nunito)
 
 ## Cyberpunk theme
 
-Rajdhani is by the Indian Type Foundry. The [SIL Open Font License 1.1](assets/fonts/Rajdhani-OFL.txt)
-ships with the font.
+Rajdhani is by Indian Type Foundry. Shiva Nalleperumal designed the Latin
+letterforms. Satya Rajpurohit and Jyotish Sonowal designed the Devanagari.
+[Rajdhani design credits](https://github.com/google/fonts/blob/main/ofl/rajdhani/DESCRIPTION.en_us.html) · [SIL Open Font License 1.1](assets/fonts/Rajdhani-OFL.txt)
+
+## Android system fonts
+
+Boi and Pencil use Roboto by Christian Robertson. Copper and Black Metal use
+the system serif for headings. Stock Android maps that family to Noto Serif by
+the Noto Project Authors, based on Steve Matteson's Droid Serif design.
+[Roboto source](https://github.com/googlefonts/roboto-2) · [Android font configuration](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/data/fonts/fonts.xml) · [Noto origins](https://github.com/notofonts/noto-docs/blob/main/docs/website/use.md)
 
 ## PaddleOCR Android SDK and PP-OCRv6 models
 

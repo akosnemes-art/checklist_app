@@ -1,4 +1,6 @@
 import 'package:camera/camera.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'note_links.dart';
@@ -95,6 +97,13 @@ class OcrService {
   static const _channel = MethodChannel(channelName);
 
   Future<CameraText?> recognisePicture() async {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      final picture = await FilePicker.pickFile(type: FileType.image);
+      if (picture == null) return null;
+      final path = picture.path;
+      if (path == null) throw PlatformException(code: 'invalid_image');
+      return recognisePhoto(path);
+    }
     final result = await _channel.invokeMethod<Object>(
       'pickAndRecognise',
       {'source': OcrImageSource.picture.name},
@@ -109,6 +118,7 @@ class OcrService {
     CameraImage image, {
     required int rotation,
     required double aspectRatio,
+    bool mirrored = false,
   }) {
     final luma = image.planes.first;
     return _readCameraText('scanCameraFrame', {
@@ -119,6 +129,7 @@ class OcrService {
       'pixelStride': luma.bytesPerPixel ?? 1,
       'rotation': rotation,
       'aspectRatio': aspectRatio,
+      if (mirrored) 'mirrored': true,
     });
   }
 

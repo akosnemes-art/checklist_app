@@ -340,7 +340,7 @@ Color _sidebarColour(AppTheme appearance, bool notes) {
   return switch (appearance) {
     AppTheme.boi => notes ? _notesSidebar : _checklistSidebar,
     AppTheme.pencil => _lightSidebar,
-    AppTheme.pastel => notes ? _milkNotesSidebar : _milkChecklistSidebar,
+    AppTheme.pastel => _milkBackground,
     AppTheme.copper ||
     AppTheme.blackMetal =>
       appearance._metalPalette!.sidebar(notes),
@@ -355,7 +355,7 @@ Color _createButtonColour(AppTheme appearance, bool notes) {
   return switch (appearance) {
     AppTheme.boi => notes ? _deepBlueButton : _darkPurpleButton,
     AppTheme.pencil => _lightControl,
-    AppTheme.pastel => notes ? _pastelBlueButton : _pastelRoseButton,
+    AppTheme.pastel => _milkBackground,
     AppTheme.copper ||
     AppTheme.blackMetal =>
       appearance._metalPalette!.button(notes),
@@ -412,19 +412,23 @@ Map<_ThemeColour, Color> _themeColourDefaults(AppTheme appearance, bool notes) {
         (pencil
             ? _lightSurface
             : pastel
-                ? _pastelWhite
+                ? _milkBackground
                 : _surfaceDark),
     _ThemeColour.sidebar: _sidebarColour(appearance, notes),
     _ThemeColour.text: metal?.ink ??
         modern?.ink ??
-        (appearance.isDark ? _borderWhite : _lightText),
+        (pastel
+            ? _milkInk
+            : appearance.isDark
+                ? _borderWhite
+                : _lightText),
     _ThemeColour.buttons: _createButtonColour(appearance, notes),
     _ThemeColour.borders: metal?.line ??
         modern?.border ??
         (pencil
             ? _lightLine
             : pastel
-                ? _milkAccent
+                ? _pastelLavender
                 : _defaultNoteBlue),
     _ThemeColour.checklistAccent: checklist,
     _ThemeColour.notesAccent: note,

@@ -63,12 +63,6 @@ const _lightSidebar = Color(0xFFD5D4D1);
 const _lightLine = Color(0xFF858C94);
 const _lightControl = Color(0xFF666B70);
 const _lightText = Color(0xFF101010);
-const _milkBackground = Color(0xFFEAF0F6);
-const _pastelWhite = Color(0xFFF7FAFC);
-const _milkAccent = Color(0xFFD8C6EF);
-const _milkChecklistSidebar = Color(0xFFE5ECF2);
-const _milkNotesSidebar = Color(0xFFE8ECF4);
-const _milkLine = Color(0xFFBAC8D4);
 const _pastelPriorityHigh = Color(0xFFE31F26);
 const _pastelPriorityMedium = Color(0xFF00978D);
 const _pastelPriorityLow = Color(0xFFB5B1D8);
@@ -81,14 +75,21 @@ const _linkedNoteCueDuration = Duration(milliseconds: 140);
 const _sidebarEntryFadeDuration = Duration(milliseconds: 240);
 const _coverAspectRatio = 16 / 9;
 const _sidebarEntryInset = 10.0;
+const _sidebarContentInsets = EdgeInsets.fromLTRB(18, 0, 14, 0);
+const _settingsResizeDuration = Duration(milliseconds: 380);
 const _sidebarEntryMenuSize = 36.0;
 const _buildChanges = <String>[
-  'Added new fonts and pixel buttons to SV.',
-  'Refined Cyberpunk’s TV noise.',
-  'Added Milk formatting glow and spaced out its popups.',
+  'Fixed asterisks in Notes and updated the app icon.',
+  'Notes now saves pending edits when you leave the app.',
 ];
 const _implementedChanges = <String>[
   ..._buildChanges,
+  'Renamed Milk to Blue milk and refreshed its controls and sidebar.',
+  'Updated the font credits.',
+  'Redesigned Milk with matte surfaces, Manrope and lavender accents.',
+  'Added new fonts and pixel buttons to SV.',
+  'Refined Cyberpunk’s TV noise.',
+  'Added Milk formatting glow and spaced out its popups.',
   'Renamed Pastel to Milk and softened its surfaces.',
   'Added the SV theme.',
   'Added a blue focus glow and animated grain to Cyberpunk.',
@@ -171,14 +172,17 @@ Future<T?> showDialog<T>({
   required WidgetBuilder builder,
   bool barrierDismissible = true,
 }) {
+  final milk = Theme.of(context).appearance == AppTheme.pastel;
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
     barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-    barrierColor: Colors.black54,
+    barrierColor: milk ? const Color(0x4D54718B) : Colors.black54,
     transitionDuration: MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
-        : _popupDuration,
+        : milk
+            ? const Duration(milliseconds: 240)
+            : _popupDuration,
     pageBuilder: (dialogContext, animation, secondaryAnimation) =>
         builder(dialogContext),
     transitionBuilder: (context, animation, secondaryAnimation, child) =>
@@ -530,21 +534,21 @@ class _ChecklistAppState extends State<ChecklistApp> {
       ),
       useMaterial3: true,
     );
-    final pastelAccent = _milkAccent;
+    final pastelAccent = _pastelLavender;
     final pastel = ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: _milkBackground,
       colorScheme: ColorScheme.light(
         primary: pastelAccent,
-        secondary: _milkAccent,
-        surface: _pastelWhite,
-        onSurface: _lightText,
+        secondary: _pastelLavender,
+        surface: _milkBackground,
+        onSurface: _milkInk,
       ),
       dividerColor: _milkLine,
       fontFamily: 'Roboto',
       inputDecorationTheme: const InputDecorationTheme(
         filled: true,
-        fillColor: _pastelWhite,
+        fillColor: _milkBackground,
         hintStyle: TextStyle(color: _lightControl),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.zero,
@@ -584,15 +588,15 @@ class _ChecklistAppState extends State<ChecklistApp> {
         ),
       ),
       dialogTheme: const DialogThemeData(
-        backgroundColor: _pastelWhite,
+        backgroundColor: _milkBackground,
         shape: RoundedRectangleBorder(
           side: BorderSide(color: _defaultNoteBlue, width: 2),
         ),
       ),
       popupMenuTheme: const PopupMenuThemeData(
-        color: _pastelWhite,
+        color: _milkBackground,
         shape: RoundedRectangleBorder(
-          side: BorderSide(color: _milkAccent, width: 2),
+          side: BorderSide(color: _pastelLavender, width: 2),
         ),
       ),
       chipTheme: const ChipThemeData(
@@ -694,7 +698,7 @@ class ChecklistHome extends StatefulWidget {
 }
 
 class _ChecklistHomeState extends State<ChecklistHome>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   _MetalPalette? get _metalPalette => widget.appTheme._metalPalette;
   bool get _blackMetal => widget.appTheme == AppTheme.blackMetal;
   _ModernPalette? get _modernPalette => widget.appTheme._modernPalette;
@@ -753,12 +757,14 @@ class _ChecklistHomeState extends State<ChecklistHome>
   Timer? _websitePreviewTimer;
   Timer? _heartTapResetTimer;
   Timer? _infoTapTimer;
+  Timer? _settingsReliefTimer;
   int _heartTapCount = 0;
   int _heartRestartSignal = 0;
   bool _welcomeScheduled = false;
   bool _ocrBusy = false;
   bool _backupBusy = false;
   bool _settingsOpen = false;
+  bool _settingsReliefHeld = false;
   _SettingsPage _settingsPage = _SettingsPage.main;
   final Set<String> _sidebarExitingIds = <String>{};
   int _activeNoteFormats = 0;
@@ -787,9 +793,27 @@ class _ChecklistHomeState extends State<ChecklistHome>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _noteController = _FormattedNoteController();
     _noteController.addListener(_syncActiveNoteFormats);
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) unawaited(_flushPendingNoteSave());
+    if (Platform.isIOS &&
+        state == AppLifecycleState.resumed &&
+        !_loading &&
+        _loadError == null) {
+      unawaited(_syncReminders());
+    }
+  }
+
+  Future<void> _flushPendingNoteSave() async {
+    if (_noteSaveTimer?.isActive != true) return;
+    _noteSaveTimer!.cancel();
+    await _persistNotes();
   }
 
   void _syncActiveNoteFormats() {
@@ -801,13 +825,15 @@ class _ChecklistHomeState extends State<ChecklistHome>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _noteReveal.dispose();
     _projectReveal.dispose();
     _themeBuild.dispose();
-    _noteSaveTimer?.cancel();
+    unawaited(_flushPendingNoteSave());
     _websitePreviewTimer?.cancel();
     _heartTapResetTimer?.cancel();
     _infoTapTimer?.cancel();
+    _settingsReliefTimer?.cancel();
     _taskController.dispose();
     _taskFocusNode.dispose();
     _noteFocusNode.dispose();
@@ -816,7 +842,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({ChecklistBackup? replacement}) async {
     if (mounted) {
       setState(() {
         _loading = true;
@@ -824,6 +850,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
       });
     }
     try {
+      if (replacement == null) {
+        await _store.recoverPendingRestore();
+      } else {
+        await _store.restoreBackup(replacement);
+      }
       final results = await Future.wait<Object?>([
         _store.loadProjects(),
         _store.loadSort(),
@@ -896,10 +927,10 @@ class _ChecklistHomeState extends State<ChecklistHome>
     }
   }
 
-  Future<bool> _persist() async {
+  Future<bool> _persist({bool reportReminderError = false}) async {
     try {
       await _store.saveProjects(_projects);
-      await _syncReminders();
+      await _syncReminders(reportError: reportReminderError);
       return true;
     } catch (error) {
       if (mounted) _showMessage('Could not save changes: $error');
@@ -907,13 +938,18 @@ class _ChecklistHomeState extends State<ChecklistHome>
     }
   }
 
-  Future<void> _syncReminders() async {
+  Future<void> _syncReminders({bool reportError = false}) async {
     try {
       await _reminderService.sync(_projects);
     } on PlatformException catch (error) {
       debugPrint('Could not schedule checklist reminders: ${error.message}');
+      if (Platform.isIOS && reportError && mounted) {
+        _showMessage(error.code == 'notifications_denied'
+            ? 'Reminder saved. Allow notifications in iPhone Settings to receive it.'
+            : 'Reminder saved, but the notification could not be scheduled.');
+      }
     } on MissingPluginException {
-      debugPrint('Checklist alarms are available on Android.');
+      debugPrint('The checklist reminders bridge is unavailable.');
     }
   }
 
@@ -1242,7 +1278,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
         _modernPalette?.accent(!active);
     final ink = accent ??
         (pastel
-            ? (active ? _pastelPlum : _deepBlueButton)
+            ? (active ? _pastelPlum : _pastelMutedInk)
             : active
                 ? (palette?.checklistAccent ?? _brandYellow)
                 : (palette?.notesAccent ?? _defaultNoteBlue));
@@ -1269,7 +1305,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
             )
           : pastel && active
               ? Icon(icon, shadows: const [
-                  Shadow(color: Color(0xD89E70D4), blurRadius: 6),
+                  Shadow(color: Color(0x659E70D4), blurRadius: 4),
                 ])
               : _noteGlyph(context, icon,
                   colour: theme.appearance == AppTheme.pixel ? ink : null,
@@ -1360,7 +1396,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
         _showMessage(error.message ?? 'Could not recognise that image.');
       }
     } on MissingPluginException {
-      if (mounted) _showMessage('Photo text is available on Android.');
+      if (mounted) _showMessage('Could not recognise that image.');
     } catch (error) {
       if (mounted) _showMessage('Could not recognise that image: $error');
     } finally {
@@ -1712,7 +1748,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
               switch (widget.appTheme) {
                 AppTheme.boi => _defaultNoteBlue,
                 AppTheme.pencil => _lightLine,
-                AppTheme.pastel => _milkAccent,
+                AppTheme.pastel => _pastelLavender,
                 AppTheme.copper => _copperPalette.checklistAccent,
                 AppTheme.blackMetal => _blackMetalPalette.checklistAccent,
                 AppTheme.pixel => _pixelPalette.border,
@@ -1748,7 +1784,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     );
     if (result == null || !mounted) return;
     setState(() => project.reminderAt = result.reminderAt);
-    await _persist();
+    await _persist(reportReminderError: result.reminderAt != null);
   }
 
   Future<void> _deleteProject(ChecklistProject project) async {
@@ -1938,7 +1974,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final palette = _metalPalette;
     final wide = MediaQuery.sizeOf(context).width >= 820;
     final sidebar = _buildSidebar(mobile: !wide);
-    final mobileSidebar = Platform.isAndroid
+    final mobileSidebar = Platform.isAndroid || Platform.isIOS
         ? Stack(
             fit: StackFit.expand,
             children: [
@@ -1982,6 +2018,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
       key: const ValueKey('edge-to-edge-system-ui'),
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
+        statusBarBrightness: widget.isDark ? Brightness.dark : Brightness.light,
         statusBarIconBrightness: systemIconBrightness,
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
@@ -1991,7 +2028,14 @@ class _ChecklistHomeState extends State<ChecklistHome>
       child: PopScope(
         canPop: false,
         child: Scaffold(
-          drawer: wide ? null : Drawer(width: 292, child: mobileSidebar),
+          drawer: wide
+              ? null
+              : Drawer(
+                  width: 292,
+                  elevation: widget.isPastel ? 0 : null,
+                  child: mobileSidebar,
+                ),
+          drawerScrimColor: widget.isPastel ? const Color(0x3D5D748C) : null,
           drawerEnableOpenDragGesture: !wide,
           drawerEdgeDragWidth: 40,
           onDrawerChanged: wide
@@ -2001,6 +2045,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   setState(() {
                     _mobileDrawerActive = isOpen;
                     if (!isOpen) {
+                      _settingsReliefTimer?.cancel();
+                      _settingsReliefHeld = false;
                       _settingsOpen = false;
                       _settingsPage = _SettingsPage.main;
                     }
@@ -2013,30 +2059,32 @@ class _ChecklistHomeState extends State<ChecklistHome>
               children: [
                 if (wide) SizedBox(width: 282, child: sidebar),
                 Expanded(
-                  child: AnimatedContainer(
-                    key: const ValueKey('workspace-surface'),
-                    duration: const Duration(milliseconds: 280),
-                    decoration: palette != null
-                        ? _metalBackdrop(
-                            palette,
-                            notesActive: _showNotes,
-                            background: Theme.of(context)
-                                .custom(_ThemeColour.background),
-                            sidebar:
-                                Theme.of(context).custom(_ThemeColour.sidebar),
-                          )
-                        : const BoxDecoration(),
-                    child: _AppearanceBackdrop(
-                      child: _ThemeBuildReveal(
-                        progress: _themeBuild,
-                        child: SafeArea(
-                          key: const ValueKey('main-content-safe-area'),
-                          left: false,
-                          right: false,
-                          child: _BlackMetalPanel(
-                            enabled: _blackMetal,
-                            initialDelay: const Duration(milliseconds: 2300),
-                            child: workspace,
+                  child: RepaintBoundary(
+                    child: AnimatedContainer(
+                      key: const ValueKey('workspace-surface'),
+                      duration: const Duration(milliseconds: 280),
+                      decoration: palette != null
+                          ? _metalBackdrop(
+                              palette,
+                              notesActive: _showNotes,
+                              background: Theme.of(context)
+                                  .custom(_ThemeColour.background),
+                              sidebar: Theme.of(context)
+                                  .custom(_ThemeColour.sidebar),
+                            )
+                          : const BoxDecoration(),
+                      child: _AppearanceBackdrop(
+                        child: _ThemeBuildReveal(
+                          progress: _themeBuild,
+                          child: SafeArea(
+                            key: const ValueKey('main-content-safe-area'),
+                            left: false,
+                            right: false,
+                            child: _BlackMetalPanel(
+                              enabled: _blackMetal,
+                              initialDelay: const Duration(milliseconds: 2300),
+                              child: workspace,
+                            ),
                           ),
                         ),
                       ),
@@ -2120,9 +2168,14 @@ class _ChecklistHomeState extends State<ChecklistHome>
         ),
       );
       if (confirmed != true || !mounted) return;
-      await _store.restoreBackup(backup);
-      await _load();
-      if (mounted) _showMessage('Backup imported successfully.');
+      await _flushPendingNoteSave();
+      if (!mounted) return;
+      _websitePreviewTimer?.cancel();
+      _pendingWebsiteLinks.clear();
+      await _load(replacement: backup);
+      if (mounted && _loadError == null) {
+        _showMessage('Backup imported successfully.');
+      }
     } catch (error) {
       if (mounted) _showMessage('Could not import that backup: $error');
     } finally {
@@ -2133,6 +2186,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
   Widget _settingsOption({
     required String label,
     IconData? icon,
+    Widget? leading,
     required VoidCallback onTap,
     Key? key,
     bool selected = false,
@@ -2151,12 +2205,13 @@ class _ChecklistHomeState extends State<ChecklistHome>
           child: Row(
             children: [
               const SizedBox(width: 8),
-              if (icon != null) ...[
-                _settingsGlyph(context, icon,
-                    size: 18,
-                    colour: foreground,
-                    active: pressed || selected,
-                    settingsOpen: _settingsOpen),
+              if (leading != null || icon != null) ...[
+                leading ??
+                    _settingsGlyph(context, icon!,
+                        size: 18,
+                        colour: foreground,
+                        active: pressed || selected,
+                        settingsOpen: _settingsOpen),
                 const SizedBox(width: 10),
               ],
               Expanded(
@@ -2225,7 +2280,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final (key, label, icon) = switch (appearance) {
       AppTheme.boi => ('boi', 'Boi', Icons.dark_mode_outlined),
       AppTheme.pencil => ('pencil', 'Pencil', Icons.edit_outlined),
-      AppTheme.pastel => ('pastel', 'Milk', Icons.color_lens_outlined),
+      AppTheme.pastel => ('pastel', _milkThemeLabel, null),
       AppTheme.copper => ('copper', 'Copper', Icons.nights_stay_outlined),
       AppTheme.blackMetal => (
           'black-metal',
@@ -2240,6 +2295,13 @@ class _ChecklistHomeState extends State<ChecklistHome>
       key: ValueKey('theme-$key'),
       label: label,
       icon: icon,
+      leading: appearance == AppTheme.pastel
+          ? CustomPaint(
+              key: const ValueKey('milk-jug-icon'),
+              size: const Size.square(18),
+              painter: _MilkJug(Theme.of(context).colorScheme.onSurface),
+            )
+          : null,
       selected: appearance == widget.appTheme,
       onTap: () {
         if (appearance == widget.appTheme) return;
@@ -2384,7 +2446,12 @@ class _ChecklistHomeState extends State<ChecklistHome>
                   foregroundColor: creditColour,
                   side: _surfaceSide(theme, creditColour, width: 1.5),
                   backgroundBuilder: widget.isPastel
-                      ? (_, __, child) => child ?? const SizedBox.shrink()
+                      ? (context, states, child) => _pastelPressable(
+                            theme,
+                            child ?? const SizedBox.shrink(),
+                            flatAtRest: true,
+                            held: states.contains(WidgetState.pressed),
+                          )
                       : null,
                 ),
                 onPressed: () => showDialog<void>(
@@ -2411,151 +2478,202 @@ class _ChecklistHomeState extends State<ChecklistHome>
         onPressed: _openWebsiteGallery,
       );
 
+  void _toggleSettings() {
+    final animateRelief =
+        widget.isPastel && !MediaQuery.disableAnimationsOf(context);
+    _settingsReliefTimer?.cancel();
+    setState(() {
+      _settingsOpen = !_settingsOpen;
+      _settingsReliefHeld = animateRelief;
+      if (!_settingsOpen) _settingsPage = _SettingsPage.main;
+    });
+    if (animateRelief) {
+      _settingsReliefTimer = Timer(_settingsResizeDuration, () {
+        setState(() => _settingsReliefHeld = false);
+      });
+    }
+  }
+
+  Widget _settingsChevron(Duration duration) {
+    final button = IconButton(
+      key: const ValueKey('settings-chevron'),
+      tooltip: localizeText(
+        context,
+        _settingsOpen ? 'close settings' : 'open settings',
+      ),
+      onPressed: _toggleSettings,
+      style: widget.isPastel
+          ? IconButton.styleFrom(
+              minimumSize: const Size.square(32),
+              iconSize: 18,
+              padding: const EdgeInsets.all(7),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              side: BorderSide.none,
+              backgroundColor: Colors.transparent,
+            ).copyWith(backgroundBuilder: _plainButtonFace)
+          : IconButton.styleFrom(side: BorderSide.none),
+      icon: AnimatedRotation(
+        turns: _settingsOpen ? 0 : 0.5,
+        duration: duration,
+        child: _settingsGlyph(context, Icons.keyboard_arrow_down_rounded,
+            size: widget.isPastel ? 18 : 24,
+            active: _settingsOpen,
+            settingsOpen: _settingsOpen),
+      ),
+    );
+    return SizedBox(
+      width: 2 * _sidebarEntryInset + _sidebarEntryMenuSize,
+      child: Center(
+        child: _pastelPressable(
+          Theme.of(context),
+          button,
+          round: true,
+          held: _settingsReliefHeld,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSettingsPanel(Color foreground) {
     const settingsFontSize = 13.0;
-    final compactDuration = MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : const Duration(milliseconds: 200);
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    final compactDuration =
+        reducedMotion ? Duration.zero : const Duration(milliseconds: 200);
     return Column(
       key: const ValueKey('settings-panel'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          key: const ValueKey('settings-expanding-line'),
-          width: double.infinity,
-          height: 2,
-          color: foreground.withValues(alpha: 0.45),
-        ),
-        AnimatedContainer(
-          duration: compactDuration,
-          height: _settingsOpen ? 46 : 50,
-          child: Row(
+        if (widget.isPastel)
+          const _MilkSidebarDivider(key: ValueKey('settings-expanding-line'))
+        else
+          Padding(
+            padding: _sidebarContentInsets,
+            child: Container(
+              key: const ValueKey('settings-expanding-line'),
+              width: double.infinity,
+              height: 2,
+              color: foreground.withValues(alpha: 0.45),
+            ),
+          ),
+        Padding(
+          padding: _sidebarContentInsets,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 2,
-                child: _SettingsPress(
-                  key: const ValueKey('settings-toggle'),
-                  onTap: () => setState(() {
-                    _settingsOpen = !_settingsOpen;
-                    if (!_settingsOpen) _settingsPage = _SettingsPage.main;
-                  }),
-                  builder: (pressed) => Row(
-                    children: [
-                      _settingsGlyph(
-                        context,
-                        Icons.settings_outlined,
-                        size: 20,
-                        colour: foreground,
-                        active: pressed || _settingsOpen,
-                        settingsOpen: _settingsOpen,
-                      ),
-                      const SizedBox(width: 7),
-                      Flexible(
-                        child: AppText(
-                          'settings',
-                          maxLines: 1,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                          style: _settingsTextStyle(foreground, pressed,
-                                  glow: !widget.isPastel)
-                              .copyWith(fontSize: settingsFontSize),
+              AnimatedContainer(
+                duration: compactDuration,
+                height: _settingsOpen ? 46 : 50,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _SettingsPress(
+                        key: const ValueKey('settings-toggle'),
+                        onTap: _toggleSettings,
+                        builder: (pressed) => Row(
+                          children: [
+                            _settingsGlyph(
+                              context,
+                              Icons.settings_outlined,
+                              size: 20,
+                              colour: foreground,
+                              active: pressed || _settingsOpen,
+                              settingsOpen: _settingsOpen,
+                            ),
+                            const SizedBox(width: 7),
+                            Flexible(
+                              child: AppText(
+                                'settings',
+                                maxLines: 1,
+                                overflow: TextOverflow.fade,
+                                softWrap: false,
+                                style: _settingsTextStyle(foreground, pressed,
+                                        glow: !widget.isPastel)
+                                    .copyWith(fontSize: settingsFontSize),
+                              ),
+                            ),
+                          ],
                         ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        key: const ValueKey('heart-animation-trigger'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _handleHeartSecretTap,
+                        onLongPress: _restartHeartAnimation,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                    _settingsChevron(reducedMotion
+                        ? Duration.zero
+                        : const Duration(milliseconds: 300)),
+                  ],
+                ),
+              ),
+              TweenAnimationBuilder<double>(
+                tween: Tween(end: _settingsOpen ? 0 : 1),
+                duration: compactDuration,
+                curve: Curves.easeInOut,
+                builder: (context, fraction, child) => ClipRect(
+                  child: Align(
+                    key: const ValueKey('settings-version-space'),
+                    alignment: Alignment.topLeft,
+                    heightFactor: fraction,
+                    child: IgnorePointer(
+                      ignoring: _settingsOpen,
+                      child: Opacity(
+                        key: const ValueKey('settings-version-fade'),
+                        opacity: fraction,
+                        child: child,
+                      ),
+                    ),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 27, bottom: 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        checklistVersion,
+                        key: const ValueKey('settings-version'),
+                        style: _settingsTextStyle(foreground, false)
+                            .copyWith(fontSize: settingsFontSize / 2),
                       ),
                     ],
                   ),
                 ),
               ),
-              Expanded(
-                child: GestureDetector(
-                  key: const ValueKey('heart-animation-trigger'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _handleHeartSecretTap,
-                  onLongPress: _restartHeartAnimation,
-                  child: const SizedBox.expand(),
+              ClipRect(
+                child: AnimatedSize(
+                  duration:
+                      reducedMotion ? Duration.zero : _settingsResizeDuration,
+                  curve: Curves.easeInOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: _settingsOpen
+                      ? AnimatedSwitcher(
+                          duration: reducedMotion
+                              ? Duration.zero
+                              : const Duration(milliseconds: 360),
+                          switchInCurve: Curves.easeIn,
+                          switchOutCurve: Curves.easeOut,
+                          transitionBuilder: (child, animation) =>
+                              FadeTransition(
+                            opacity: animation,
+                            child: widget.isPastel
+                                ? child
+                                : SizeTransition(
+                                    sizeFactor: animation,
+                                    alignment: Alignment.topCenter,
+                                    child: child,
+                                  ),
+                          ),
+                          child: _settingsContent(),
+                        )
+                      : const SizedBox.shrink(key: ValueKey('settings-closed')),
                 ),
-              ),
-              SizedBox(
-                width: 2 * _sidebarEntryInset + _sidebarEntryMenuSize,
-                child: Center(
-                    child: IconButton(
-                  key: const ValueKey('settings-chevron'),
-                  tooltip: localizeText(
-                    context,
-                    _settingsOpen ? 'close settings' : 'open settings',
-                  ),
-                  onPressed: () => setState(() {
-                    _settingsOpen = !_settingsOpen;
-                    if (!_settingsOpen) _settingsPage = _SettingsPage.main;
-                  }),
-                  style: IconButton.styleFrom(side: BorderSide.none),
-                  icon: AnimatedRotation(
-                    turns: _settingsOpen ? 0 : 0.5,
-                    duration: const Duration(milliseconds: 300),
-                    child: _settingsGlyph(
-                        context, Icons.keyboard_arrow_down_rounded,
-                        size: 24,
-                        active: _settingsOpen,
-                        settingsOpen: _settingsOpen),
-                  ),
-                )),
               ),
             ],
-          ),
-        ),
-        TweenAnimationBuilder<double>(
-          tween: Tween(end: _settingsOpen ? 0 : 1),
-          duration: compactDuration,
-          curve: Curves.easeInOut,
-          builder: (context, fraction, child) => ClipRect(
-            child: Align(
-              key: const ValueKey('settings-version-space'),
-              alignment: Alignment.topLeft,
-              heightFactor: fraction,
-              child: IgnorePointer(
-                ignoring: _settingsOpen,
-                child: Opacity(
-                  key: const ValueKey('settings-version-fade'),
-                  opacity: fraction,
-                  child: child,
-                ),
-              ),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 27, bottom: 4),
-            child: Row(
-              children: [
-                Text(
-                  checklistVersion,
-                  key: const ValueKey('settings-version'),
-                  style: _settingsTextStyle(foreground, false)
-                      .copyWith(fontSize: settingsFontSize / 2),
-                ),
-              ],
-            ),
-          ),
-        ),
-        ClipRect(
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 380),
-            curve: Curves.easeInOutCubic,
-            alignment: Alignment.topCenter,
-            child: _settingsOpen
-                ? AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 360),
-                    switchInCurve: Curves.easeIn,
-                    switchOutCurve: Curves.easeOut,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SizeTransition(
-                        sizeFactor: animation,
-                        alignment: Alignment.topCenter,
-                        child: child,
-                      ),
-                    ),
-                    child: _settingsContent(),
-                  )
-                : const SizedBox.shrink(key: ValueKey('settings-closed')),
           ),
         ),
       ],
@@ -2565,8 +2683,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
   Widget _buildSidebar({required bool mobile}) {
     final theme = Theme.of(context);
     final palette = _metalPalette;
-    final projects = _sortedProjects;
-    final notes = _sortedNotes;
+    late final projects = _sortedProjects;
+    late final notes = _sortedNotes;
     final modern = _modernPalette;
     final sidebarDefault = _sidebarColour(widget.appTheme, _showNotes);
     final sidebarColor = theme
@@ -2576,7 +2694,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final sidebarForeground = theme.custom(_ThemeColour.text) ??
         palette?.ink ??
         modern?.ink ??
-        (widget.isDark ? _borderWhite : _lightText);
+        (widget.isPastel
+            ? _milkInk
+            : widget.isDark
+                ? _borderWhite
+                : _lightText);
     final sidebarMetadata = widget.isPastel
         ? _pastelSecondaryInk(theme)
         : sidebarForeground.withValues(alpha: .58);
@@ -2593,7 +2715,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
         (cyberpunkCreate
             ? theme.colorScheme.outline
             : widget.isPastel
-                ? _pastelWhite
+                ? _milkBackground
                 : sidebarForeground);
     final wordmark = _BrandWordmark(
       notesActive: _showNotes,
@@ -2711,17 +2833,6 @@ class _ChecklistHomeState extends State<ChecklistHome>
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
           color: sidebarColor,
-          gradient: widget.isPastel
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color.lerp(sidebarColor, _pastelPorcelain, .93)!,
-                    Color.lerp(sidebarColor, _pastelClay, .92)!,
-                    Color.lerp(sidebarColor, _pastelRose, .86)!,
-                  ],
-                )
-              : null,
           border: Border(
             right: _surfaceSide(
               theme,
@@ -2732,356 +2843,371 @@ class _ChecklistHomeState extends State<ChecklistHome>
             ),
           ),
         ),
-        padding: EdgeInsets.fromLTRB(18, topSpacing, 14, 14),
+        padding: EdgeInsets.only(top: topSpacing, bottom: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            wordmark,
+            Padding(padding: _sidebarContentInsets, child: wordmark),
             SizedBox(height: mobile ? 2.5 : 6),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeIn,
-                switchOutCurve: Curves.easeOut,
-                transitionBuilder: (child, animation) =>
-                    FadeTransition(opacity: animation, child: child),
-                child: Column(
-                  key: ValueKey(_showNotes ? 'notes-sidebar' : 'list-sidebar'),
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      height: 50,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(child: createButton),
-                          const SizedBox(width: 8),
-                          _cyberpunkOutline(
-                            theme,
-                            _pastelPressable(
+              child: Padding(
+                padding: _sidebarContentInsets,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeIn,
+                  switchOutCurve: Curves.easeOut,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: Column(
+                    key:
+                        ValueKey(_showNotes ? 'notes-sidebar' : 'list-sidebar'),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        height: 50,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: createButton),
+                            const SizedBox(width: 8),
+                            _cyberpunkOutline(
                               theme,
-                              Container(
-                                key: const ValueKey('sidebar-filter-frame'),
-                                width: 50,
-                                decoration: BoxDecoration(
-                                  borderRadius: _pastelRadius(theme),
-                                  border: Border.fromBorderSide(
-                                    _surfaceSide(theme, controlFrame),
-                                  ),
-                                ),
-                                child: IconButtonTheme(
-                                  data: const IconButtonThemeData(
-                                    style: ButtonStyle(
-                                      side: WidgetStatePropertyAll(
-                                          BorderSide.none),
+                              _pastelPressable(
+                                theme,
+                                Container(
+                                  key: const ValueKey('sidebar-filter-frame'),
+                                  width: 50,
+                                  decoration: BoxDecoration(
+                                    borderRadius: _pastelRadius(theme),
+                                    border: Border.fromBorderSide(
+                                      _surfaceSide(theme, controlFrame),
                                     ),
                                   ),
-                                  child: IconTheme(
-                                    data:
-                                        IconThemeData(color: sidebarForeground),
-                                    child: _showNotes
-                                        ? noteSortButton
-                                        : sortButton,
+                                  child: IconButtonTheme(
+                                    data: const IconButtonThemeData(
+                                      style: ButtonStyle(
+                                        side: WidgetStatePropertyAll(
+                                            BorderSide.none),
+                                      ),
+                                    ),
+                                    child: IconTheme(
+                                      data: IconThemeData(
+                                          color: sidebarForeground),
+                                      child: _showNotes
+                                          ? noteSortButton
+                                          : sortButton,
+                                    ),
                                   ),
                                 ),
+                                colour: _milkBackground,
                               ),
-                              colour: _pastelBlueButton,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+                      Row(
+                        children: [
+                          AppText(
+                            _showNotes ? 'YOUR NOTES' : 'YOUR CHECKLISTS',
+                            key: const ValueKey('sidebar-section-title'),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              letterSpacing: widget.isPastel ? 1.7 : 1.1,
+                              color: widget.isPastel
+                                  ? sidebarMetadata
+                                  : sidebarForeground.withValues(alpha: 0.68),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          AppText(
+                            '${_showNotes ? notes.length : projects.length}',
+                            key: const ValueKey('sidebar-item-count'),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: sidebarMetadata,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 26),
-                    Row(
-                      children: [
-                        AppText(
-                          _showNotes ? 'YOUR NOTES' : 'YOUR CHECKLISTS',
-                          key: const ValueKey('sidebar-section-title'),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            letterSpacing: 1.1,
-                            color: sidebarForeground.withValues(alpha: 0.68),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        AppText(
-                          '${_showNotes ? notes.length : projects.length}',
-                          key: const ValueKey('sidebar-item-count'),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: sidebarMetadata,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: _showNotes
-                          ? ListView.builder(
-                              key: const ValueKey('notes-sidebar-list'),
-                              itemCount: notes.length,
-                              itemBuilder: (context, index) {
-                                final note = notes[index];
-                                final category = _categoryFor(note);
-                                final noteColor = _noteColour(category);
-                                final selected = note.id == _selectedNoteId;
-                                return _SidebarFadeItem(
-                                  key: ValueKey('sidebar-note-${note.id}'),
-                                  visible: !_sidebarExitingIds.contains(
-                                    note.id,
-                                  ),
-                                  child: _sidebarEntry(
-                                    theme,
-                                    hasNext: index < notes.length - 1,
-                                    Material(
-                                      shape: _pastelShape(theme),
-                                      color: selected && !widget.isPastel
-                                          ? noteColor.withValues(alpha: .2)
-                                          : Colors.transparent,
-                                      child: ListTile(
-                                        dense: true,
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: _showNotes
+                            ? ListView.builder(
+                                key: const ValueKey('notes-sidebar-list'),
+                                itemCount: notes.length,
+                                itemBuilder: (context, index) {
+                                  final note = notes[index];
+                                  final category = _categoryFor(note);
+                                  final noteColor = _noteColour(category);
+                                  final selected = note.id == _selectedNoteId;
+                                  return _SidebarFadeItem(
+                                    key: ValueKey('sidebar-note-${note.id}'),
+                                    visible: !_sidebarExitingIds.contains(
+                                      note.id,
+                                    ),
+                                    child: _sidebarEntry(
+                                      theme,
+                                      hasNext: index < notes.length - 1,
+                                      Material(
                                         shape: _pastelShape(theme),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: _sidebarEntryInset,
-                                          vertical: 1,
-                                        ),
-                                        minLeadingWidth: 10,
-                                        horizontalTitleGap: 10,
-                                        leading: _NoteColourDot(
-                                          color: noteColor,
-                                        ),
-                                        title: Text(
-                                          note.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: widget.isPastel
-                                                ? _pastelAccentInk(noteColor)
-                                                : noteColor,
-                                            fontSize: 13,
-                                            fontWeight: selected
-                                                ? FontWeight.w700
-                                                : FontWeight.w500,
+                                        color: selected && !widget.isPastel
+                                            ? noteColor.withValues(alpha: .2)
+                                            : Colors.transparent,
+                                        child: ListTile(
+                                          dense: true,
+                                          shape: _pastelShape(theme),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: _sidebarEntryInset,
+                                            vertical: 1,
                                           ),
-                                        ),
-                                        subtitle: AppText(
-                                          _formatDate(context, note.createdAt),
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                            color: sidebarMetadata,
+                                          minLeadingWidth: 10,
+                                          horizontalTitleGap: 10,
+                                          leading: _NoteColourDot(
+                                            color: noteColor,
                                           ),
-                                        ),
-                                        onTap: () => _selectNote(note),
-                                        trailing: _SettingsMenu<String>(
-                                          iconKey: const ValueKey(
-                                              'sidebar-note-settings'),
-                                          pastelRecessed: true,
-                                          dimension: _sidebarEntryMenuSize,
-                                          colour: sidebarForeground.withValues(
-                                              alpha: 0.72),
-                                          tooltip: localizeText(
-                                            context,
-                                            'note options',
-                                          ),
-                                          onSelected: (action) {
-                                            if (action == 'rename') {
-                                              _renameNote(note);
-                                            }
-                                            if (action == 'delete') {
-                                              _deleteNote(note);
-                                            }
-                                            if (action == 'categories') {
-                                              _openCategorySettings();
-                                            }
-                                          },
-                                          itemBuilder: (context) => const [
-                                            PopupMenuItem(
-                                              value: 'rename',
-                                              child: AppText('rename'),
+                                          title: Text(
+                                            note.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: widget.isPastel
+                                                  ? _pastelAccentInk(noteColor)
+                                                  : noteColor,
+                                              fontSize: 13,
+                                              fontWeight: selected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w500,
                                             ),
-                                            PopupMenuItem(
-                                              value: 'delete',
-                                              child: AppText('delete'),
+                                          ),
+                                          subtitle: AppText(
+                                            _formatDate(
+                                                context, note.createdAt),
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                              color: sidebarMetadata,
                                             ),
-                                            PopupMenuItem(
-                                              value: 'categories',
-                                              child: AppText(
-                                                'category settings',
+                                          ),
+                                          onTap: () => _selectNote(note),
+                                          trailing: _SettingsMenu<String>(
+                                            iconKey: const ValueKey(
+                                                'sidebar-note-settings'),
+                                            pastelRecessed: true,
+                                            dimension: _sidebarEntryMenuSize,
+                                            colour: sidebarForeground
+                                                .withValues(alpha: 0.72),
+                                            tooltip: localizeText(
+                                              context,
+                                              'note options',
+                                            ),
+                                            onSelected: (action) {
+                                              if (action == 'rename') {
+                                                _renameNote(note);
+                                              }
+                                              if (action == 'delete') {
+                                                _deleteNote(note);
+                                              }
+                                              if (action == 'categories') {
+                                                _openCategorySettings();
+                                              }
+                                            },
+                                            itemBuilder: (context) => const [
+                                              PopupMenuItem(
+                                                value: 'rename',
+                                                child: AppText('rename'),
                                               ),
-                                            ),
-                                          ],
+                                              PopupMenuItem(
+                                                value: 'delete',
+                                                child: AppText('delete'),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'categories',
+                                                child: AppText(
+                                                  'category settings',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            )
-                          : ListView.builder(
-                              key: const ValueKey('checklists-sidebar-list'),
-                              itemCount: projects.length,
-                              itemBuilder: (context, index) {
-                                final project = projects[index];
-                                final selected = project.id == _selectedId;
-                                return _SidebarFadeItem(
-                                  key: ValueKey(
-                                    'sidebar-project-${project.id}',
-                                  ),
-                                  visible: !_sidebarExitingIds.contains(
-                                    project.id,
-                                  ),
-                                  child: _sidebarEntry(
-                                    theme,
-                                    hasNext: index < projects.length - 1,
-                                    Material(
-                                      shape: _pastelShape(theme),
-                                      color: selected && !widget.isPastel
-                                          ? (widget.isDark
-                                                  ? (palette?.checklistAccent ??
-                                                      _brandPurple)
-                                                  : _lightLine)
-                                              .withValues(alpha: .22)
-                                          : Colors.transparent,
-                                      child: ListTile(
-                                        dense: true,
+                                  );
+                                },
+                              )
+                            : ListView.builder(
+                                key: const ValueKey('checklists-sidebar-list'),
+                                itemCount: projects.length,
+                                itemBuilder: (context, index) {
+                                  final project = projects[index];
+                                  final selected = project.id == _selectedId;
+                                  return _SidebarFadeItem(
+                                    key: ValueKey(
+                                      'sidebar-project-${project.id}',
+                                    ),
+                                    visible: !_sidebarExitingIds.contains(
+                                      project.id,
+                                    ),
+                                    child: _sidebarEntry(
+                                      theme,
+                                      hasNext: index < projects.length - 1,
+                                      Material(
                                         shape: _pastelShape(theme),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: _sidebarEntryInset,
-                                          vertical: 1,
-                                        ),
-                                        minLeadingWidth: 10,
-                                        horizontalTitleGap: 10,
-                                        leading: widget.isPastel
-                                            ? _NoteColourDot(
-                                                key: const ValueKey(
-                                                    'pastel-sidebar-priority'),
-                                                color: _themedImportanceColor(
-                                                  theme,
-                                                  project.importance,
-                                                  isPastel: true,
-                                                  isPencil: false,
-                                                ),
-                                              )
-                                            : _ImportanceBar(
-                                                importance: project.importance,
-                                                isPencil: widget.appTheme ==
-                                                    AppTheme.pencil,
-                                              ),
-                                        title: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                project.name,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: sidebarForeground,
-                                                  fontSize: 13,
-                                                  fontWeight: selected
-                                                      ? FontWeight.w600
-                                                      : FontWeight.w400,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        subtitle: AppText(
-                                          '{date}  ·  {done}/{tasks} done',
-                                          arguments: {
-                                            'date': _formatDate(
-                                                context, project.createdAt),
-                                            'done': project.completedTaskCount,
-                                            'tasks': project.tasks.length
-                                          },
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                            color: sidebarMetadata,
+                                        color: selected && !widget.isPastel
+                                            ? (widget.isDark
+                                                    ? (palette
+                                                            ?.checklistAccent ??
+                                                        _brandPurple)
+                                                    : _lightLine)
+                                                .withValues(alpha: .22)
+                                            : Colors.transparent,
+                                        child: ListTile(
+                                          dense: true,
+                                          shape: _pastelShape(theme),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal: _sidebarEntryInset,
+                                            vertical: 1,
                                           ),
-                                        ),
-                                        onTap: () => _selectProject(project),
-                                        trailing: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            if (project.reminderAt != null) ...[
-                                              Tooltip(
-                                                message: localizeText(
-                                                  context,
-                                                  project.reminderAt!.isAfter(
-                                                    DateTime.now(),
-                                                  )
-                                                      ? 'upcoming reminder'
-                                                      : 'past reminder',
-                                                ),
-                                                child: Icon(
-                                                  Icons.notifications_rounded,
-                                                  key: ValueKey(
-                                                    'checklist-reminder-bell-${project.id}',
+                                          minLeadingWidth: 10,
+                                          horizontalTitleGap: 10,
+                                          leading: widget.isPastel
+                                              ? _NoteColourDot(
+                                                  key: const ValueKey(
+                                                      'pastel-sidebar-priority'),
+                                                  color: _themedImportanceColor(
+                                                    theme,
+                                                    project.importance,
+                                                    isPastel: true,
+                                                    isPencil: false,
                                                   ),
-                                                  size: 18,
-                                                  color: project.reminderAt!
-                                                          .isAfter(
-                                                    DateTime.now(),
-                                                  )
-                                                      ? sidebarForeground
-                                                      : _switchGrey,
+                                                )
+                                              : _ImportanceBar(
+                                                  importance:
+                                                      project.importance,
+                                                  isPencil: widget.appTheme ==
+                                                      AppTheme.pencil,
+                                                ),
+                                          title: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  project.name,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: sidebarForeground,
+                                                    fontSize: 13,
+                                                    fontWeight: selected
+                                                        ? FontWeight.w600
+                                                        : FontWeight.w400,
+                                                  ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 2),
                                             ],
-                                            _SettingsMenu<String>(
-                                              iconKey: const ValueKey(
-                                                  'sidebar-checklist-settings'),
-                                              pastelRecessed: true,
-                                              dimension: _sidebarEntryMenuSize,
-                                              colour: sidebarForeground
-                                                  .withValues(alpha: 0.72),
-                                              tooltip: localizeText(
-                                                context,
-                                                'checklist options',
-                                              ),
-                                              onSelected: (action) {
-                                                if (action == 'rename') {
-                                                  _renameProject(project);
-                                                }
-                                                if (action == 'delete') {
-                                                  _deleteProject(project);
-                                                }
-                                                if (action == 'reminder') {
-                                                  _editProjectReminder(project);
-                                                }
-                                              },
-                                              itemBuilder: (context) => const [
-                                                PopupMenuItem(
-                                                  value: 'reminder',
-                                                  child: AppText(
-                                                    'reminder',
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
+                                          ),
+                                          subtitle: AppText(
+                                            '{date}  ·  {done}/{tasks} done',
+                                            arguments: {
+                                              'date': _formatDate(
+                                                  context, project.createdAt),
+                                              'done':
+                                                  project.completedTaskCount,
+                                              'tasks': project.tasks.length
+                                            },
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                              color: sidebarMetadata,
+                                            ),
+                                          ),
+                                          onTap: () => _selectProject(project),
+                                          trailing: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (project.reminderAt !=
+                                                  null) ...[
+                                                Tooltip(
+                                                  message: localizeText(
+                                                    context,
+                                                    project.reminderAt!.isAfter(
+                                                      DateTime.now(),
+                                                    )
+                                                        ? 'upcoming reminder'
+                                                        : 'past reminder',
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.notifications_rounded,
+                                                    key: ValueKey(
+                                                      'checklist-reminder-bell-${project.id}',
+                                                    ),
+                                                    size: 18,
+                                                    color: project.reminderAt!
+                                                            .isAfter(
+                                                      DateTime.now(),
+                                                    )
+                                                        ? sidebarForeground
+                                                        : _switchGrey,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 2),
+                                              ],
+                                              _SettingsMenu<String>(
+                                                iconKey: const ValueKey(
+                                                    'sidebar-checklist-settings'),
+                                                pastelRecessed: true,
+                                                dimension:
+                                                    _sidebarEntryMenuSize,
+                                                colour: sidebarForeground
+                                                    .withValues(alpha: 0.72),
+                                                tooltip: localizeText(
+                                                  context,
+                                                  'checklist options',
+                                                ),
+                                                onSelected: (action) {
+                                                  if (action == 'rename') {
+                                                    _renameProject(project);
+                                                  }
+                                                  if (action == 'delete') {
+                                                    _deleteProject(project);
+                                                  }
+                                                  if (action == 'reminder') {
+                                                    _editProjectReminder(
+                                                        project);
+                                                  }
+                                                },
+                                                itemBuilder: (context) =>
+                                                    const [
+                                                  PopupMenuItem(
+                                                    value: 'reminder',
+                                                    child: AppText(
+                                                      'reminder',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'rename',
-                                                  child: AppText('rename'),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: AppText('delete'),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                                  PopupMenuItem(
+                                                    value: 'rename',
+                                                    child: AppText('rename'),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: AppText('delete'),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -3140,7 +3266,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final bodyColour = theme.custom(_ThemeColour.text) ??
         palette?.ink ??
         modern?.ink ??
-        (widget.isDark ? _borderWhite : _lightText);
+        (widget.isPastel
+            ? _milkInk
+            : widget.isDark
+                ? _borderWhite
+                : _lightText);
     final cyberpunk = widget.appTheme == AppTheme.cyberpunk;
     final sv = widget.appTheme == AppTheme.sv;
     final border = theme.custom(_ThemeColour.borders) ??
@@ -3149,7 +3279,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
     final photoIconColour = switch (widget.appTheme) {
       AppTheme.pixel => noteColour,
       AppTheme.cyberpunk => _cyberpunkRed,
-      AppTheme.pastel => _deepBlueButton,
+      AppTheme.pastel => _pastelMutedInk,
       AppTheme.sv => _svControlInk(theme),
       _ => palette?.notesAccent ?? _defaultNoteBlue,
     };
@@ -3199,7 +3329,9 @@ class _ChecklistHomeState extends State<ChecklistHome>
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.headlineSmall?.copyWith(
                               color: noteColour,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: widget.isPastel
+                                  ? FontWeight.w600
+                                  : FontWeight.w700,
                             ),
                           )),
                     ),
@@ -3215,7 +3347,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    if (theme.platform == TargetPlatform.android) ...[
+                    if (theme.platform == TargetPlatform.android ||
+                        theme.platform == TargetPlatform.iOS) ...[
                       if (_ocrBusy)
                         Container(
                           key: const ValueKey('note-ocr-button'),
@@ -3378,78 +3511,82 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 Expanded(
                   child: _cyberpunkOutline(
                     theme,
-                    _pastelLift(
-                      theme,
-                      _NoteBodyReveal(
-                        progress: CurveTween(curve: const Interval(0.22, 1))
-                            .animate(_noteReveal),
-                        child: Listener(
-                          onPointerDown: _trackNoteLinkPress,
-                          onPointerCancel: (_) => _pressedNoteLink = null,
-                          child: TextField(
-                            key: const ValueKey('note-content-field'),
-                            controller: _noteController,
-                            focusNode: _noteFocusNode,
-                            expands: true,
-                            minLines: null,
-                            maxLines: null,
-                            textAlignVertical: TextAlignVertical.top,
-                            textCapitalization: TextCapitalization.sentences,
-                            keyboardType: TextInputType.multiline,
-                            cursorColor: bodyColour,
-                            style: TextStyle(
-                              color: bodyColour,
-                              height: 1.5,
-                            ),
-                            contextMenuBuilder: _buildNoteSelectionToolbar,
-                            onTap: _openPressedNoteLink,
-                            onTapOutside: (_) => _noteFocusNode.unfocus(),
-                            onChanged: _updateNoteContent,
-                            decoration: InputDecoration(
-                              hintText: localizeText(context, 'start writing…'),
-                              hintStyle:
-                                  TextStyle(color: _editorHintInk(theme)),
-                              filled: true,
-                              fillColor: panel ??
-                                  modern?.panel.withValues(alpha: 1) ??
-                                  (widget.isDark
-                                      ? (palette?.surface ?? _surfaceDark)
-                                      : widget.isPastel
-                                          ? _pastelWhite
-                                          : _lightSurface),
-                              alignLabelWithHint: true,
-                              contentPadding: const EdgeInsets.all(18),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: _pastelRadius(theme),
-                                borderSide: _surfaceSide(
-                                  theme,
-                                  border ??
-                                      modern?.border ??
-                                      (widget.isDark
-                                          ? noteColour.withValues(alpha: 0.55)
-                                          : widget.isPastel
-                                              ? _milkLine
-                                              : _lightLine),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: _pastelRadius(theme),
-                                borderSide: _surfaceSide(
-                                  theme,
-                                  border ??
-                                      modern?.notesAccent ??
-                                      (widget.isDark
-                                          ? noteColour
-                                          : widget.isPastel
-                                              ? _milkLine
-                                              : _lightLine),
-                                ),
-                              ),
-                            ),
+                    _NoteBodyReveal(
+                      key: const ValueKey('note-body-reveal'),
+                      progress: CurveTween(curve: const Interval(0.22, 1))
+                          .animate(_noteReveal),
+                      child: Listener(
+                        onPointerDown: _trackNoteLinkPress,
+                        onPointerCancel: (_) => _pressedNoteLink = null,
+                        child: TextField(
+                          key: const ValueKey('note-content-field'),
+                          controller: _noteController,
+                          focusNode: _noteFocusNode,
+                          expands: true,
+                          minLines: null,
+                          maxLines: null,
+                          textAlignVertical: TextAlignVertical.top,
+                          textCapitalization: TextCapitalization.sentences,
+                          keyboardType: TextInputType.multiline,
+                          cursorColor: bodyColour,
+                          style: TextStyle(
+                            color: bodyColour,
+                            height: 1.5,
+                          ),
+                          contextMenuBuilder: _buildNoteSelectionToolbar,
+                          onTap: _openPressedNoteLink,
+                          onTapOutside: (_) => _noteFocusNode.unfocus(),
+                          onChanged: _updateNoteContent,
+                          decoration: InputDecoration(
+                            hintText: localizeText(context, 'start writing…'),
+                            hintStyle: TextStyle(color: _editorHintInk(theme)),
+                            filled: true,
+                            fillColor: panel ??
+                                modern?.panel.withValues(alpha: 1) ??
+                                (widget.isDark
+                                    ? (palette?.surface ?? _surfaceDark)
+                                    : widget.isPastel
+                                        ? _milkBackground
+                                        : _lightSurface),
+                            alignLabelWithHint: true,
+                            contentPadding: const EdgeInsets.all(18),
+                            enabledBorder: widget.isPastel
+                                ? _PastelInsetField(
+                                    borderRadius: _pastelRadius(theme))
+                                : OutlineInputBorder(
+                                    borderRadius: _pastelRadius(theme),
+                                    borderSide: _surfaceSide(
+                                      theme,
+                                      border ??
+                                          modern?.border ??
+                                          (widget.isDark
+                                              ? noteColour.withValues(
+                                                  alpha: 0.55)
+                                              : widget.isPastel
+                                                  ? _milkLine
+                                                  : _lightLine),
+                                    ),
+                                  ),
+                            focusedBorder: widget.isPastel
+                                ? _PastelInsetField(
+                                    borderRadius: _pastelRadius(theme),
+                                    focused: true)
+                                : OutlineInputBorder(
+                                    borderRadius: _pastelRadius(theme),
+                                    borderSide: _surfaceSide(
+                                      theme,
+                                      border ??
+                                          modern?.notesAccent ??
+                                          (widget.isDark
+                                              ? noteColour
+                                              : widget.isPastel
+                                                  ? _milkLine
+                                                  : _lightLine),
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
-                      inset: true,
                     ),
                   ),
                 ),
@@ -3510,15 +3647,7 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                           ? const Icon(
                                               Icons.menu_rounded,
                                               size: 24,
-                                              color: Colors.white,
-                                              shadows: [
-                                                Shadow(
-                                                    color: Colors.white,
-                                                    blurRadius: 5),
-                                                Shadow(
-                                                    color: Color(0xFF657384),
-                                                    offset: Offset(0, 1)),
-                                              ],
+                                              color: _pastelMutedInk,
                                             )
                                           : _settingsGlyph(
                                               context,
@@ -3541,8 +3670,11 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                       overflow: TextOverflow.ellipsis,
                                       style: theme.textTheme.headlineMedium
                                           ?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: -1.0,
+                                        fontWeight: widget.isPastel
+                                            ? FontWeight.w600
+                                            : FontWeight.w700,
+                                        letterSpacing:
+                                            widget.isPastel ? -.6 : -1.0,
                                         height: 1.15,
                                       ),
                                     )),
@@ -3775,7 +3907,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
                                       if (index < project.tasks.length - 1 &&
                                           (widget.isPastel ||
                                               widget.appTheme == AppTheme.sv))
-                                        const SizedBox(height: 9)
+                                        SizedBox(
+                                            height: widget.isPastel ? 16 : 9)
                                       else if (index < project.tasks.length - 1)
                                         Divider(
                                           key: const ValueKey(
@@ -3803,49 +3936,60 @@ class _ChecklistHomeState extends State<ChecklistHome>
                 child: _cyberpunkOutline(
                   theme,
                   focus: _taskFocusNode,
-                  _pastelLift(
-                    theme,
-                    TextField(
-                      controller: _taskController,
-                      focusNode: _taskFocusNode,
-                      minLines: 1,
-                      maxLines: 5,
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: usesSoftKeyboardAction
-                          ? TextInputAction.done
-                          : TextInputAction.newline,
-                      onSubmitted:
-                          usesSoftKeyboardAction ? (_) => _addTask() : null,
-                      decoration: InputDecoration(
-                        hintText: localizeText(
-                          context,
-                          usesSoftKeyboardAction
-                              ? 'add a task…'
-                              : 'add a task…  (enter to add · shift+enter for a new line)',
-                        ),
-                        hintStyle: TextStyle(color: _editorHintInk(theme)),
-                        filled: true,
-                        fillColor: theme.colorScheme.surface,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 15,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: _pastelRadius(theme),
-                          borderSide: _surfaceSide(theme, composerFrameColor),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: _pastelRadius(theme),
-                          borderSide: _surfaceSide(theme, composerFrameColor),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: _pastelRadius(theme),
-                          borderSide: _surfaceSide(theme, composerFrameColor,
-                              width: cyberpunk ? 2.5 : 2),
-                        ),
+                  TextField(
+                    controller: _taskController,
+                    focusNode: _taskFocusNode,
+                    minLines: 1,
+                    maxLines: 5,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: usesSoftKeyboardAction
+                        ? TextInputAction.done
+                        : TextInputAction.newline,
+                    onSubmitted:
+                        usesSoftKeyboardAction ? (_) => _addTask() : null,
+                    decoration: InputDecoration(
+                      hintText: localizeText(
+                        context,
+                        usesSoftKeyboardAction
+                            ? 'add a task…'
+                            : 'add a task…  (enter to add · shift+enter for a new line)',
                       ),
+                      hintStyle: TextStyle(
+                        color: widget.isPastel
+                            ? theme.custom(_ThemeColour.text) ?? _milkTaskHint
+                            : _editorHintInk(theme),
+                      ),
+                      filled: true,
+                      fillColor: theme.colorScheme.surface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 15,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: _pastelRadius(theme),
+                        borderSide: _surfaceSide(theme, composerFrameColor),
+                      ),
+                      enabledBorder: widget.isPastel
+                          ? const _PastelInsetField(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(28)))
+                          : OutlineInputBorder(
+                              borderRadius: _pastelRadius(theme),
+                              borderSide:
+                                  _surfaceSide(theme, composerFrameColor),
+                            ),
+                      focusedBorder: widget.isPastel
+                          ? const _PastelInsetField(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(28)),
+                              focused: true)
+                          : OutlineInputBorder(
+                              borderRadius: _pastelRadius(theme),
+                              borderSide: _surfaceSide(
+                                  theme, composerFrameColor,
+                                  width: cyberpunk ? 2.5 : 2),
+                            ),
                     ),
-                    inset: true,
                   ),
                 ),
               ),
@@ -3858,7 +4002,8 @@ class _ChecklistHomeState extends State<ChecklistHome>
 }
 
 class _NoteBodyReveal extends SingleChildRenderObjectWidget {
-  const _NoteBodyReveal({required this.progress, required super.child});
+  const _NoteBodyReveal(
+      {required this.progress, required super.child, super.key});
 
   final Animation<double> progress;
 
@@ -3956,7 +4101,12 @@ class _SettingsPressState extends State<_SettingsPress> {
   @override
   Widget build(BuildContext context) => InkWell(
         onTap: _activate,
-        child: widget.builder(_pressed),
+        child: _pastelPressable(
+          Theme.of(context),
+          widget.builder(_pressed),
+          flatAtRest: true,
+          held: _pressed,
+        ),
       );
 }
 
@@ -3994,7 +4144,7 @@ class _BrandWordmark extends StatelessWidget {
     final inactiveColor = ink?.withValues(alpha: 0.66) ??
         metal?.muted ??
         modern?.ink.withValues(alpha: 0.70) ??
-        (pastel ? const Color(0xFF675E72) : const Color(0xFF8C8791));
+        (pastel ? _pastelMutedInk : const Color(0xFF8C8791));
     final style = TextStyle(
       color: active ? activeColor : inactiveColor,
       fontFamily: sv
@@ -4006,7 +4156,7 @@ class _BrandWordmark extends StatelessWidget {
                   : metal != null
                       ? _metalSerif
                       : pastel
-                          ? _pastelReadingFont
+                          ? _milkFont
                           : null,
       fontSize: sv
           ? 10
@@ -4014,10 +4164,16 @@ class _BrandWordmark extends StatelessWidget {
               ? 14
               : 15,
       height: 1,
-      fontWeight: metal != null || pixel || sv || cyberpunk || pastel
-          ? FontWeight.w700
-          : FontWeight.w900,
-      letterSpacing: cyberpunk || metal != null ? 0.75 : -0.4,
+      fontWeight: pastel
+          ? FontWeight.w600
+          : metal != null || pixel || sv || cyberpunk
+              ? FontWeight.w700
+              : FontWeight.w900,
+      letterSpacing: pastel
+          ? 1.2
+          : cyberpunk || metal != null
+              ? 0.75
+              : -0.4,
     );
     return Semantics(
       label: label,
@@ -4027,7 +4183,8 @@ class _BrandWordmark extends StatelessWidget {
       child: InkWell(
         onTap: onPressed,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
+          padding:
+              EdgeInsets.symmetric(vertical: 3, horizontal: pastel ? 6 : 0),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -4075,37 +4232,45 @@ class _BrandWordmark extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = theme.metalPalette;
     final modern = theme.appearance?._modernPalette;
+    final milk = theme.appearance == AppTheme.pastel;
+    final wordmark = Row(
+      mainAxisSize: milk ? MainAxisSize.min : MainAxisSize.max,
+      children: [
+        _modeButton(
+          label: 'CHECKLIST',
+          active: !notesActive,
+          onPressed: onChecklistPressed,
+          textKey: const ValueKey('checklist-word-style'),
+          slotKey: const ValueKey('checklist-check-slot'),
+          checkColor: theme.custom(_ThemeColour.checklistAccent) ??
+              palette?.checklistAccent ??
+              modern?.checklistAccent ??
+              (milk ? _pastelPlum : _brandCyan),
+          theme: theme,
+        ),
+        const SizedBox(width: 6),
+        _modeButton(
+          label: 'NOTES',
+          active: notesActive,
+          onPressed: onNotesPressed,
+          textKey: const ValueKey('notes-word-style'),
+          slotKey: const ValueKey('notes-check-slot'),
+          checkColor: theme.custom(_ThemeColour.notesAccent) ??
+              palette?.notesAccent ??
+              modern?.notesAccent ??
+              (milk ? _pastelPlum : _defaultNoteBlue),
+          theme: theme,
+        ),
+      ],
+    );
     return SizedBox(
-      height: 28,
-      child: Row(
-        children: [
-          _modeButton(
-            label: 'CHECKLIST',
-            active: !notesActive,
-            onPressed: onChecklistPressed,
-            textKey: const ValueKey('checklist-word-style'),
-            slotKey: const ValueKey('checklist-check-slot'),
-            checkColor: theme.custom(_ThemeColour.checklistAccent) ??
-                palette?.checklistAccent ??
-                modern?.checklistAccent ??
-                _brandCyan,
-            theme: theme,
-          ),
-          const SizedBox(width: 6),
-          _modeButton(
-            label: 'NOTES',
-            active: notesActive,
-            onPressed: onNotesPressed,
-            textKey: const ValueKey('notes-word-style'),
-            slotKey: const ValueKey('notes-check-slot'),
-            checkColor: theme.custom(_ThemeColour.notesAccent) ??
-                palette?.notesAccent ??
-                modern?.notesAccent ??
-                _defaultNoteBlue,
-            theme: theme,
-          ),
-        ],
-      ),
+      height: milk ? 34 : 28,
+      child: milk
+          ? FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: wordmark)
+          : wordmark,
     );
   }
 }
@@ -4276,10 +4441,14 @@ class _BrightActionButtonState extends State<_BrightActionButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final normal = theme.appearance == AppTheme.sv
-        ? theme.custom(_ThemeColour.buttons) ?? _svOchre
-        : theme.colorScheme.primary;
-    final bright = Color.lerp(normal, Colors.white, 0.32)!;
+    final milk = theme.appearance == AppTheme.pastel;
+    final normal = switch (theme.appearance) {
+      AppTheme.sv => theme.custom(_ThemeColour.buttons) ?? _svOchre,
+      AppTheme.pastel => theme.custom(_ThemeColour.buttons) ?? _milkBackground,
+      _ => theme.colorScheme.primary,
+    };
+    final bright =
+        milk ? _pastelLavender : Color.lerp(normal, Colors.white, 0.32)!;
     return FilledButton(
       onPressed: widget.onPressed == null ? null : _activate,
       style: FilledButton.styleFrom(
@@ -4496,7 +4665,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
             : widget.usePaleBackground
                 ? _renameNotePastelBlue
                 : lightCreate
-                    ? (pastel ? _pastelWhite : _lightSurface)
+                    ? (pastel ? _milkBackground : _lightSurface)
                     : _notesSidebar);
     final dialogForeground = base.custom(_ThemeColour.text) ??
         palette?.ink ??
@@ -4518,7 +4687,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
     final actionBackground = buttonOverride ??
         palette?.notesButton ??
         (pastel
-            ? _pastelBlueButton
+            ? _milkBackground
             : modern != null
                 ? noteAccent
                 : _deepBlueButton);
@@ -4551,7 +4720,8 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
             ? _PastelInsetField(borderRadius: _pastelRadius(base))
             : OutlineInputBorder(borderSide: _surfaceSide(base, fieldBorder)),
         focusedBorder: pastel
-            ? _PastelInsetField(borderRadius: _pastelRadius(base))
+            ? _PastelInsetField(
+                borderRadius: _pastelRadius(base), focused: true)
             : OutlineInputBorder(borderSide: _surfaceSide(base, fieldBorder)),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -4564,7 +4734,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
             base.appearance == AppTheme.cyberpunk
                 ? fieldBorder
                 : pastel
-                    ? _pastelWhite
+                    ? _milkBackground
                     : actionForeground,
           ),
           backgroundBuilder: base.filledButtonTheme.style?.backgroundBuilder,
@@ -4595,7 +4765,7 @@ class _NoteDetailsDialogState extends State<_NoteDetailsDialog> {
                 borderRadius: _pastelRadius(base),
                 side: BorderSide(
                     color: base.custom(_ThemeColour.borders) ??
-                        (pastel ? _milkAccent : _lightLine),
+                        (pastel ? _milkLine : _lightLine),
                     width: 2),
               )
             : null,
@@ -4801,6 +4971,7 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
   Widget build(BuildContext context) {
     final palette = Theme.of(context).metalPalette;
     final theme = Theme.of(context);
+    final isMilk = theme.appearance == AppTheme.pastel;
     final modern = theme.appearance?._modernPalette;
     final cancelFrame = theme.custom(_ThemeColour.borders) ??
         palette?.checklistAccent ??
@@ -4808,12 +4979,15 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
         _defaultNoteBlue;
     final buttonOverride = theme.custom(_ThemeColour.buttons);
     final actionBackground = buttonOverride ??
-        palette?.notesButton ??
-        modern?.notesAccent ??
-        _deepBlueButton;
+        (isMilk
+            ? _milkBackground
+            : palette?.notesButton ?? modern?.notesAccent ?? _deepBlueButton);
     final actionInk = buttonOverride != null
         ? _contrastingInk(actionBackground)
-        : modern?.buttonInk ?? _borderWhite;
+        : isMilk
+            ? _pastelSecondaryInk(theme)
+            : modern?.buttonInk ?? _borderWhite;
+    final cancelInk = isMilk ? _pastelSecondaryInk(theme) : _switchGrey;
     return _popupAlert(
       context,
       key: const ValueKey('category-picker-dialog'),
@@ -4875,7 +5049,7 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
                     key: const ValueKey('category-cancel-button'),
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
-                      foregroundColor: _switchGrey,
+                      foregroundColor: cancelInk,
                       side: _surfaceSide(theme, cancelFrame),
                     ),
                     onPressed: () => Navigator.pop(context),
@@ -4926,7 +5100,7 @@ class _NoteCategoryPickerDialogState extends State<_NoteCategoryPickerDialog> {
                     key: const ValueKey('category-cancel-button'),
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.transparent,
-                      foregroundColor: _switchGrey,
+                      foregroundColor: cancelInk,
                       side: _surfaceSide(theme, cancelFrame),
                     ),
                     onPressed: _removingId == null
@@ -6081,7 +6255,7 @@ class _CoverImageState extends State<_CoverImage> {
                 ],
               ),
             ),
-            colour: theme.custom(_ThemeColour.panel) ?? _pastelLavender,
+            colour: theme.custom(_ThemeColour.panel) ?? _milkBackground,
           ),
         ),
       );
@@ -6356,7 +6530,11 @@ class _AnimatedChecklistProgress extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       key: const ValueKey('animated-checklist-progress'),
       tween: Tween<double>(begin: 0, end: value),
-      duration: const Duration(milliseconds: 420),
+      duration: appearance == AppTheme.pastel
+          ? MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 300)
+          : const Duration(milliseconds: 420),
       curve: Curves.easeOutCubic,
       builder: (context, animatedValue, child) {
         if (appearance == AppTheme.pastel) {
@@ -6517,8 +6695,8 @@ class _TaskRow extends StatelessWidget {
     return Padding(
       key: ValueKey('task-row-${task.id}'),
       padding: EdgeInsets.symmetric(
-        vertical: 8,
-        horizontal: theme.appearance == AppTheme.pastel ? 9 : 0,
+        vertical: theme.appearance == AppTheme.pastel ? 14 : 8,
+        horizontal: theme.appearance == AppTheme.pastel ? 16 : 0,
       ),
       child: Stack(
         children: [
@@ -6568,6 +6746,7 @@ class _TaskRow extends StatelessWidget {
                 iconKey: const ValueKey('task-settings'),
                 dimension: menuSize,
                 iconSize: 20,
+                pastelRecessed: true,
                 colour: theme.colorScheme.onSurface.withValues(alpha: 0.48),
                 tooltip: localizeText(context, 'Task options'),
                 onSelected: (action) {
@@ -6615,10 +6794,12 @@ class _ImportanceBar extends StatelessWidget {
     final color = _themedImportanceColor(theme, importance,
         isPastel: isPastel, isPencil: isPencil);
     return Container(
+      key: isPastel ? const ValueKey('milk-priority-bar') : null,
       width: width,
       height: height,
       decoration: BoxDecoration(
         color: color,
+        borderRadius: isPastel ? BorderRadius.circular(width / 2) : null,
         border: _blackMetalMediumRim(theme, importance),
         boxShadow: _priorityGlow(theme, color),
       ),
@@ -6643,48 +6824,47 @@ class _ImportanceChip extends StatelessWidget {
     final color = _themedImportanceColor(theme, importance,
         isPastel: isPastel, isPencil: isPencil);
     final mediumRim = _blackMetalMediumRim(theme, importance, width: 2);
-    return Container(
-      key: ValueKey('priority-chip-${importance.name}'),
-      padding: isPastel
-          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 11)
-          : const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: mediumRim != null ? color : color.withValues(alpha: 0.12),
-        borderRadius: _pastelRadius(theme, scale: .65),
-        border: mediumRim ?? Border.fromBorderSide(_surfaceSide(theme, color)),
-        boxShadow: isPastel
-            ? const [
-                BoxShadow(
-                    color: Color(0x18725388),
-                    blurRadius: 5,
-                    offset: Offset(0, 2))
-              ]
-            : _priorityGlow(theme, color),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ImportanceBar(
-            importance: importance,
-            isPastel: isPastel,
-            isPencil: isPencil,
-            width: isPastel ? 5 : 4,
-            height: isPastel ? 22 : 16,
-          ),
-          const SizedBox(width: 7),
-          AppText(
-            _importanceLabel(importance),
-            style: (isPastel
-                    ? theme.textTheme.labelLarge
-                    : theme.textTheme.labelMedium)
-                ?.copyWith(
-                    color: isPastel
-                        ? _pastelAccentInk(color)
-                        : mediumRim != null
-                            ? _blackMetalMediumLabel
-                            : color),
-          ),
-        ],
+    return _pastelPressable(
+      theme,
+      Container(
+        key: ValueKey('priority-chip-${importance.name}'),
+        padding: isPastel
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 11)
+            : const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: isPastel
+            ? null
+            : BoxDecoration(
+                color:
+                    mediumRim != null ? color : color.withValues(alpha: 0.12),
+                border: mediumRim ??
+                    Border.fromBorderSide(_surfaceSide(theme, color)),
+                boxShadow: _priorityGlow(theme, color),
+              ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ImportanceBar(
+              importance: importance,
+              isPastel: isPastel,
+              isPencil: isPencil,
+              width: isPastel ? 5 : 4,
+              height: isPastel ? 22 : 16,
+            ),
+            const SizedBox(width: 7),
+            AppText(
+              _importanceLabel(importance),
+              style: (isPastel
+                      ? theme.textTheme.labelLarge
+                      : theme.textTheme.labelMedium)
+                  ?.copyWith(
+                      color: isPastel
+                          ? _pastelAccentInk(color)
+                          : mediumRim != null
+                              ? _blackMetalMediumLabel
+                              : color),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -6710,7 +6890,7 @@ class _ImportanceMenuLabel extends StatelessWidget {
     final glow = theme.appearance == AppTheme.cyberpunk
         ? _priorityGlow(theme, color)
         : null;
-    final decorate = mediumRim != null || glow != null;
+    final decorate = isPastel || mediumRim != null || glow != null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -6720,7 +6900,12 @@ class _ImportanceMenuLabel extends StatelessWidget {
           height: isPastel ? 22 : 18,
           color: decorate ? null : color,
           decoration: decorate
-              ? BoxDecoration(color: color, border: mediumRim, boxShadow: glow)
+              ? BoxDecoration(
+                  color: color,
+                  borderRadius: isPastel ? BorderRadius.circular(2.5) : null,
+                  border: mediumRim,
+                  boxShadow: glow,
+                )
               : null,
         ),
         const SizedBox(width: 8),
